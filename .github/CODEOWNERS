@@ -1,0 +1,23 @@
+# CODEOWNERS de GrootFolio
+# Cada PR requiere review de al menos un owner segun los paths que toca.
+
+# Fallback global: los dos integrantes revisan todo por defecto
+*                               @ivanotero @francodavicino
+
+# Backend (AdonisJS): Franco es lead, Ivan review opcional
+/apps/api/                      @francodavicino @ivanotero
+
+# Web y Mobile: Ivan lead de UX; Franco review de logica
+/apps/web/                      @ivanotero @francodavicino
+/apps/mobile/                   @ivanotero @francodavicino
+
+# Shared contracts (tipos, schemas, tokens): ambos aprueban cambios breaking
+/packages/shared/               @ivanotero @francodavicino
+/packages/tokens/               @ivanotero @francodavicino
+
+# Infra, CI, scripts y gobernanza
+/.github/                       @ivanotero @francodavicino
+/scripts/                       @ivanotero @francodavicino
+
+# Documentacion de tesis y ADRs
+/docs/                          @ivanotero @francodavicino

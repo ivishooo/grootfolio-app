@@ -1,0 +1,41 @@
+{
+  "name": "@grootfolio/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "API REST compartida por web y mobile (AdonisJS 6 + Postgres 16)",
+  "scripts": {
+    "dev": "node ace serve --hmr",
+    "start": "node bin/server.js",
+    "build": "node ace build",
+    "migrate": "node ace migration:run",
+    "rollback": "node ace migration:rollback",
+    "seed": "node ace db:seed",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "node ace test"
+  },
+  "dependencies": {
+    "@adonisjs/auth": "^9.2.0",
+    "@adonisjs/bouncer": "^3.1.0",
+    "@adonisjs/core": "^6.14.0",
+    "@adonisjs/cors": "^2.2.1",
+    "@adonisjs/lucid": "^21.2.0",
+    "@grootfolio/shared": "workspace:*",
+    "@vinejs/vine": "^2.1.0",
+    "luxon": "^3.5.0",
+    "pg": "^8.13.0",
+    "pino": "^9.4.0",
+    "reflect-metadata": "^0.2.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@adonisjs/assembler": "^7.8.2",
+    "@swc/core": "^1.7.35",
+    "@types/luxon": "^3.4.2",
+    "@types/node": "^22.7.4",
+    "pino-pretty": "^11.2.2",
+    "ts-node-maintained": "^10.9.4",
+    "typescript": "^5.5.4"
+  }
+}

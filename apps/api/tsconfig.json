@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "outDir": "build",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "#app/*": ["./app/*"],
+      "#config/*": ["./config/*"],
+      "#start/*": ["./start/*"],
+      "#database/*": ["./database/*"],
+      "#tests/*": ["./tests/*"]
+    },
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "verbatimModuleSyntax": false
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "build"]
+}

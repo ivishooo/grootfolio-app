@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "GrootFolio",
+    "slug": "grootfolio",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0A"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.grootfolio.app" },
+    "android": { "package": "com.grootfolio.app", "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#F97316" } },
+    "web": { "favicon": "./assets/favicon.png" },
+    "extra": { "eas": { "projectId": "REPLACE_ME" } }
+  }
+}
