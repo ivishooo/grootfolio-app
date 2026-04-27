@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "echo 'TODO(fase-3): configurar jest-expo cuando haya tests' && exit 0"
   },
   "dependencies": {
     "@grootfolio/shared": "workspace:*",

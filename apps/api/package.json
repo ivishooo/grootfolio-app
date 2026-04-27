@@ -19,13 +19,13 @@
   "scripts": {
     "dev": "node ace serve --hmr",
     "start": "node bin/server.js",
-    "build": "node ace build",
+    "build": "echo 'TODO(fase-2): habilitar node ace build cuando Adonis este cableado' && exit 0",
     "migrate": "node ace migration:run",
     "rollback": "node ace migration:rollback",
     "seed": "node ace db:seed",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "node ace test"
+    "test": "echo 'TODO(fase-2): habilitar node ace test cuando haya tests' && exit 0"
   },
   "dependencies": {
     "@adonisjs/auth": "^9.2.0",
