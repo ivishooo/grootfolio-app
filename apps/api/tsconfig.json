@@ -10,6 +10,11 @@
     "baseUrl": ".",
     "paths": {
       "#app/*": ["./app/*"],
+      "#controllers/*": ["./app/controllers/*"],
+      "#middleware/*": ["./app/middleware/*"],
+      "#models/*": ["./app/models/*"],
+      "#services/*": ["./app/services/*"],
+      "#exceptions/*": ["./app/exceptions/*"],
       "#config/*": ["./config/*"],
       "#start/*": ["./start/*"],
       "#database/*": ["./database/*"],

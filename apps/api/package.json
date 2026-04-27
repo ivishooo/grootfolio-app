@@ -4,6 +4,18 @@
   "private": true,
   "type": "module",
   "description": "API REST compartida por web y mobile (AdonisJS 6 + Postgres 16)",
+  "imports": {
+    "#app/*": "./app/*.js",
+    "#controllers/*": "./app/controllers/*.js",
+    "#middleware/*": "./app/middleware/*.js",
+    "#models/*": "./app/models/*.js",
+    "#services/*": "./app/services/*.js",
+    "#exceptions/*": "./app/exceptions/*.js",
+    "#config/*": "./config/*.js",
+    "#start/*": "./start/*.js",
+    "#database/*": "./database/*.js",
+    "#tests/*": "./tests/*.js"
+  },
   "scripts": {
     "dev": "node ace serve --hmr",
     "start": "node bin/server.js",
