@@ -2,22 +2,22 @@
 # Cada PR requiere review de al menos un owner segun los paths que toca.
 
 # Fallback global: los dos integrantes revisan todo por defecto
-*                               @ivanotero @francodavicino
+*                               @ivishooo @Davichenco
 
 # Backend (AdonisJS): Franco es lead, Ivan review opcional
-/apps/api/                      @francodavicino @ivanotero
+/apps/api/                      @Davichenco @ivishooo
 
 # Web y Mobile: Ivan lead de UX; Franco review de logica
-/apps/web/                      @ivanotero @francodavicino
-/apps/mobile/                   @ivanotero @francodavicino
+/apps/web/                      @ivishooo @Davichenco
+/apps/mobile/                   @ivishooo @Davichenco
 
 # Shared contracts (tipos, schemas, tokens): ambos aprueban cambios breaking
-/packages/shared/               @ivanotero @francodavicino
-/packages/tokens/               @ivanotero @francodavicino
+/packages/shared/               @ivishooo @Davichenco
+/packages/tokens/               @ivishooo @Davichenco
 
 # Infra, CI, scripts y gobernanza
-/.github/                       @ivanotero @francodavicino
-/scripts/                       @ivanotero @francodavicino
+/.github/                       @ivishooo @Davichenco
+/scripts/                       @ivishooo @Davichenco
 
 # Documentacion de tesis y ADRs
-/docs/                          @ivanotero @francodavicino
+/docs/                          @ivishooo @Davichenco

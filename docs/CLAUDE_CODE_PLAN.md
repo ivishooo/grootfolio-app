@@ -39,7 +39,7 @@ pnpm dev:api             # arranca Adonis en http://localhost:3333
 - Un PR por fase (o sub-fase si la fase es grande). Commits siguiendo
   conventional commits.
 - Si algo del Figma no se entiende o hay contradicciones, abrir issue con
-  tag `question` y etiquetar a @ivanotero.
+  tag `question` y etiquetar a @ivishooo.
 
 ## Fase 1 - Design system compartido
 
@@ -252,5 +252,5 @@ se habilita explicitamente.
 
 Cualquier duda sobre este plan, preguntar en el issue que acompana cada fase
 o dejar un comentario en el PR. El responsable humano del review de esta
-capa es @ivanotero; el responsable del backend y los contratos es
-@francodavicino.
+capa es @ivishooo; el responsable del backend y los contratos es
+@Davichenco.
