@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Documento de arquitectura (tesis)
-    url: https://github.com/grootfolio/grootfolio-app/blob/main/docs/adr/0001-arquitectura.md
+    url: https://github.com/ivishooo/grootfolio-app/blob/main/docs/adr/0001-arquitectura.md
     about: Decisiones de stack y arquitectura ya tomadas.
   - name: Plan para Claude Code
-    url: https://github.com/grootfolio/grootfolio-app/blob/main/docs/CLAUDE_CODE_PLAN.md
+    url: https://github.com/ivishooo/grootfolio-app/blob/main/docs/CLAUDE_CODE_PLAN.md
     about: Fases de implementacion visual.

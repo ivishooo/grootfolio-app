@@ -54,7 +54,10 @@ nota `BREAKING CHANGE:` en el cuerpo.
 4. `pnpm typecheck && pnpm lint && pnpm test` antes de pushear.
 5. `git push -u origin feature/mi-feature`
 6. Abrir PR hacia `develop` usando el template del repo.
-7. Al menos un review de un CODEOWNER + CI verde + checklist tildado => merge.
+7. Para PRs de Franco o futuros colaboradores: review de un CODEOWNER +
+   CI verde + checklist tildado => merge. Para PRs de Ivan (bypass en
+   `develop`): CI verde + checklist tildado alcanzan; el review queda como
+   buena practica pero no es bloqueante.
 8. Preferimos **squash merge** para mantener el historial lineal en `develop`.
 
 ## Releases
@@ -66,16 +69,38 @@ nota `BREAKING CHANGE:` en el cuerpo.
   `git tag -a v0.2.0 -m "Release 0.2.0" && git push --tags`.
 - Luego se mergea `main` de vuelta a `develop` para mantener los fixes.
 
-## Proteccion de ramas (recomendado al subir a GitHub)
+## Proteccion de ramas (configurada via Rulesets)
 
-Para `main` y `develop`:
+Las ramas `main` y `develop` estan protegidas por dos rulesets activos en
+`Settings -> Rules -> Rulesets`. La proteccion comparte el grueso de las
+reglas y se diferencia en quien puede bypassearlas.
 
-- Requerir PR antes de mergear.
-- Requerir CI verde (`lint-typecheck`, `test`, `build`).
-- Requerir al menos 1 aprobacion.
-- Requerir que la rama este al dia con la base.
-- Prohibir push directo (incluido admins).
-- Prohibir force-push.
+### Reglas comunes a `main` y `develop`
+
+- Requerir PR antes de mergear (no se permite push directo).
+- Requerir CI verde en los tres jobs: `Lint + typecheck`, `Unit tests`,
+  `Build web + api`.
+- Requerir 1 aprobacion (PRs no se pueden auto-aprobar).
+- Requerir review de un Code Owner (segun `.github/CODEOWNERS`).
+- Requerir resolucion de todas las conversaciones del PR.
+- Requerir que la rama este al dia con la base antes de mergear.
+- Requerir historial lineal (squash o rebase, no merge commits).
+- Bloquear force-push y deletions.
+- Solo se permiten merge methods: `Squash` y `Rebase` (no `Merge commit`).
+
+### Diferencia: bypass list
+
+- **`main` no admite bypass.** Para mergear a `main` se necesita SI O SI
+  CI verde + aprobacion del otro integrante. Refleja que `main` es la
+  rama de release y la aprobacion conjunta queda como evidencia de
+  auditoria para la tesis.
+- **`develop` admite bypass para `@ivishooo` (Ivan).** Como product owner
+  y responsable principal del codebase, los PRs de Ivan a `develop`
+  pueden mergearse con CI verde sin esperar aprobacion adicional. Los
+  PRs de cualquier otro integrante (Franco, futuros colaboradores)
+  siguen el flujo estandar y requieren aprobacion. Esta asimetria
+  refleja la division real de responsabilidades del equipo y evita
+  que el proceso entorpezca el ritmo de desarrollo.
 
 ## Convenciones extra
 
