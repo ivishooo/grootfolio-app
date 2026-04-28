@@ -83,6 +83,12 @@ updates:
       # Jest atado a jest-expo
       - dependency-name: jest
         update-types: ["version-update:semver-major"]
+      # TypeScript: ignoramos majors para evitar PRs invasivas
+      # (TS esta en devDeps de todos los packages del monorepo).
+      # Lo bumpeamos a mano en un sweep de tooling al cerrar las
+      # primeras fases del CLAUDE_CODE_PLAN.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
