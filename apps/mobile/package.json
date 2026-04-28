@@ -17,7 +17,7 @@
     "@grootfolio/tokens": "workspace:*",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
-    "@tanstack/react-query": "^5.59.15",
+    "@tanstack/react-query": "^5.100.6",
     "expo": "~51.0.39",
     "expo-secure-store": "~13.0.2",
     "expo-status-bar": "~1.12.1",
