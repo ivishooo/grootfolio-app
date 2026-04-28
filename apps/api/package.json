@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@adonisjs/assembler": "^7.8.2",
-    "@swc/core": "^1.7.35",
+    "@swc/core": "^1.15.32",
     "@types/luxon": "^3.4.2",
     "@types/node": "^22.7.4",
     "pino-pretty": "^11.2.2",
