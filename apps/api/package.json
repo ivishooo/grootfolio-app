@@ -28,7 +28,7 @@
     "test": "echo 'TODO(fase-2): habilitar node ace test cuando haya tests' && exit 0"
   },
   "dependencies": {
-    "@adonisjs/auth": "^9.2.0",
+    "@adonisjs/auth": "^10.1.0",
     "@adonisjs/bouncer": "^3.1.0",
     "@adonisjs/core": "^6.14.0",
     "@adonisjs/cors": "^2.2.1",
