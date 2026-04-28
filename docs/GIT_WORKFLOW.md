@@ -55,9 +55,9 @@ nota `BREAKING CHANGE:` en el cuerpo.
 5. `git push -u origin feature/mi-feature`
 6. Abrir PR hacia `develop` usando el template del repo.
 7. Para PRs de Franco o futuros colaboradores: review de un CODEOWNER +
-   CI verde + checklist tildado => merge. Para PRs de Ivan (bypass en
-   `develop`): CI verde + checklist tildado alcanzan; el review queda como
-   buena practica pero no es bloqueante.
+   CI verde + checklist tildado => merge. Para PRs de Ivan (bypass de
+   Repository admin en `main` y `develop`): CI verde + checklist tildado
+   alcanzan; el review queda como buena practica pero no es bloqueante.
 8. Preferimos **squash merge** para mantener el historial lineal en `develop`.
 
 ## Releases
@@ -88,19 +88,31 @@ reglas y se diferencia en quien puede bypassearlas.
 - Bloquear force-push y deletions.
 - Solo se permiten merge methods: `Squash` y `Rebase` (no `Merge commit`).
 
-### Diferencia: bypass list
+### Bypass list
 
-- **`main` no admite bypass.** Para mergear a `main` se necesita SI O SI
-  CI verde + aprobacion del otro integrante. Refleja que `main` es la
-  rama de release y la aprobacion conjunta queda como evidencia de
-  auditoria para la tesis.
-- **`develop` admite bypass para `@ivishooo` (Ivan).** Como product owner
-  y responsable principal del codebase, los PRs de Ivan a `develop`
-  pueden mergearse con CI verde sin esperar aprobacion adicional. Los
-  PRs de cualquier otro integrante (Franco, futuros colaboradores)
-  siguen el flujo estandar y requieren aprobacion. Esta asimetria
-  refleja la division real de responsabilidades del equipo y evita
-  que el proceso entorpezca el ritmo de desarrollo.
+Ambos rulesets (`main` y `develop`) tienen el rol `Repository admin` en
+su bypass list, con bypass mode `Always`. Como Ivan es el unico
+integrante con rol Repository admin (Franco se incorpora con permiso
+`Write`), en la practica esto significa:
+
+- **Los PRs de Ivan** a `main` o a `develop` se mergean con CI verde,
+  sin esperar aprobacion adicional. Ivan se autoasigna las revisiones
+  como buena practica, pero no son bloqueantes.
+- **Los PRs de Franco** (o cualquier futuro colaborador con permiso
+  Write) **siguen el flujo estandar**: requieren CI verde + aprobacion
+  de un Code Owner (que en la practica es Ivan, dado el reparto de
+  CODEOWNERS).
+
+Esta asimetria refleja la division real de responsabilidades del equipo:
+Ivan es product owner y lead tecnico, lleva el grueso del codigo y la
+direccion del proyecto; Franco esta capacitandose en el stack y aporta
+en backend cuando se cablee Adonis. Forzar la aprobacion dual a Ivan
+mismo agrega ceremonia sin valor real.
+
+Si en algun momento se decide endurecer `main` (por ejemplo, antes de un
+release sensible o cuando el equipo crezca), basta con quitar el bypass
+del ruleset correspondiente. El cambio queda registrado en el changelog
+de Rulesets de GitHub y queda como auditoria.
 
 ## Convenciones extra
 
