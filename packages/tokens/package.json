@@ -10,6 +10,7 @@
     "./tailwind": "./src/tailwind-preset.ts"
   },
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0"
   },

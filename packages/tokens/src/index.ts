@@ -60,7 +60,47 @@ export const neutral = {
 } as const
 
 // ---- Temas ----
-export const lightTheme = {
+// `Theme` describe la forma estructural; los valores quedan como `string` para
+// que tanto lightTheme como darkTheme calcen en `Record<ThemeName, Theme>`.
+export interface Theme {
+  background: {
+    canvas: string
+    surface: string
+    elevated: string
+    muted: string
+    tip: string
+  }
+  text: {
+    primary: string
+    secondary: string
+    muted: string
+    onBrand: string
+    onTip: string
+  }
+  border: {
+    default: string
+    strong: string
+    focus: string
+  }
+  brand: {
+    solid: string
+    solidHover: string
+    subtle: string
+    subtleText: string
+  }
+  chart: {
+    series1: string
+    series2: string
+    series3: string
+    series4: string
+    positive: string
+    negative: string
+  }
+}
+
+export type ThemeName = 'light' | 'dark'
+
+export const lightTheme: Theme = {
   background: {
     canvas: neutral[50],
     surface: neutral[0],
@@ -94,9 +134,9 @@ export const lightTheme = {
     positive: success[500],
     negative: danger[500],
   },
-} as const
+}
 
-export const darkTheme = {
+export const darkTheme: Theme = {
   background: {
     canvas: '#0A0A0A',
     surface: '#17181C',
@@ -130,10 +170,8 @@ export const darkTheme = {
     positive: success[500],
     negative: danger[500],
   },
-} as const
+}
 
-export type Theme = typeof lightTheme
-export type ThemeName = 'light' | 'dark'
 export const themes: Record<ThemeName, Theme> = {
   light: lightTheme,
   dark: darkTheme,
