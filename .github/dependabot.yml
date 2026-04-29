@@ -41,10 +41,10 @@ updates:
     # ----------------------------------------------------------------
     # Ignore list: paquetes version-locked con stacks ya cerrados.
     # Subirlos a un major nuevo requiere primero un ADR (ver
-    # docs/adr/0001-arquitectura.md y docs/adr/0002-upgrade-expo-sdk-55.md).
+    # docs/adr/0001-arquitectura.md y docs/adr/0002-upgrade-expo-sdk-54.md).
     # ----------------------------------------------------------------
     ignore:
-      # React + RN ecosystem (locked a Expo SDK 55 = React 19 + RN 0.84)
+      # React + RN ecosystem (locked a Expo SDK 54 = React 19.1 + RN 0.81)
       - dependency-name: react
         update-types: ["version-update:semver-major"]
       - dependency-name: react-dom
