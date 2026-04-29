@@ -9,8 +9,8 @@ Autores: Ivan Otero y Franco Davicino
 ## Stack
 
 - **Backend**: AdonisJS 6 + TypeScript, ORM Lucid, PostgreSQL 16.
-- **Web**: React 18 + Vite + TypeScript + TanStack Query + Tailwind CSS.
-- **Mobile**: React Native + Expo SDK + TypeScript + React Navigation.
+- **Web**: React 19 + Vite + TypeScript + TanStack Query + Tailwind CSS.
+- **Mobile**: React Native 0.84 + Expo SDK 55 + TypeScript + React Navigation 7.
 - **Shared**: paquete `@grootfolio/shared` con schemas Zod, tipos de dominio y utils.
 - **Tokens**: paquete `@grootfolio/tokens` con los design tokens extraidos del Figma.
 - **Monorepo**: pnpm workspaces.
