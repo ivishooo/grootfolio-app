@@ -69,8 +69,8 @@ Las decisiones de stack ya estan tomadas y documentadas en
 - **Monorepo** con pnpm workspaces (`apps/*` + `packages/*`).
 - **Backend unico compartido** entre web y mobile: AdonisJS 6 + TypeScript +
   Lucid + PostgreSQL 16.
-- **Web**: React 18 + Vite + TypeScript + TanStack Query + Tailwind CSS.
-- **Mobile**: React Native + Expo SDK 51 + React Navigation + victory-native.
+- **Web**: React 19 + Vite + TypeScript + TanStack Query + Tailwind CSS.
+- **Mobile**: React Native 0.84 + Expo SDK 55 + React Navigation 7 + victory-native v41.
 - **Shared**: tipos de dominio, schemas Zod y cliente HTTP en
   `packages/shared`. Design tokens en `packages/tokens`.
 - **Auth**: JWT propio con refresh rotatorio.

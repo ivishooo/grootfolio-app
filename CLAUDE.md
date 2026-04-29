@@ -18,9 +18,9 @@ Analisis de Sistemas por Ivan Otero y Franco Davicino.
 ## Stack acordado
 
 - **Backend**: AdonisJS 6 + TypeScript. ORM: Lucid (o Prisma, a confirmar).
-- **Web**: React 18 + Vite + TypeScript + TanStack Query + Zustand o Redux
+- **Web**: React 19 + Vite + TypeScript + TanStack Query + Zustand o Redux
   Toolkit.
-- **Mobile**: React Native con Expo SDK estable + TypeScript.
+- **Mobile**: React Native 0.84 + Expo SDK 55 + TypeScript + React Navigation 7.
 - **Base de datos**: Postgres 16 preferentemente; MySQL 8 como alternativa si
   se prioriza familiaridad del equipo.
 - **APIs externas de precios**: CoinGecko (crypto), Yahoo Finance 2 o Alpha
