@@ -1,11 +1,18 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 import { useColorScheme } from 'react-native'
-import { themes, type Theme, type ThemeName } from '@grootfolio/tokens'
+import { fontFamilyMobile, themes, type Theme, type ThemeName } from '@grootfolio/tokens'
 
 interface ThemeContextValue {
   theme: Theme
   themeName: ThemeName
   toggleTheme: () => void
+  /**
+   * Nombres concretos de las fuentes Inter para React Native.
+   * Cada peso es su propio `fontFamily` porque RN no soporta el
+   * sistema CSS de family + weight.
+   * Uso: `<Text style={{ fontFamily: font.medium }}>...</Text>`
+   */
+  font: typeof fontFamilyMobile
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
@@ -19,6 +26,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       theme: themes[themeName],
       themeName,
       toggleTheme: () => setOverride(themeName === 'light' ? 'dark' : 'light'),
+      font: fontFamilyMobile,
     }),
     [themeName],
   )

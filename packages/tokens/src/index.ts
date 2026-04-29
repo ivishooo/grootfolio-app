@@ -4,6 +4,20 @@
  * Tokens extraidos del Figma oficial (GrootFolio - Investment Portfolio Manager).
  * Fuente unica para web (Tailwind) y mobile (React Native theme).
  * Cualquier cambio de color, spacing o tipografia empieza aqui.
+ *
+ * Estructura:
+ * - Paletas standalone (brand, neutral, success, danger, warning, info):
+ *   colores con significado universal que NO varian entre temas.
+ * - Theme semantico (lightTheme / darkTheme): grupos como background, text,
+ *   border, brand y bloques semanticos (success/danger/warning/info) con
+ *   valores que SI varian entre modos.
+ * - Escalas estructurales: typography, spacing, radius, shadow, breakpoints.
+ *
+ * TODO (Fase 4 cuando armemos componentes reutilizables):
+ *   - z-index scale para modales, drawers, dropdowns, toasts.
+ *   - transition duration + easing para hover/active/expand.
+ *   - chart palette extendida a 8 series para portfolios con muchos holdings.
+ *   - lineHeight y letterSpacing tokens.
  */
 
 // ---- Paleta primaria ----
@@ -20,27 +34,39 @@ export const brand = {
   900: '#7C2D12',
 } as const
 
-// ---- Estados ----
+// ---- Estados (paletas semanticas) ----
+// Cada una con escala 50/100/500/600/700 para soportar variantes
+// (alert sutil con bg 100, alert solido con 500, texto en 700).
 export const success = {
+  50: '#F0FDF4',
+  100: '#DCFCE7',
   500: '#22C55E',
   600: '#16A34A',
-  bg: '#DCFCE7',
+  700: '#15803D',
 } as const
 
 export const danger = {
+  50: '#FEF2F2',
+  100: '#FEE2E2',
   500: '#EF4444',
   600: '#DC2626',
-  bg: '#FEE2E2',
+  700: '#B91C1C',
 } as const
 
 export const warning = {
+  50: '#FFFBEB',
+  100: '#FEF3C7',
   500: '#F59E0B',
-  bg: '#FEF3C7',
+  600: '#D97706',
+  700: '#B45309',
 } as const
 
 export const info = {
+  50: '#EFF6FF',
+  100: '#DBEAFE',
   500: '#3B82F6',
-  bg: '#DBEAFE',
+  600: '#2563EB',
+  700: '#1D4ED8',
 } as const
 
 // ---- Escala de neutros ----
@@ -69,20 +95,53 @@ export interface Theme {
     elevated: string
     muted: string
     tip: string
+    disabled: string
   }
   text: {
     primary: string
     secondary: string
     muted: string
+    placeholder: string
+    disabled: string
     onBrand: string
     onTip: string
+    onSuccess: string
+    onDanger: string
+    onWarning: string
+    onInfo: string
   }
   border: {
     default: string
     strong: string
     focus: string
+    disabled: string
   }
   brand: {
+    solid: string
+    solidHover: string
+    solidActive: string
+    subtle: string
+    subtleText: string
+  }
+  success: {
+    solid: string
+    solidHover: string
+    subtle: string
+    subtleText: string
+  }
+  danger: {
+    solid: string
+    solidHover: string
+    subtle: string
+    subtleText: string
+  }
+  warning: {
+    solid: string
+    solidHover: string
+    subtle: string
+    subtleText: string
+  }
+  info: {
     solid: string
     solidHover: string
     subtle: string
@@ -107,24 +166,57 @@ export const lightTheme: Theme = {
     elevated: neutral[0],
     muted: neutral[100],
     tip: neutral[700],
+    disabled: neutral[100],
   },
   text: {
     primary: neutral[900],
     secondary: neutral[600],
     muted: neutral[500],
+    placeholder: neutral[400],
+    disabled: neutral[400],
     onBrand: neutral[0],
     onTip: neutral[0],
+    onSuccess: neutral[0],
+    onDanger: neutral[0],
+    onWarning: neutral[900], // amarillo necesita texto oscuro para contraste
+    onInfo: neutral[0],
   },
   border: {
     default: neutral[200],
     strong: neutral[300],
     focus: brand[500],
+    disabled: neutral[200],
   },
   brand: {
     solid: brand[500],
     solidHover: brand[600],
+    solidActive: brand[700],
     subtle: brand[100],
     subtleText: brand[600],
+  },
+  success: {
+    solid: success[500],
+    solidHover: success[600],
+    subtle: success[100],
+    subtleText: success[700],
+  },
+  danger: {
+    solid: danger[500],
+    solidHover: danger[600],
+    subtle: danger[100],
+    subtleText: danger[700],
+  },
+  warning: {
+    solid: warning[500],
+    solidHover: warning[600],
+    subtle: warning[100],
+    subtleText: warning[700],
+  },
+  info: {
+    solid: info[500],
+    solidHover: info[600],
+    subtle: info[100],
+    subtleText: info[700],
   },
   chart: {
     series1: brand[500],
@@ -143,24 +235,58 @@ export const darkTheme: Theme = {
     elevated: '#1F2024',
     muted: '#2A2B30',
     tip: '#3F4046',
+    disabled: '#14151A',
   },
   text: {
     primary: neutral[50],
     secondary: neutral[300],
     muted: neutral[400],
+    placeholder: neutral[500],
+    disabled: neutral[500],
     onBrand: neutral[0],
     onTip: neutral[100],
+    onSuccess: neutral[0],
+    onDanger: neutral[0],
+    onWarning: neutral[900],
+    onInfo: neutral[0],
   },
   border: {
     default: '#2A2B30',
     strong: '#3F4046',
     focus: brand[500],
+    disabled: '#26272B',
   },
   brand: {
+    // En dark, los hover/active aclaran (van hacia el blanco) en vez de oscurecer.
     solid: brand[500],
     solidHover: brand[400],
+    solidActive: brand[300],
     subtle: 'rgba(249, 115, 22, 0.15)',
     subtleText: brand[400],
+  },
+  success: {
+    solid: success[500],
+    solidHover: success[600],
+    subtle: 'rgba(34, 197, 94, 0.15)',
+    subtleText: success[500],
+  },
+  danger: {
+    solid: danger[500],
+    solidHover: danger[600],
+    subtle: 'rgba(239, 68, 68, 0.15)',
+    subtleText: danger[500],
+  },
+  warning: {
+    solid: warning[500],
+    solidHover: warning[600],
+    subtle: 'rgba(245, 158, 11, 0.15)',
+    subtleText: warning[500],
+  },
+  info: {
+    solid: info[500],
+    solidHover: info[600],
+    subtle: 'rgba(59, 130, 246, 0.15)',
+    subtleText: info[500],
   },
   chart: {
     series1: brand[500],
@@ -178,9 +304,19 @@ export const themes: Record<ThemeName, Theme> = {
 }
 
 // ---- Tipografia ----
+// `fontFamily` es web-shape (array con fallbacks para CSS y Tailwind).
+// Para mobile usar `fontFamilyMobile` que tiene los nombres concretos
+// que expone @expo-google-fonts/inter (cada peso es su propio family).
 export const fontFamily = {
   sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
   mono: ['JetBrains Mono', 'Menlo', 'Consolas', 'monospace'],
+} as const
+
+export const fontFamilyMobile = {
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
 } as const
 
 export const fontSize = {
