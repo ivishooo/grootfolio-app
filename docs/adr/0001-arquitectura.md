@@ -6,8 +6,8 @@
 - **Reemplaza a:** -
 - **Reemplazado por:** -
 - **Sub-decisiones actualizadas:** El pin original de Expo SDK 51 / React 18 /
-  React Native 0.74 fue actualizado a SDK 55 / React 19 / RN 0.84 en
-  [ADR-0002](0002-upgrade-expo-sdk-55.md) por incompatibilidad con Expo Go
+  React Native 0.74 fue actualizado a SDK 54 / React 19 / RN 0.81 en
+  [ADR-0002](0002-upgrade-expo-sdk-54.md) por incompatibilidad con Expo Go
   publicado en App Store. La eleccion de stack mobile (RN + Expo) sigue
   vigente; lo unico que cambia es la version pinneada.
 
