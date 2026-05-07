@@ -11,6 +11,7 @@ import {
 import { NavigationContainer } from '@react-navigation/native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { AuthProvider } from './src/auth/AuthProvider'
 import { RootNavigator } from './src/navigation/RootNavigator'
 import { ThemeProvider } from './src/theme/ThemeProvider'
 
@@ -38,10 +39,12 @@ export default function App() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
+          <AuthProvider>
           <NavigationContainer>
             <StatusBar style="auto" />
             <RootNavigator />
           </NavigationContainer>
+          </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

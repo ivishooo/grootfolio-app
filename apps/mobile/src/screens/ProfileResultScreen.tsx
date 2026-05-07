@@ -54,11 +54,11 @@ export function ProfileResultScreen() {
           ))}
         </View>
 
-        <TouchableOpacity style={s.primaryBtn} onPress={() => nav.replace('Dashboard')}>
+        <TouchableOpacity style={s.primaryBtn} onPress={() => nav.navigate('Main')}>
           <Text style={{ color: '#fff', fontWeight: '600' }}>Ir al Dashboard</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => nav.replace('ProfileTest')}>
+        <TouchableOpacity onPress={() => nav.navigate('Main')}>
           <Text style={{ color: theme.text.secondary, textAlign: 'center' }}>Repetir el test</Text>
         </TouchableOpacity>
       </ScrollView>

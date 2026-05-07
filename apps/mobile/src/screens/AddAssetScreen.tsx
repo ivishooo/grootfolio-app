@@ -3,13 +3,12 @@
  * Completar en Fase 3.
  */
 import { ScrollView, View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme } from '@/theme/ThemeProvider'
 
 export function AddAssetScreen() {
   const { theme } = useTheme()
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background.canvas }}>
+    <View style={{ flex: 1, backgroundColor: theme.background.canvas }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
         <Text style={{ color: theme.text.primary, fontSize: 20, fontWeight: '700' }}>Cargar Activo</Text>
         {['Criptomonedas', 'Accion', 'Bono', 'Divisa'].map((label) => (
@@ -26,7 +25,7 @@ export function AddAssetScreen() {
           <TouchableOpacity style={s.button}><Text style={{ color: '#fff', fontWeight: '600' }}>Guardar Activo</Text></TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 
