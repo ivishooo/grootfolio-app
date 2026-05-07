@@ -5,12 +5,14 @@ import { brand } from '@grootfolio/tokens'
 import { DashboardScreen } from '../screens/DashboardScreen'
 import { AddAssetScreen } from '../screens/AddAssetScreen'
 import { ProfileTestScreen } from '../screens/ProfileTestScreen'
+import { SettingsScreen } from '../screens/SettingsScreen'
 import { AppHeader } from './AppHeader'
 
 export type TabParamList = {
   Dashboard: undefined
   AddAsset: undefined
   ProfileTest: undefined
+  Settings: undefined
 }
 
 const Tab = createBottomTabNavigator<TabParamList>()
@@ -53,6 +55,14 @@ export function TabNavigator() {
         options={{
           tabBarLabel: 'Perfil',
           tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>☑</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarLabel: 'Config',
+          tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>⚙</Text>,
         }}
       />
     </Tab.Navigator>
