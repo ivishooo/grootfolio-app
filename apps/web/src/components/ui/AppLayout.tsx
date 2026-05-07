@@ -16,7 +16,6 @@ export function AppLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [sidebarMenuOpen, setSidebarMenuOpen] = useState(false)
 
   const handleLogout = () => {
