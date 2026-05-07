@@ -4,7 +4,6 @@
  */
 import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useTheme } from '@/theme/ThemeProvider'
@@ -31,7 +30,7 @@ const mockQuestions = [
 
 export function ProfileTestScreen() {
   const { theme } = useTheme()
-  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Main'>>()
   const [step, setStep] = useState(0)
   const total = mockQuestions.length
   const current = mockQuestions[step]
@@ -39,11 +38,11 @@ export function ProfileTestScreen() {
 
   const onSelect = () => {
     if (step < total - 1) setStep(step + 1)
-    else nav.replace('ProfileResult')
+    else nav.getParent()?.navigate('ProfileResult')
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background.canvas }}>
+    <View style={{ flex: 1, backgroundColor: theme.background.canvas }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
         <View>
           <Text style={{ color: theme.text.primary, fontSize: 20, fontWeight: '700' }}>
@@ -79,7 +78,7 @@ export function ProfileTestScreen() {
           </TouchableOpacity>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 

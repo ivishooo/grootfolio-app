@@ -4,14 +4,12 @@
  */
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useNavigation } from '@react-navigation/native'
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useTheme } from '@/theme/ThemeProvider'
-import type { RootStackParamList } from '@/navigation/RootNavigator'
+import { useAuth } from '@/auth/AuthProvider'
 
 export function LoginScreen() {
   const { theme } = useTheme()
-  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
+  const { login } = useAuth()
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: theme.background.canvas }]}>
       <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
@@ -20,7 +18,7 @@ export function LoginScreen() {
         <Text style={{ color: theme.text.secondary, textAlign: 'center' }}>Ingresa a tu portfolio</Text>
         <TextInput placeholder="tu@email.com" placeholderTextColor={theme.text.muted} style={[s.input, { backgroundColor: theme.background.muted, color: theme.text.primary }]} />
         <TextInput placeholder="Contrasena" secureTextEntry placeholderTextColor={theme.text.muted} style={[s.input, { backgroundColor: theme.background.muted, color: theme.text.primary }]} />
-        <TouchableOpacity style={s.button} onPress={() => nav.replace('Dashboard')}>
+        <TouchableOpacity style={s.button} onPress={login}>
           <Text style={{ color: '#fff', fontWeight: '600' }}>Ingresar</Text>
         </TouchableOpacity>
       </View>

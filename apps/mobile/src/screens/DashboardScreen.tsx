@@ -3,7 +3,6 @@
  * Completar cards, pie chart, bar chart y tabla en Fase 3.
  */
 import { ScrollView, View, Text, StyleSheet } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useTheme } from '@/theme/ThemeProvider'
 import { formatCurrency, formatPercent } from '@grootfolio/shared'
 
@@ -12,7 +11,7 @@ const mockTotals = { value: 100000, pct: 15.2, pnl: 3709 }
 export function DashboardScreen() {
   const { theme } = useTheme()
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background.canvas }}>
+    <View style={{ flex: 1, backgroundColor: theme.background.canvas }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
         <Text style={{ color: theme.text.primary, fontSize: 20, fontWeight: '700' }}>Dashboard</Text>
         <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
@@ -38,7 +37,7 @@ export function DashboardScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 

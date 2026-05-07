@@ -1,28 +1,30 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { useAuth } from '@/auth/AuthProvider'
 import { LoginScreen } from '@/screens/LoginScreen'
-import { DashboardScreen } from '@/screens/DashboardScreen'
-import { AddAssetScreen } from '@/screens/AddAssetScreen'
-import { ProfileTestScreen } from '@/screens/ProfileTestScreen'
 import { ProfileResultScreen } from '@/screens/ProfileResultScreen'
+import { TabNavigator } from './TabNavigator'
 
 export type RootStackParamList = {
   Login: undefined
-  Dashboard: undefined
-  AddAsset: undefined
-  ProfileTest: undefined
+  Main: undefined
   ProfileResult: undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
 export function RootNavigator() {
+  const { isAuthenticated } = useAuth()
+
   return (
-    <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Dashboard" component={DashboardScreen} />
-      <Stack.Screen name="AddAsset" component={AddAssetScreen} />
-      <Stack.Screen name="ProfileTest" component={ProfileTestScreen} />
-      <Stack.Screen name="ProfileResult" component={ProfileResultScreen} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {isAuthenticated ? (
+        <>
+          <Stack.Screen name="Main" component={TabNavigator} />
+          <Stack.Screen name="ProfileResult" component={ProfileResultScreen} />
+        </>
+      ) : (
+        <Stack.Screen name="Login" component={LoginScreen} />
+      )}
     </Stack.Navigator>
   )
 }
