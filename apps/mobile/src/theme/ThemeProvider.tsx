@@ -1,10 +1,11 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 import { useColorScheme } from 'react-native'
-import { themes, type Theme, type ThemeName } from '@grootfolio/tokens'
+import { themes, fontFamilyMobile, type Theme, type ThemeName } from '@grootfolio/tokens'
 
 interface ThemeContextValue {
   theme: Theme
   themeName: ThemeName
+  font: typeof fontFamilyMobile
   toggleTheme: () => void
 }
 
@@ -18,6 +19,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     () => ({
       theme: themes[themeName],
       themeName,
+      font: fontFamilyMobile,
       toggleTheme: () => setOverride(themeName === 'light' ? 'dark' : 'light'),
     }),
     [themeName],

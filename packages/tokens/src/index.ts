@@ -20,27 +20,37 @@ export const brand = {
   900: '#7C2D12',
 } as const
 
-// ---- Estados ----
+// ---- Estados (paleta extendida para componentes) ----
 export const success = {
+  50: '#F0FDF4',
+  100: '#DCFCE7',
   500: '#22C55E',
   600: '#16A34A',
-  bg: '#DCFCE7',
+  700: '#15803D',
 } as const
 
 export const danger = {
+  50: '#FEF2F2',
+  100: '#FEE2E2',
   500: '#EF4444',
   600: '#DC2626',
-  bg: '#FEE2E2',
+  700: '#B91C1C',
 } as const
 
 export const warning = {
+  50: '#FFFBEB',
+  100: '#FEF3C7',
   500: '#F59E0B',
-  bg: '#FEF3C7',
+  600: '#D97706',
+  700: '#B45309',
 } as const
 
 export const info = {
+  50: '#EFF6FF',
+  100: '#DBEAFE',
   500: '#3B82F6',
-  bg: '#DBEAFE',
+  600: '#2563EB',
+  700: '#1D4ED8',
 } as const
 
 // ---- Escala de neutros ----
@@ -69,25 +79,38 @@ export interface Theme {
     elevated: string
     muted: string
     tip: string
+    disabled: string
   }
   text: {
     primary: string
     secondary: string
     muted: string
+    placeholder: string
+    disabled: string
     onBrand: string
     onTip: string
+    onSuccess: string
+    onDanger: string
+    onWarning: string
+    onInfo: string
   }
   border: {
     default: string
     strong: string
     focus: string
+    disabled: string
   }
   brand: {
     solid: string
     solidHover: string
+    solidActive: string
     subtle: string
     subtleText: string
   }
+  success: { solid: string; solidHover: string; subtle: string; subtleText: string }
+  danger: { solid: string; solidHover: string; subtle: string; subtleText: string }
+  warning: { solid: string; solidHover: string; subtle: string; subtleText: string }
+  info: { solid: string; solidHover: string; subtle: string; subtleText: string }
   chart: {
     series1: string
     series2: string
@@ -107,25 +130,38 @@ export const lightTheme: Theme = {
     elevated: neutral[0],
     muted: neutral[100],
     tip: neutral[700],
+    disabled: neutral[100],
   },
   text: {
     primary: neutral[900],
     secondary: neutral[600],
     muted: neutral[500],
+    placeholder: neutral[400],
+    disabled: neutral[300],
     onBrand: neutral[0],
     onTip: neutral[0],
+    onSuccess: success[700],
+    onDanger: danger[700],
+    onWarning: warning[700],
+    onInfo: info[700],
   },
   border: {
     default: neutral[200],
     strong: neutral[300],
     focus: brand[500],
+    disabled: neutral[200],
   },
   brand: {
     solid: brand[500],
     solidHover: brand[600],
+    solidActive: brand[700],
     subtle: brand[100],
     subtleText: brand[600],
   },
+  success: { solid: success[500], solidHover: success[600], subtle: success[50], subtleText: success[700] },
+  danger: { solid: danger[500], solidHover: danger[600], subtle: danger[50], subtleText: danger[700] },
+  warning: { solid: warning[500], solidHover: warning[600], subtle: warning[50], subtleText: warning[700] },
+  info: { solid: info[500], solidHover: info[600], subtle: info[50], subtleText: info[700] },
   chart: {
     series1: brand[500],
     series2: neutral[900],
@@ -143,25 +179,38 @@ export const darkTheme: Theme = {
     elevated: '#1F2024',
     muted: '#2A2B30',
     tip: '#3F4046',
+    disabled: '#1F2024',
   },
   text: {
     primary: neutral[50],
     secondary: neutral[300],
     muted: neutral[400],
+    placeholder: neutral[500],
+    disabled: neutral[600],
     onBrand: neutral[0],
     onTip: neutral[100],
+    onSuccess: success[100],
+    onDanger: danger[100],
+    onWarning: warning[100],
+    onInfo: info[100],
   },
   border: {
     default: '#2A2B30',
     strong: '#3F4046',
     focus: brand[500],
+    disabled: '#2A2B30',
   },
   brand: {
     solid: brand[500],
     solidHover: brand[400],
+    solidActive: brand[300],
     subtle: 'rgba(249, 115, 22, 0.15)',
     subtleText: brand[400],
   },
+  success: { solid: success[500], solidHover: success[600], subtle: 'rgba(34,197,94,0.15)', subtleText: success[100] },
+  danger: { solid: danger[500], solidHover: danger[600], subtle: 'rgba(239,68,68,0.15)', subtleText: danger[100] },
+  warning: { solid: warning[500], solidHover: warning[600], subtle: 'rgba(245,158,11,0.15)', subtleText: warning[100] },
+  info: { solid: info[500], solidHover: info[600], subtle: 'rgba(59,130,246,0.15)', subtleText: info[100] },
   chart: {
     series1: brand[500],
     series2: neutral[100],
@@ -179,8 +228,16 @@ export const themes: Record<ThemeName, Theme> = {
 
 // ---- Tipografia ----
 export const fontFamily = {
-  sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+  sans: ['Inter Variable', 'Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
   mono: ['JetBrains Mono', 'Menlo', 'Consolas', 'monospace'],
+} as const
+
+// Nombres concretos para expo-font / useFonts en React Native
+export const fontFamilyMobile = {
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
 } as const
 
 export const fontSize = {
