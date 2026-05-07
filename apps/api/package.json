@@ -34,7 +34,7 @@
     "@adonisjs/cors": "^2.2.1",
     "@adonisjs/lucid": "^21.2.0",
     "@grootfolio/shared": "workspace:*",
-    "@vinejs/vine": "^2.1.0",
+    "@vinejs/vine": "^4.4.0",
     "luxon": "^3.5.0",
     "pg": "^8.13.0",
     "pino": "^9.4.0",
