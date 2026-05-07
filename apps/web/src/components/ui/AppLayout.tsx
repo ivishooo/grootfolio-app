@@ -17,6 +17,7 @@ export function AppLayout() {
   const navigate = useNavigate()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [sidebarMenuOpen, setSidebarMenuOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -66,17 +67,15 @@ export function AppLayout() {
           ))}
         </nav>
 
-        {/* User info at bottom */}
-        <div className="border-t border-neutral-200 px-4 py-3 dark:border-neutral-700">
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
-              U
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{user?.name ?? 'Usuario Demo'}</p>
-              <p className="truncate text-xs text-neutral-500">{user?.email ?? 'demo@grootfolio.com'}</p>
-            </div>
-          </div>
+        {/* User info at bottom with menu */}
+        <div className="relative border-t border-neutral-200 px-4 py-3 dark:border-neutral-700">
+          <UserMenu
+            user={user}
+            open={sidebarMenuOpen}
+            onToggle={() => setSidebarMenuOpen((v) => !v)}
+            onLogout={handleLogout}
+            position="top"
+          />
         </div>
       </aside>
 
@@ -95,21 +94,13 @@ export function AppLayout() {
             <h1 className="text-lg font-bold">GrootFolio</h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={toggleTheme}
-              className="grid h-8 w-8 place-items-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
-              aria-label="Cambiar tema"
-            >
-              {themeName === 'light' ? '☀' : '☾'}
-            </button>
-            <UserMenu
-              user={user}
-              open={userMenuOpen}
-              onToggle={() => setUserMenuOpen((v) => !v)}
-              onLogout={handleLogout}
-            />
-          </div>
+          <button
+            onClick={toggleTheme}
+            className="grid h-8 w-8 place-items-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            aria-label="Cambiar tema"
+          >
+            {themeName === 'light' ? '☀' : '☾'}
+          </button>
         </header>
 
         {/* Content */}
