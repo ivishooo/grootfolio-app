@@ -1,6 +1,9 @@
 import { ScrollView, View, Text, StyleSheet } from 'react-native'
 import { useTheme } from '@/theme/ThemeProvider'
 import { formatCurrency, formatPercent } from '@grootfolio/shared'
+import { Screen } from '@/components/ui/Screen'
+import { Card } from '@/components/ui/Card'
+import { StatCard } from '@/components/ui/StatCard'
 
 const TYPE_LABELS: Record<string, string> = {
   crypto: 'Cripto', stock: 'Acciones', bond: 'Bonos', currency: 'Divisas',
@@ -41,32 +44,15 @@ export function DashboardScreen() {
   const maxBar = Math.max(...p.monthlyReturn.map((m) => m.value))
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background.canvas }}>
+    <Screen>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
         <Text style={{ color: theme.text.primary, fontSize: 20, fontWeight: '700' }}>Dashboard</Text>
 
-        {/* KPI Cards */}
-        <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-          <Text style={{ color: theme.text.secondary }}>Valor Total</Text>
-          <Text style={{ color: theme.text.primary, fontSize: 24, fontWeight: '700' }}>{formatCurrency(p.totalValue)}</Text>
-          <Text style={{ color: theme.chart.positive, marginTop: 4 }}>{formatPercent(p.pnlPercent)}</Text>
-        </View>
+        <StatCard label="Valor Total" value={formatCurrency(p.totalValue)} delta={formatPercent(p.pnlPercent)} deltaColor={theme.chart.positive} />
+        <StatCard label="Ganancia/Perdida" value={formatCurrency(p.pnlAbsolute)} delta="Este mes" deltaColor={p.pnlAbsolute >= 0 ? theme.chart.positive : theme.chart.negative} />
+        <StatCard label="Mejor Activo" value={p.bestAsset.name} delta={formatPercent(p.pnlPercent)} deltaColor={theme.chart.positive} />
 
-        <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-          <Text style={{ color: theme.text.secondary }}>Ganancia/Perdida</Text>
-          <Text style={{ color: p.pnlAbsolute >= 0 ? theme.chart.positive : theme.chart.negative, fontSize: 24, fontWeight: '700' }}>{formatCurrency(p.pnlAbsolute)}</Text>
-          <Text style={{ color: theme.text.muted }}>Este mes</Text>
-        </View>
-
-        <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-          <Text style={{ color: theme.text.secondary }}>Mejor Activo</Text>
-          <Text style={{ color: theme.text.primary, fontSize: 24, fontWeight: '700' }}>{p.bestAsset.name}</Text>
-          <Text style={{ color: theme.chart.positive, marginTop: 4 }}>{formatPercent(p.pnlPercent)}</Text>
-        </View>
-
-        {/* Distribution */}
-        <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-          <Text style={{ color: theme.text.primary, fontWeight: '700', marginBottom: 12 }}>Distribucion del Portafolio</Text>
+        <Card title="Distribucion del Portafolio">
           <View style={s.distRow}>
             {p.distribution.map((d, i) => (
               <View key={d.type} style={[s.distSegment, { width: `${Math.round(d.value / p.totalValue * 100)}%`, backgroundColor: chartColors[i] }]} />
@@ -81,11 +67,9 @@ export function DashboardScreen() {
               </View>
             ))}
           </View>
-        </View>
+        </Card>
 
-        {/* Monthly Return */}
-        <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-          <Text style={{ color: theme.text.primary, fontWeight: '700', marginBottom: 12 }}>Rendimiento (Enero - Junio)</Text>
+        <Card title="Rendimiento (Enero - Junio)">
           <View style={s.barChart}>
             {p.monthlyReturn.map((m) => (
               <View key={m.month} style={s.barCol}>
@@ -96,11 +80,9 @@ export function DashboardScreen() {
               </View>
             ))}
           </View>
-        </View>
+        </Card>
 
-        {/* Holdings */}
-        <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-          <Text style={{ color: theme.text.primary, fontWeight: '700', marginBottom: 10 }}>Mis Activos</Text>
+        <Card title="Mis Activos">
           {p.holdings.map((h) => (
             <View key={h.name} style={[s.holdingRow, { borderColor: theme.border.default }]}>
               <View style={{ flex: 1 }}>
@@ -115,14 +97,13 @@ export function DashboardScreen() {
               </View>
             </View>
           ))}
-        </View>
+        </Card>
       </ScrollView>
-    </View>
+    </Screen>
   )
 }
 
 const s = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: 18, padding: 16 },
   distRow: { flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden', gap: 2 },
   distSegment: { borderRadius: 4 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

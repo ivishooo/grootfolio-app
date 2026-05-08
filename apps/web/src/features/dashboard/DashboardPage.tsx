@@ -2,16 +2,15 @@ import { mockPortfolio } from '@/mocks/portfolio'
 import { useTheme } from '@/theme/ThemeProvider'
 import { formatCurrency, formatPercent } from '@grootfolio/shared'
 import { themes } from '@grootfolio/tokens'
+import { Card } from '@/components/ui/Card'
+import { StatCard } from '@/components/ui/StatCard'
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
 
 const TYPE_LABELS: Record<string, string> = {
-  crypto: 'Criptomonedas',
-  stock: 'Acciones',
-  bond: 'Bonos',
-  currency: 'Divisas',
+  crypto: 'Criptomonedas', stock: 'Acciones', bond: 'Bonos', currency: 'Divisas',
 }
 
 export function DashboardPage() {
@@ -21,7 +20,6 @@ export function DashboardPage() {
   const chartColors = [t.chart.series1, t.chart.series2, t.chart.series3, t.chart.series4]
 
   const pieData = p.distribution.map((d) => ({ name: TYPE_LABELS[d.type] ?? d.type, value: d.value }))
-  const barData = p.monthlyReturn
 
   return (
     <div className="space-y-6">
@@ -48,7 +46,7 @@ export function DashboardPage() {
 
         <Card title="Rendimiento (Enero - Junio)">
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={barData}>
+            <BarChart data={p.monthlyReturn}>
               <CartesianGrid strokeDasharray="3 3" stroke={t.border.default} />
               <XAxis dataKey="month" tick={{ fill: t.text.secondary, fontSize: 12 }} />
               <YAxis tick={{ fill: t.text.secondary, fontSize: 12 }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
@@ -87,25 +85,6 @@ export function DashboardPage() {
           </table>
         </div>
       </Card>
-    </div>
-  )
-}
-
-function StatCard({ label, value, delta, positive }: { label: string; value: string; delta: string; positive?: boolean }) {
-  return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="text-sm text-neutral-500">{label}</div>
-      <div className="mt-1 text-2xl font-bold">{value}</div>
-      <div className={`mt-1 text-xs ${positive ? 'text-success-500' : 'text-danger-500'}`}>{delta}</div>
-    </div>
-  )
-}
-
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-      <h3 className="mb-4 text-lg font-semibold">{title}</h3>
-      {children}
     </div>
   )
 }
