@@ -69,7 +69,7 @@ export function DashboardScreen() {
           <Text style={{ color: theme.text.primary, fontWeight: '700', marginBottom: 12 }}>Distribucion del Portafolio</Text>
           <View style={s.distRow}>
             {p.distribution.map((d, i) => (
-              <View key={d.type} style={[s.distSegment, { flex: d.value, backgroundColor: chartColors[i] }]} />
+              <View key={d.type} style={[s.distSegment, { width: `${Math.round(d.value / p.totalValue * 100)}%`, backgroundColor: chartColors[i] }]} />
             ))}
           </View>
           <View style={{ gap: 6, marginTop: 12 }}>
