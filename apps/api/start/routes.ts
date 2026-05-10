@@ -14,13 +14,15 @@ router.get('/health', async ({ response }) => {
   return { status: 'ok', uptime: process.uptime() }
 })
 
-// GF-206/207/208/209 - Auth (POST /auth/register, /auth/login, /auth/refresh, /auth/logout)
-// router.group(() => {
-//   router.post('/register', '#controllers/auth_controller.register')
-//   router.post('/login', '#controllers/auth_controller.login')
-//   router.post('/refresh', '#controllers/auth_controller.refresh')
-//   router.post('/logout', '#controllers/auth_controller.logout')
-// }).prefix('/auth')
+// Auth (GF-206/207/208/209). Habilitamos rutas a medida que aterrizan los
+// controllers; las que aun no tienen implementacion quedan comentadas con
+// el numero de story que las habilita.
+router.group(() => {
+  router.post('/register', '#controllers/auth_controller.register') // GF-206
+  // router.post('/login', '#controllers/auth_controller.login')       // GF-207
+  // router.post('/refresh', '#controllers/auth_controller.refresh')   // GF-208
+  // router.post('/logout', '#controllers/auth_controller.logout')     // GF-208
+}).prefix('/auth')
 
 // GF-209/212/214/...  Endpoints autenticados.
 // router.group(() => {
