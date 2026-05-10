@@ -17,15 +17,16 @@
     "#tests/*": "./tests/*.js"
   },
   "scripts": {
-    "dev": "node ace serve --hmr",
-    "start": "node bin/server.js",
-    "build": "echo 'TODO(fase-2): habilitar node ace build cuando Adonis este cableado' && exit 0",
-    "migrate": "node ace migration:run",
-    "rollback": "node ace migration:rollback",
-    "seed": "node ace db:seed",
+    "dev": "node --import=ts-node-maintained/register/esm --enable-source-maps ace.js serve --watch",
+    "start": "echo 'TODO(GF-182): correr build y arrancar build/bin/server.js en deploy' && exit 0",
+    "build": "node --import=ts-node-maintained/register/esm ace.js build",
+    "migrate": "node --import=ts-node-maintained/register/esm ace.js migration:run",
+    "rollback": "node --import=ts-node-maintained/register/esm ace.js migration:rollback",
+    "seed": "node --import=ts-node-maintained/register/esm ace.js db:seed",
+    "ace": "node --import=ts-node-maintained/register/esm ace.js",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "echo 'TODO(fase-2): habilitar node ace test cuando haya tests' && exit 0"
+    "test": "echo 'TODO(GF-205): habilitar node ace test cuando haya suite Japa' && exit 0"
   },
   "dependencies": {
     "@adonisjs/auth": "^9.2.0",

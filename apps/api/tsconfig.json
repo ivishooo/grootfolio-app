@@ -22,7 +22,8 @@
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "verbatimModuleSyntax": false
+    "verbatimModuleSyntax": false,
+    "declaration": false
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "build"]
