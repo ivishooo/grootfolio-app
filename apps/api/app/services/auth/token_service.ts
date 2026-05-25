@@ -8,14 +8,26 @@
  *   `JWT_REFRESH_TTL` (default 30d).
  *
  * La rotacion (consumir el viejo, emitir uno nuevo, revocar la familia ante
- * reuso) llega en GF-208. Hoy solo emitimos.
+ * reuso) la implementa `rotateRefreshToken` (GF-208).
  */
 import crypto from 'node:crypto'
 import jwt, { type SignOptions } from 'jsonwebtoken'
 import { DateTime, type DurationLikeObject } from 'luxon'
 import env from '#start/env'
 import RefreshToken from '#models/refresh_token'
-import type User from '#models/user'
+import User from '#models/user'
+
+/**
+ * Se lanza cuando el refresh token presentado no sirve (inexistente, expirado,
+ * o ya consumido). El controller la mapea a 401. Mensaje generico para no
+ * revelar cual de los casos ocurrio.
+ */
+export class InvalidRefreshTokenError extends Error {
+  constructor(message = 'Refresh token invalido o expirado.') {
+    super(message)
+    this.name = 'InvalidRefreshTokenError'
+  }
+}
 
 const REFRESH_BYTES = 48
 
@@ -85,4 +97,75 @@ export async function issueTokenPair(user: User): Promise<IssuedTokenPair> {
   const accessToken = signAccessToken(user)
   const { token: refreshToken, record } = await issueRefreshToken(user.id)
   return { accessToken, refreshToken, refreshTokenId: record.id }
+}
+
+/**
+ * Revoca todos los refresh tokens activos de un usuario. Se usa ante deteccion
+ * de reuso (posible robo de token): cortamos todas las sesiones de golpe.
+ */
+async function revokeAllForUser(userId: string): Promise<void> {
+  await RefreshToken.query()
+    .where('user_id', userId)
+    .whereNull('revoked_at')
+    .update({ revoked_at: DateTime.now().toSQL() })
+}
+
+/**
+ * Rota un refresh token: valida el presentado, revoca el viejo y emite un par
+ * nuevo encadenando con `replaced_by`.
+ *
+ * Deteccion de reuso: si el token presentado ya fue rotado (tiene `replaced_by`)
+ * y se vuelve a presentar, asumimos robo y revocamos toda la familia del usuario
+ * (todas sus sesiones activas), luego rechazamos. Un token revocado por logout
+ * o por una revocacion previa (sin `replaced_by`) es simplemente invalido: no
+ * vuelve a disparar la revocacion en cascada.
+ */
+export async function rotateRefreshToken(presentedToken: string): Promise<IssuedTokenPair> {
+  const tokenHash = hashRefreshToken(presentedToken)
+  const record = await RefreshToken.findBy('tokenHash', tokenHash)
+
+  if (!record) {
+    throw new InvalidRefreshTokenError()
+  }
+
+  if (record.revokedAt) {
+    if (record.replacedBy) {
+      await revokeAllForUser(record.userId)
+      throw new InvalidRefreshTokenError(
+        'Refresh token reutilizado: se revocaron todas las sesiones.'
+      )
+    }
+    throw new InvalidRefreshTokenError()
+  }
+
+  if (record.expiresAt.toMillis() <= Date.now()) {
+    throw new InvalidRefreshTokenError()
+  }
+
+  const user = await User.find(record.userId)
+  if (!user) {
+    throw new InvalidRefreshTokenError()
+  }
+
+  const accessToken = signAccessToken(user)
+  const { token: refreshToken, record: nextRecord } = await issueRefreshToken(user.id)
+
+  record.revokedAt = DateTime.now()
+  record.replacedBy = nextRecord.id
+  await record.save()
+
+  return { accessToken, refreshToken, refreshTokenId: nextRecord.id }
+}
+
+/**
+ * Revoca un refresh token puntual (logout). Idempotente: si no existe o ya
+ * estaba revocado, no hace nada y no tira.
+ */
+export async function revokeRefreshToken(presentedToken: string): Promise<void> {
+  const tokenHash = hashRefreshToken(presentedToken)
+  const record = await RefreshToken.findBy('tokenHash', tokenHash)
+  if (record && !record.revokedAt) {
+    record.revokedAt = DateTime.now()
+    await record.save()
+  }
 }

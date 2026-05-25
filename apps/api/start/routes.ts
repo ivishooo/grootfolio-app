@@ -20,8 +20,8 @@ router.get('/health', async ({ response }) => {
 router.group(() => {
   router.post('/register', '#controllers/auth_controller.register') // GF-206
   router.post('/login', '#controllers/auth_controller.login') // GF-207
-  // router.post('/refresh', '#controllers/auth_controller.refresh')   // GF-208
-  // router.post('/logout', '#controllers/auth_controller.logout')     // GF-208
+  router.post('/refresh', '#controllers/auth_controller.refresh') // GF-208
+  router.post('/logout', '#controllers/auth_controller.logout') // GF-208
 }).prefix('/auth')
 
 // GF-209/212/214/...  Endpoints autenticados.
