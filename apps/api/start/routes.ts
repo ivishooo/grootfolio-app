@@ -29,16 +29,16 @@ router.group(() => {
 router
   .group(() => {
     router.get('/me', '#controllers/auth_controller.me') // GF-209
+    router.get('/transactions', '#controllers/transactions_controller.index') // GF-212
+    router.post('/transactions', '#controllers/transactions_controller.store') // GF-212
+    router.delete('/transactions/:id', '#controllers/transactions_controller.destroy') // GF-212
   })
   .use(middleware.auth())
 
-// GF-212/214/...  Resto de endpoints autenticados.
+// GF-214/...  Resto de endpoints autenticados.
 // router.group(() => {
 //   router.get('/assets/catalog', '#controllers/assets_controller.catalog')
 //   router.get('/portfolio', '#controllers/portfolio_controller.summary')
-//   router.get('/transactions', '#controllers/portfolio_controller.listTransactions')
-//   router.post('/transactions', '#controllers/portfolio_controller.createTransaction')
-//   router.delete('/transactions/:id', '#controllers/portfolio_controller.deleteTransaction')
 //   router.get('/quiz', '#controllers/quiz_controller.questions')
 //   router.post('/quiz/submit', '#controllers/quiz_controller.submit')
 //   router.get('/quiz/result', '#controllers/quiz_controller.result')
