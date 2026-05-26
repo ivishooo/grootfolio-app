@@ -1,6 +1,6 @@
 /**
  * AuthController. Expone `register` (GF-206), `login` (GF-207), `refresh` y
- * `logout` (GF-208); `me` (GF-209) llega en su story.
+ * `logout` (GF-208), y `me` (GF-209).
  */
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
@@ -106,5 +106,15 @@ export default class AuthController {
     const { refreshToken: presented } = await request.validateUsing(refreshValidator)
     await revokeRefreshToken(presented)
     return response.status(204).send(null)
+  }
+
+  /**
+   * GET /me
+   *
+   * Devuelve el usuario autenticado. Protegida por el middleware `auth`, que
+   * deja el usuario en `ctx.currentUser`.
+   */
+  async me({ currentUser, response }: HttpContext) {
+    return response.status(200).send({ user: currentUser.serialize() })
   }
 }

@@ -11,7 +11,7 @@
  * reuso) la implementa `rotateRefreshToken` (GF-208).
  */
 import crypto from 'node:crypto'
-import jwt, { type SignOptions } from 'jsonwebtoken'
+import jwt, { type JwtPayload, type SignOptions } from 'jsonwebtoken'
 import { DateTime, type DurationLikeObject } from 'luxon'
 import env from '#start/env'
 import RefreshToken from '#models/refresh_token'
@@ -31,9 +31,20 @@ export class InvalidRefreshTokenError extends Error {
 
 const REFRESH_BYTES = 48
 
-interface AccessTokenPayload {
+export interface AccessTokenPayload {
   sub: string
   email: string
+}
+
+/**
+ * Se lanza cuando el access token presentado no verifica (firma invalida,
+ * expirado, o payload mal formado). El middleware la mapea a 401.
+ */
+export class InvalidAccessTokenError extends Error {
+  constructor(message = 'Access token invalido o expirado.') {
+    super(message)
+    this.name = 'InvalidAccessTokenError'
+  }
 }
 
 interface IssuedTokenPair {
@@ -69,6 +80,25 @@ export function signAccessToken(user: Pick<User, 'id' | 'email'>): string {
     expiresIn: env.get('JWT_ACCESS_TTL') as SignOptions['expiresIn'],
   }
   return jwt.sign(payload, env.get('JWT_SECRET'), options)
+}
+
+/**
+ * Verifica un access token JWT (firma HS256 + expiracion) y devuelve su
+ * payload. Lanza `InvalidAccessTokenError` si no verifica o esta mal formado.
+ */
+export function verifyAccessToken(token: string): AccessTokenPayload {
+  let decoded: string | JwtPayload
+  try {
+    decoded = jwt.verify(token, env.get('JWT_SECRET'), { algorithms: ['HS256'] })
+  } catch {
+    throw new InvalidAccessTokenError()
+  }
+
+  if (typeof decoded === 'string' || typeof decoded.sub !== 'string' || typeof decoded.email !== 'string') {
+    throw new InvalidAccessTokenError()
+  }
+
+  return { sub: decoded.sub, email: decoded.email }
 }
 
 export function generateRefreshTokenString(): string {
