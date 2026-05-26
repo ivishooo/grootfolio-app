@@ -1,0 +1,28 @@
+# Postgres local para desarrollo. Las credenciales y el puerto espejan
+# `.env.example` (DB_PORT=5433 en host -> 5432 en el contenedor) para que
+# `pnpm --filter @grootfolio/api migrate` conecte sin tocar config.
+#
+#   docker compose up -d db     # levantar
+#   docker compose down         # apagar (conserva datos)
+#   docker compose down -v      # apagar y borrar datos
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: grootfolio-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: grootfolio
+      POSTGRES_PASSWORD: grootfolio
+      POSTGRES_DB: grootfolio_dev
+    ports:
+      - '5433:5432'
+    volumes:
+      - grootfolio_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U grootfolio -d grootfolio_dev']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  grootfolio_pgdata:
