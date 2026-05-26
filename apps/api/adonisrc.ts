@@ -30,6 +30,7 @@ export default defineConfig({
    */
   preloads: [
     () => import('#start/kernel'),
+    () => import('#start/validator'),
     () => import('#start/routes'),
   ],
 
