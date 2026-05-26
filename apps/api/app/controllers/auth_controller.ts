@@ -1,11 +1,16 @@
 /**
- * AuthController. Hoy expone `register` (GF-206) y `login` (GF-207); refresh
- * y logout (GF-208), y `me` (GF-209) llegan en sus respectivas stories.
+ * AuthController. Expone `register` (GF-206), `login` (GF-207), `refresh` y
+ * `logout` (GF-208); `me` (GF-209) llega en su story.
  */
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
-import { loginValidator, registerValidator } from '#validators/auth'
-import { issueTokenPair } from '#services/auth/token_service'
+import { loginValidator, refreshValidator, registerValidator } from '#validators/auth'
+import {
+  InvalidRefreshTokenError,
+  issueTokenPair,
+  revokeRefreshToken,
+  rotateRefreshToken,
+} from '#services/auth/token_service'
 
 export default class AuthController {
   /**
@@ -65,5 +70,41 @@ export default class AuthController {
       accessToken,
       refreshToken,
     })
+  }
+
+  /**
+   * POST /auth/refresh
+   *
+   * Rota el refresh token: revoca el presentado y devuelve un par nuevo. 401 si
+   * el token es invalido, expiro o fue reutilizado (en ese caso revoca todas
+   * las sesiones del usuario).
+   */
+  async refresh({ request, response }: HttpContext) {
+    const { refreshToken: presented } = await request.validateUsing(refreshValidator)
+
+    try {
+      const { accessToken, refreshToken } = await rotateRefreshToken(presented)
+      return response.status(200).send({ accessToken, refreshToken })
+    } catch (error) {
+      if (error instanceof InvalidRefreshTokenError) {
+        return response.status(401).send({
+          code: 'AUTH_INVALID_REFRESH',
+          message: error.message,
+        })
+      }
+      throw error
+    }
+  }
+
+  /**
+   * POST /auth/logout
+   *
+   * Revoca el refresh token presentado. Idempotente: siempre 204, exista o no
+   * el token (no filtra si era valido).
+   */
+  async logout({ request, response }: HttpContext) {
+    const { refreshToken: presented } = await request.validateUsing(refreshValidator)
+    await revokeRefreshToken(presented)
+    return response.status(204).send(null)
   }
 }

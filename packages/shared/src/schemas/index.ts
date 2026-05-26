@@ -13,6 +13,11 @@ export const registerInputSchema = loginInputSchema.extend({
   fullName: z.string().min(2).max(80).optional(),
 })
 
+// Mismo shape para /auth/refresh y /auth/logout: ambos reciben el refresh token.
+export const refreshInputSchema = z.object({
+  refreshToken: z.string().min(1),
+})
+
 export const createTransactionInputSchema = z.object({
   symbol: z.string().min(1).max(20),
   type: assetTypeSchema,
@@ -35,5 +40,6 @@ export const submitQuizInputSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginInputSchema>
 export type RegisterInput = z.infer<typeof registerInputSchema>
+export type RefreshInput = z.infer<typeof refreshInputSchema>
 export type CreateTransactionInput = z.infer<typeof createTransactionInputSchema>
 export type SubmitQuizInput = z.infer<typeof submitQuizInputSchema>
