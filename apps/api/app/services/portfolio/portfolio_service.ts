@@ -1,0 +1,71 @@
+/**
+ * portfolio_service (GF-214). Combina holdings agregados con precios actuales
+ * para producir el `PortfolioSummary` completo que consume el frontend.
+ *
+ * Funcion pura: recibe holdings (de aggregateHoldings) y un mapa de precios
+ * (de getPrices), no toca DB ni red. El controller orquesta las llamadas a
+ * los services de holdings y de precios y le pasa los resultados aca.
+ *
+ * Reglas de agregacion:
+ *  - Cada holding se enriquece con currentPrice/value/pnl/pnlPercent. Si el
+ *    activo no tiene precio (unsupported), queda con currentPrice=0 y demas
+ *    en 0 (mismo placeholder que devuelve /holdings).
+ *  - totalValue, pnlAbsolute, pnlPercent solo cuentan holdings con precio.
+ *    Incluir los unsupported inflaria pnlAbsolute en negativo (te diria que
+ *    perdiste todo lo invertido en lo no cotizable, lo cual es una mentira
+ *    peor que omitirlo).
+ *  - bestAsset = activo con mayor pnlPercent entre los priceados. Null si no
+ *    hay holdings priceados.
+ *  - distribution agrupa value por type; types sin valor positivo se omiten.
+ *  - monthlyReturn queda [] en esta version; requiere precios historicos
+ *    (story GF-246, bloqueada por GF-220).
+ */
+import type { AssetType, Holding, PortfolioSummary } from '@grootfolio/shared/types'
+import type { PriceResult } from '#services/prices/price_service'
+
+export function aggregatePortfolio(
+  rawHoldings: Holding[],
+  prices: Record<string, PriceResult>
+): PortfolioSummary {
+  const holdings: Holding[] = rawHoldings.map((h) => {
+    const priceInfo = prices[h.asset.symbol.toUpperCase()]
+    const currentPrice = priceInfo?.price ?? 0
+    if (currentPrice <= 0) {
+      return { ...h, currentPrice: 0, value: 0, pnl: 0, pnlPercent: 0 }
+    }
+    const invested = h.avgPrice * h.quantity
+    const value = currentPrice * h.quantity
+    const pnl = value - invested
+    const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0
+    return { ...h, currentPrice, value, pnl, pnlPercent }
+  })
+
+  const priced = holdings.filter((h) => h.currentPrice > 0)
+  const totalValue = priced.reduce((s, h) => s + h.value, 0)
+  const totalInvested = priced.reduce((s, h) => s + h.quantity * h.avgPrice, 0)
+  const pnlAbsolute = totalValue - totalInvested
+  const pnlPercent = totalInvested > 0 ? (pnlAbsolute / totalInvested) * 100 : 0
+
+  let bestHolding: Holding | null = null
+  for (const h of priced) {
+    if (!bestHolding || h.pnlPercent > bestHolding.pnlPercent) bestHolding = h
+  }
+  const bestAsset: PortfolioSummary['bestAsset'] = bestHolding?.asset ?? null
+
+  const byType = new Map<AssetType, number>()
+  for (const h of holdings) {
+    if (h.value <= 0) continue
+    byType.set(h.asset.type, (byType.get(h.asset.type) ?? 0) + h.value)
+  }
+  const distribution = Array.from(byType, ([type, value]) => ({ type, value }))
+
+  return {
+    totalValue,
+    pnlAbsolute,
+    pnlPercent,
+    bestAsset,
+    distribution,
+    monthlyReturn: [],
+    holdings,
+  }
+}
