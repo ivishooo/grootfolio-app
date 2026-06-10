@@ -23,4 +23,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   JWT_REFRESH_TTL: Env.schema.string(),
 
   CORS_ORIGINS: Env.schema.string.optional(),
+
+  COINGECKO_API_KEY: Env.schema.string.optional(),
+  COINGECKO_PRICE_TTL_SECONDS: Env.schema.number.optional(),
 })
