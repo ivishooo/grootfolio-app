@@ -24,8 +24,8 @@ export default class PortfolioController {
       .orderBy('purchased_at', 'asc')
 
     const holdings = aggregateHoldings(transactions)
-    const symbols = holdings.map((h) => h.asset.symbol)
-    const prices = symbols.length > 0 ? await getPrices(symbols) : {}
+    const assetRefs = holdings.map((h) => ({ id: h.assetId, symbol: h.asset.symbol }))
+    const prices = assetRefs.length > 0 ? await getPrices(assetRefs) : {}
     const portfolio = aggregatePortfolio(holdings, prices)
 
     return response.status(200).send({ portfolio })

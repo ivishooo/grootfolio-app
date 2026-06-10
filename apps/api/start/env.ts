@@ -26,4 +26,5 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   COINGECKO_API_KEY: Env.schema.string.optional(),
   COINGECKO_PRICE_TTL_SECONDS: Env.schema.number.optional(),
+  COINGECKO_DB_TTL_SECONDS: Env.schema.number.optional(),
 })
