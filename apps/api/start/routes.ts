@@ -33,13 +33,13 @@ router
     router.post('/transactions', '#controllers/transactions_controller.store') // GF-212
     router.delete('/transactions/:id', '#controllers/transactions_controller.destroy') // GF-212
     router.get('/holdings', '#controllers/holdings_controller.index') // GF-213
+    router.get('/portfolio', '#controllers/portfolio_controller.summary') // GF-214
   })
   .use(middleware.auth())
 
-// GF-214/...  Resto de endpoints autenticados.
+// Resto de endpoints autenticados (quiz + assets/catalog).
 // router.group(() => {
 //   router.get('/assets/catalog', '#controllers/assets_controller.catalog')
-//   router.get('/portfolio', '#controllers/portfolio_controller.summary')
 //   router.get('/quiz', '#controllers/quiz_controller.questions')
 //   router.post('/quiz/submit', '#controllers/quiz_controller.submit')
 //   router.get('/quiz/result', '#controllers/quiz_controller.result')
