@@ -32,6 +32,7 @@ router
     router.get('/transactions', '#controllers/transactions_controller.index') // GF-212
     router.post('/transactions', '#controllers/transactions_controller.store') // GF-212
     router.delete('/transactions/:id', '#controllers/transactions_controller.destroy') // GF-212
+    router.get('/holdings', '#controllers/holdings_controller.index') // GF-213
   })
   .use(middleware.auth())
 
