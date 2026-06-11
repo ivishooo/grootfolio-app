@@ -1,32 +1,36 @@
 /**
- * price_service (GF-217 + GF-220). Resuelve precios de activos con cascada
- * de tres niveles:
+ * price_service. Orquestador de precios con cascada de tres niveles
+ * (cache in-memory → snapshot persistente → provider externo) y routing
+ * por `asset.type` al provider correspondiente:
  *
- *   1. Cache in-memory por proceso (TTL `COINGECKO_PRICE_TTL_SECONDS`, def. 60s)
- *   2. Snapshot persistente en `price_snapshots` (TTL `COINGECKO_DB_TTL_SECONDS`,
- *      def. 300s) — sobrevive a reinicios y se comparte entre procesos
- *   3. Llamada a CoinGecko (via coingecko_client) y persistencia del resultado
+ *   crypto → coingeckoProvider (GF-217)
+ *   stock  → yahooProvider     (GF-218)
+ *   bond / currency            → unsupported hasta GF-219/futuras
  *
- * Si la API falla (429 u otro) usamos el snapshot mas reciente sin TTL como
- * ultimo recurso, devolviendo `source: 'db'`. Si no hay ni siquiera eso,
- * caemos a cache stale in-memory y por ultimo a `unsupported`.
+ * Cache (`COINGECKO_PRICE_TTL_SECONDS`, default 60s) y persistencia
+ * (`COINGECKO_DB_TTL_SECONDS`, default 300s) se aplican parejo a todos
+ * los providers; el nombre de la var arrastra "COINGECKO" por historia
+ * de GF-217 pero el TTL es del orquestador, no del provider.
  *
- * Symbols fuera de `CG_SYMBOL_TO_ID` se marcan `unsupported` sin consultar
- * DB ni gastar calls.
+ * Moneda base: USD. Si un provider devuelve `{price, currency: 'ARS'}` (los
+ * tickers .BA en Yahoo lo hacen) lo marcamos `unsupported` con warning, sin
+ * persistir snapshot. La conversion a USD vive en GF-219 (Frankfurter/BCRA).
  *
- * Cambios respecto a GF-217: la firma pasa de `getPrices(symbols)` a
- * `getPrices(assets: AssetRef[])` porque necesitamos el `asset.id` para
- * mirar/insertar en `price_snapshots`. Todos los callers (portfolio_controller)
- * ya tienen el Asset cargado.
+ * Si un provider falla (rate limit u otro), caemos al snapshot mas reciente
+ * sin TTL (`source: 'db'`); si no hay snapshot, cache in-memory stale; ultimo
+ * recurso `unsupported`.
  */
 import logger from '@adonisjs/core/services/logger'
 import { DateTime } from 'luxon'
 import env from '#start/env'
 import PriceSnapshot from '#models/price_snapshot'
-import { CG_SYMBOL_TO_ID } from './coingecko_symbol_map.js'
-import { CoinGeckoRateLimitError, fetchSimplePrice } from './coingecko_client.js'
+import { CoinGeckoRateLimitError, coingeckoProvider } from './providers/coingecko_provider.js'
+import { yahooProvider } from './providers/yahoo_provider.js'
+import type { AssetRef, PriceProvider, ProviderName } from './providers/types.js'
 
-export type PriceSource = 'cache' | 'db' | 'coingecko' | 'unsupported'
+export type { AssetRef } from './providers/types.js'
+
+export type PriceSource = 'cache' | 'db' | 'coingecko' | 'yahoo' | 'unsupported'
 
 export interface PriceResult {
   symbol: string
@@ -35,14 +39,16 @@ export interface PriceResult {
   fetchedAt: number | null
 }
 
-export interface AssetRef {
-  id: string
-  symbol: string
-}
-
 interface CacheEntry {
   price: number
   fetchedAt: number
+}
+
+const BASE_CURRENCY = 'USD'
+
+const PROVIDER_BY_TYPE: Partial<Record<AssetRef['type'], PriceProvider>> = {
+  crypto: coingeckoProvider,
+  stock: yahooProvider,
 }
 
 const cache = new Map<string, CacheEntry>()
@@ -55,17 +61,22 @@ function dbTtlMs(): number {
   return (env.get('COINGECKO_DB_TTL_SECONDS') ?? 300) * 1000
 }
 
+function providerSource(name: ProviderName): PriceSource {
+  return name
+}
+
 export async function getPrices(assets: AssetRef[]): Promise<Record<string, PriceResult>> {
   const out: Record<string, PriceResult> = {}
   const now = Date.now()
 
-  const candidates: Array<{ asset: AssetRef; cgId: string }> = []
+  // Paso 1: cache in-memory + descartar tipos sin provider
+  const candidates: Array<{ asset: AssetRef; provider: PriceProvider }> = []
   for (const a of assets) {
     const symbol = a.symbol.toUpperCase()
     if (out[symbol]) continue
 
-    const cgId = CG_SYMBOL_TO_ID[symbol]
-    if (!cgId) {
+    const provider = PROVIDER_BY_TYPE[a.type]
+    if (!provider) {
       out[symbol] = { symbol, price: null, source: 'unsupported', fetchedAt: null }
       continue
     }
@@ -76,11 +87,12 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
       continue
     }
 
-    candidates.push({ asset: a, cgId })
+    candidates.push({ asset: a, provider })
   }
 
   if (candidates.length === 0) return out
 
+  // Paso 2: snapshot persistente con TTL
   const snapshots = await PriceSnapshot.query()
     .whereIn(
       'asset_id',
@@ -93,7 +105,7 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
     if (!latestByAssetId.has(s.assetId)) latestByAssetId.set(s.assetId, s)
   }
 
-  const toFetch: typeof candidates = []
+  const byProvider = new Map<PriceProvider, Array<{ asset: AssetRef }>>()
   for (const c of candidates) {
     const symbol = c.asset.symbol.toUpperCase()
     const snap = latestByAssetId.get(c.asset.id)
@@ -103,63 +115,81 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
       out[symbol] = { symbol, price: snap.price, source: 'db', fetchedAt }
       continue
     }
-    toFetch.push(c)
+    const bucket = byProvider.get(c.provider)
+    if (bucket) bucket.push({ asset: c.asset })
+    else byProvider.set(c.provider, [{ asset: c.asset }])
   }
 
-  if (toFetch.length === 0) return out
+  if (byProvider.size === 0) return out
 
-  try {
-    const remote = await fetchSimplePrice(toFetch.map((c) => c.cgId))
-    const newRows: Array<{
-      assetId: string
-      price: number
-      currency: string
-      provider: string
-      fetchedAt: DateTime
-    }> = []
+  // Paso 3: llamar a cada provider y persistir
+  const newRows: Array<{
+    assetId: string
+    price: number
+    currency: string
+    provider: string
+    fetchedAt: DateTime
+  }> = []
 
-    for (const c of toFetch) {
-      const symbol = c.asset.symbol.toUpperCase()
-      const price = remote[c.cgId]?.usd
-      if (typeof price === 'number') {
-        cache.set(symbol, { price, fetchedAt: now })
+  for (const [provider, items] of byProvider) {
+    const refs = items.map((i) => i.asset)
+    try {
+      const quotes = await provider.fetchQuotes(refs)
+      for (const item of items) {
+        const symbol = item.asset.symbol.toUpperCase()
+        const q = quotes[symbol]
+        if (!q) {
+          out[symbol] = { symbol, price: null, source: 'unsupported', fetchedAt: null }
+          continue
+        }
+        if (q.currency !== BASE_CURRENCY) {
+          out[symbol] = { symbol, price: null, source: 'unsupported', fetchedAt: null }
+          logger.warn(
+            { symbol, currency: q.currency, provider: provider.name },
+            'Quote en moneda no base; marcado unsupported hasta tener FX'
+          )
+          continue
+        }
+        cache.set(symbol, { price: q.price, fetchedAt: now })
         newRows.push({
-          assetId: c.asset.id,
-          price,
-          currency: 'USD',
-          provider: 'coingecko',
+          assetId: item.asset.id,
+          price: q.price,
+          currency: q.currency,
+          provider: provider.name,
           fetchedAt: DateTime.fromMillis(now),
         })
-        out[symbol] = { symbol, price, source: 'coingecko', fetchedAt: now }
+        out[symbol] = {
+          symbol,
+          price: q.price,
+          source: providerSource(provider.name),
+          fetchedAt: now,
+        }
+      }
+    } catch (err) {
+      if (err instanceof CoinGeckoRateLimitError) {
+        logger.warn({ provider: provider.name }, 'Provider rate limit; fallback a snapshot sin TTL')
       } else {
-        out[symbol] = { symbol, price: null, source: 'unsupported', fetchedAt: null }
-        logger.warn({ symbol, id: c.cgId }, 'CoinGecko devolvio sin precio para id mapeado')
+        logger.error({ err, provider: provider.name }, 'Provider fetch fallo; fallback a snapshot sin TTL')
+      }
+      for (const item of items) {
+        const symbol = item.asset.symbol.toUpperCase()
+        const snap = latestByAssetId.get(item.asset.id)
+        if (snap) {
+          const fetchedAt = snap.fetchedAt.toMillis()
+          cache.set(symbol, { price: snap.price, fetchedAt })
+          out[symbol] = { symbol, price: snap.price, source: 'db', fetchedAt }
+          continue
+        }
+        const cached = cache.get(symbol)
+        out[symbol] = cached
+          ? { symbol, price: cached.price, source: 'cache', fetchedAt: cached.fetchedAt }
+          : { symbol, price: null, source: 'unsupported', fetchedAt: null }
       }
     }
+  }
 
-    if (newRows.length > 0) {
-      await PriceSnapshot.createMany(newRows)
-    }
-  } catch (err) {
-    if (err instanceof CoinGeckoRateLimitError) {
-      logger.warn('CoinGecko rate limit; fallback a snapshot mas reciente sin TTL')
-    } else {
-      logger.error({ err }, 'CoinGecko fetch fallo; fallback a snapshot mas reciente sin TTL')
-    }
-    for (const c of toFetch) {
-      const symbol = c.asset.symbol.toUpperCase()
-      const snap = latestByAssetId.get(c.asset.id)
-      if (snap) {
-        const fetchedAt = snap.fetchedAt.toMillis()
-        cache.set(symbol, { price: snap.price, fetchedAt })
-        out[symbol] = { symbol, price: snap.price, source: 'db', fetchedAt }
-        continue
-      }
-      const cached = cache.get(symbol)
-      out[symbol] = cached
-        ? { symbol, price: cached.price, source: 'cache', fetchedAt: cached.fetchedAt }
-        : { symbol, price: null, source: 'unsupported', fetchedAt: null }
-    }
+  if (newRows.length > 0) {
+    await PriceSnapshot.createMany(newRows)
   }
 
   return out
