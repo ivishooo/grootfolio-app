@@ -1,0 +1,67 @@
+/**
+ * yahoo_provider (GF-218). Cliente Yahoo Finance via `yahoo-finance2`.
+ *
+ * Yahoo no requiere API key y tolera ~100 req/min. La libreria valida el
+ * response con Zod por defecto; cuando Yahoo cambia el shape de respuesta
+ * podriamos necesitar `validateResult: false` puntual — por ahora confiamos
+ * en los defaults.
+ *
+ * Devuelve `{price, currency}` tal cual viene de Yahoo. El orquestador
+ * (price_service) es quien aplica el filtro de currency = USD: tickers .BA
+ * vendran como `{price: ..., currency: 'ARS'}` y el orquestador los marcara
+ * `unsupported` hasta GF-219 + story de FX.
+ *
+ * Symbols fuera del whitelist (`YAHOO_KNOWN_SYMBOLS`) se devuelven null sin
+ * gastar request, igual que CoinGecko con su mapeo.
+ */
+import YahooFinance from 'yahoo-finance2'
+import type { AssetRef, PriceProvider, ProviderQuote } from './types.js'
+import { YAHOO_KNOWN_SYMBOLS } from './yahoo_symbol_map.js'
+
+interface YahooQuoteShape {
+  symbol?: string
+  regularMarketPrice?: number
+  currency?: string
+}
+
+const yahooFinance = new YahooFinance()
+
+export const yahooProvider: PriceProvider = {
+  name: 'yahoo',
+  async fetchQuotes(assets: AssetRef[]): Promise<Record<string, ProviderQuote | null>> {
+    const out: Record<string, ProviderQuote | null> = {}
+    const toQuery: string[] = []
+
+    for (const a of assets) {
+      const symbol = a.symbol.toUpperCase()
+      if (symbol in out) continue
+      if (!YAHOO_KNOWN_SYMBOLS.has(symbol)) {
+        out[symbol] = null
+        continue
+      }
+      toQuery.push(symbol)
+    }
+
+    if (toQuery.length === 0) return out
+
+    const raw = await yahooFinance.quote(toQuery)
+    const quotes: YahooQuoteShape[] = Array.isArray(raw)
+      ? (raw as YahooQuoteShape[])
+      : [raw as YahooQuoteShape]
+
+    const seen = new Set<string>()
+    for (const q of quotes) {
+      const sym = q.symbol?.toUpperCase()
+      if (!sym) continue
+      seen.add(sym)
+      const price = q.regularMarketPrice
+      const currency = q.currency
+      out[sym] =
+        typeof price === 'number' && currency ? { price, currency: currency.toUpperCase() } : null
+    }
+    for (const s of toQuery) {
+      if (!seen.has(s)) out[s] = null
+    }
+    return out
+  },
+}
