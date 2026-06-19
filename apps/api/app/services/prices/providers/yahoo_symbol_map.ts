@@ -8,9 +8,9 @@
  * registra un symbol fuera de la lista, el provider lo devuelve null y el
  * orquestador lo marca `unsupported` (no se persiste snapshot).
  *
- * Atencion: los .BA cotizan en ARS, no USD. El orquestador filtra cualquier
- * quote con `currency !== 'USD'` hasta que GF-219 (Frankfurter/BCRA) + una
- * story de conversion permitan reportar el portfolio en moneda base.
+ * Atencion: los .BA cotizan en ARS, no USD. Desde GF-219 el orquestador
+ * convierte esas quotes a USD via fx_service (dolarapi CCL u BCRA oficial)
+ * para reportar el portfolio en moneda base.
  */
 export const YAHOO_KNOWN_SYMBOLS: ReadonlySet<string> = new Set([
   // US (NASDAQ/NYSE, en USD)

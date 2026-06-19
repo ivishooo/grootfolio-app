@@ -3,18 +3,20 @@
  * (cache in-memory → snapshot persistente → provider externo) y routing
  * por `asset.type` al provider correspondiente:
  *
- *   crypto → coingeckoProvider (GF-217)
- *   stock  → yahooProvider     (GF-218)
- *   bond / currency            → unsupported hasta GF-219/futuras
+ *   crypto   → coingeckoProvider (GF-217)
+ *   stock    → yahooProvider     (GF-218)
+ *   currency → fxProvider        (GF-219)
+ *   bond                         → unsupported hasta futuras stories
  *
  * Cache (`COINGECKO_PRICE_TTL_SECONDS`, default 60s) y persistencia
  * (`COINGECKO_DB_TTL_SECONDS`, default 300s) se aplican parejo a todos
  * los providers; el nombre de la var arrastra "COINGECKO" por historia
  * de GF-217 pero el TTL es del orquestador, no del provider.
  *
- * Moneda base: USD. Si un provider devuelve `{price, currency: 'ARS'}` (los
- * tickers .BA en Yahoo lo hacen) lo marcamos `unsupported` con warning, sin
- * persistir snapshot. La conversion a USD vive en GF-219 (Frankfurter/BCRA).
+ * Moneda base: USD. Si un provider devuelve `{price, currency}` en otra moneda
+ * (los tickers .BA en Yahoo cotizan en ARS) convertimos a USD via fx_service
+ * (GF-219) y persistimos el snapshot ya en USD. Si no hay tasa de cambio
+ * disponible, recien ahi marcamos `unsupported` con warning.
  *
  * Si un provider falla (rate limit u otro), caemos al snapshot mas reciente
  * sin TTL (`source: 'db'`); si no hay snapshot, cache in-memory stale; ultimo
@@ -26,11 +28,14 @@ import env from '#start/env'
 import PriceSnapshot from '#models/price_snapshot'
 import { CoinGeckoRateLimitError, coingeckoProvider } from './providers/coingecko_provider.js'
 import { yahooProvider } from './providers/yahoo_provider.js'
+import { fxProvider } from './providers/fx_provider.js'
+import { getRateToUsd } from './fx/fx_service.js'
+import { convertToUsd } from './fx/fx_rates.js'
 import type { AssetRef, PriceProvider, ProviderName } from './providers/types.js'
 
 export type { AssetRef } from './providers/types.js'
 
-export type PriceSource = 'cache' | 'db' | 'coingecko' | 'yahoo' | 'unsupported'
+export type PriceSource = 'cache' | 'db' | 'coingecko' | 'yahoo' | 'fx' | 'unsupported'
 
 export interface PriceResult {
   symbol: string
@@ -49,6 +54,7 @@ const BASE_CURRENCY = 'USD'
 const PROVIDER_BY_TYPE: Partial<Record<AssetRef['type'], PriceProvider>> = {
   crypto: coingeckoProvider,
   stock: yahooProvider,
+  currency: fxProvider,
 }
 
 const cache = new Map<string, CacheEntry>()
@@ -142,25 +148,33 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
           out[symbol] = { symbol, price: null, source: 'unsupported', fetchedAt: null }
           continue
         }
+        // Normalizamos a USD base. Si el provider ya devuelve USD, priceUsd es
+        // el mismo; si cotiza en otra moneda (ej. .BA en ARS) lo convertimos
+        // via fx_service. Sin tasa disponible -> unsupported.
+        let priceUsd = q.price
         if (q.currency !== BASE_CURRENCY) {
-          out[symbol] = { symbol, price: null, source: 'unsupported', fetchedAt: null }
-          logger.warn(
-            { symbol, currency: q.currency, provider: provider.name },
-            'Quote en moneda no base; marcado unsupported hasta tener FX'
-          )
-          continue
+          const rate = await getRateToUsd(q.currency)
+          if (rate === null) {
+            out[symbol] = { symbol, price: null, source: 'unsupported', fetchedAt: null }
+            logger.warn(
+              { symbol, currency: q.currency, provider: provider.name },
+              'Quote en moneda no base sin tasa FX disponible; marcado unsupported'
+            )
+            continue
+          }
+          priceUsd = convertToUsd(q.price, rate)
         }
-        cache.set(symbol, { price: q.price, fetchedAt: now })
+        cache.set(symbol, { price: priceUsd, fetchedAt: now })
         newRows.push({
           assetId: item.asset.id,
-          price: q.price,
-          currency: q.currency,
+          price: priceUsd,
+          currency: BASE_CURRENCY,
           provider: provider.name,
           fetchedAt: DateTime.fromMillis(now),
         })
         out[symbol] = {
           symbol,
-          price: q.price,
+          price: priceUsd,
           source: providerSource(provider.name),
           fetchedAt: now,
         }

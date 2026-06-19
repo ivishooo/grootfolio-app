@@ -21,6 +21,8 @@ const ASSETS: SeedAsset[] = [
   { symbol: 'BTC', name: 'Bitcoin', type: 'crypto', currency: 'USD', preferredProvider: 'coingecko' },
   { symbol: 'ETH', name: 'Ethereum', type: 'crypto', currency: 'USD', preferredProvider: 'coingecko' },
   { symbol: 'AAPL', name: 'Apple Inc.', type: 'stock', currency: 'USD', preferredProvider: 'yahoo' },
+  // Accion argentina: cotiza en ARS y el orquestador la convierte a USD via FX (GF-219).
+  { symbol: 'GGAL.BA', name: 'Grupo Financiero Galicia', type: 'stock', currency: 'ARS', preferredProvider: 'yahoo' },
   { symbol: 'US-T', name: 'US Treasury Bond', type: 'bond', currency: 'USD', preferredProvider: 'manual' },
   { symbol: 'EUR', name: 'Euro', type: 'currency', currency: 'USD', preferredProvider: 'frankfurter' },
 ]

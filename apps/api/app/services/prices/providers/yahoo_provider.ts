@@ -6,10 +6,10 @@
  * podriamos necesitar `validateResult: false` puntual — por ahora confiamos
  * en los defaults.
  *
- * Devuelve `{price, currency}` tal cual viene de Yahoo. El orquestador
- * (price_service) es quien aplica el filtro de currency = USD: tickers .BA
- * vendran como `{price: ..., currency: 'ARS'}` y el orquestador los marcara
- * `unsupported` hasta GF-219 + story de FX.
+ * Devuelve `{price, currency}` tal cual viene de Yahoo. La normalizacion a USD
+ * la hace el orquestador (price_service): los tickers .BA vienen como
+ * `{price: ..., currency: 'ARS'}` y desde GF-219 se convierten a USD via
+ * fx_service en vez de marcarse `unsupported`.
  *
  * Symbols fuera del whitelist (`YAHOO_KNOWN_SYMBOLS`) se devuelven null sin
  * gastar request, igual que CoinGecko con su mapeo.
