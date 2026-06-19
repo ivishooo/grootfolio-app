@@ -27,4 +27,11 @@ export default await Env.create(new URL('../', import.meta.url), {
   COINGECKO_API_KEY: Env.schema.string.optional(),
   COINGECKO_PRICE_TTL_SECONDS: Env.schema.number.optional(),
   COINGECKO_DB_TTL_SECONDS: Env.schema.number.optional(),
+
+  // FX / divisas (GF-219). Fuente del dolar para convertir activos en ARS a la
+  // moneda base USD: 'ccl' (dolarapi, default) u 'oficial' (BCRA). Las demas
+  // divisas (EUR, GBP, etc.) salen de Frankfurter. TTL del cache in-memory de
+  // tasas, default 3600s (las cotizaciones de cierre se mueven lento).
+  FX_ARS_SOURCE: Env.schema.enum.optional(['ccl', 'oficial'] as const),
+  FX_TTL_SECONDS: Env.schema.number.optional(),
 })

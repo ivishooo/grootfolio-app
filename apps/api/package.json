@@ -25,6 +25,7 @@
     "rollback": "node --import=ts-node-maintained/register/esm ace.js migration:rollback",
     "seed": "node --import=ts-node-maintained/register/esm ace.js db:seed",
     "ace": "node --import=ts-node-maintained/register/esm ace.js",
+    "test:unit": "node --import=ts-node-maintained/register/esm --test $(find tests/unit -name '*.spec.ts')",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "echo 'TODO(GF-205): habilitar node ace test cuando haya suite Japa' && exit 0"

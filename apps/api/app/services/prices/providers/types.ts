@@ -16,7 +16,7 @@ export interface AssetRef {
   type: 'crypto' | 'stock' | 'bond' | 'currency'
 }
 
-export type ProviderName = 'coingecko' | 'yahoo'
+export type ProviderName = 'coingecko' | 'yahoo' | 'fx'
 
 export interface PriceProvider {
   readonly name: ProviderName
