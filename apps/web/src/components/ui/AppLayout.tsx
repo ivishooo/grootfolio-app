@@ -18,8 +18,8 @@ export function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [sidebarMenuOpen, setSidebarMenuOpen] = useState(false)
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login')
   }
 
