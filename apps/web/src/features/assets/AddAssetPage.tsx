@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createTransactionInputSchema, type CreateTransactionInput } from '@grootfolio/shared'
+import { useCreateTransaction } from '@/lib/queries'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -22,11 +23,14 @@ export function AddAssetPage() {
   const [form, setForm] = useState({ symbol: '', quantity: '', unitPrice: '', fee: '', purchasedAt: '', notes: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const createTx = useCreateTransaction()
 
   const updateField = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }))
     setErrors((p) => ({ ...p, [field]: '' }))
     setSuccess(false)
+    setSubmitError(null)
   }
 
   const handleSubmit = () => {
@@ -47,10 +51,16 @@ export function AddAssetPage() {
       return
     }
     setErrors({})
-    // eslint-disable-next-line no-console
-    console.log('Mock submit:', result.data)
-    setSuccess(true)
-    setForm({ symbol: '', quantity: '', unitPrice: '', fee: '', purchasedAt: '', notes: '' })
+    setSubmitError(null)
+    createTx.mutate(result.data, {
+      onSuccess: () => {
+        setSuccess(true)
+        setForm({ symbol: '', quantity: '', unitPrice: '', fee: '', purchasedAt: '', notes: '' })
+      },
+      onError: (err) => {
+        setSubmitError(err instanceof Error ? err.message : 'No se pudo guardar la transaccion.')
+      },
+    })
   }
 
   const handleCancel = () => {
@@ -83,11 +93,14 @@ export function AddAssetPage() {
           </div>
           <Input label="Notas (opcional)" placeholder="Observaciones..." value={form.notes} error={errors.notes} onChange={(v) => updateField('notes', v)} multiline />
 
-          {success && <p className="text-success-500 text-sm font-medium">Activo guardado correctamente (mock)</p>}
+          {success && <p className="text-success-500 text-sm font-medium">Transaccion guardada correctamente</p>}
+          {submitError && <p className="text-danger-500 text-sm font-medium">{submitError}</p>}
 
           <div className="flex gap-3 pt-2">
-            <Button fullWidth onClick={handleSubmit}>Guardar Activo</Button>
-            <Button variant="secondary" onClick={handleCancel}>Cancelar</Button>
+            <Button fullWidth onClick={handleSubmit} disabled={createTx.isPending}>
+              {createTx.isPending ? 'Guardando…' : 'Guardar Activo'}
+            </Button>
+            <Button variant="secondary" onClick={handleCancel} disabled={createTx.isPending}>Cancelar</Button>
           </div>
         </div>
       </Card>

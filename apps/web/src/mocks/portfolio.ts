@@ -1,39 +1,7 @@
-import type { PortfolioSummary, QuizQuestion, RiskProfileResult } from '@grootfolio/shared'
+import type { QuizQuestion, RiskProfileResult } from '@grootfolio/shared'
 
-export const mockPortfolio: PortfolioSummary = {
-  totalValue: 100000,
-  pnlAbsolute: 3709,
-  pnlPercent: 15.2,
-  bestAsset: {
-    id: 'mock-btc',
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    type: 'crypto',
-    currency: 'USD',
-  },
-  distribution: [
-    { type: 'crypto', value: 45000 },
-    { type: 'stock', value: 32000 },
-    { type: 'bond', value: 15000 },
-    { type: 'currency', value: 8000 },
-  ],
-  monthlyReturn: [
-    { month: 'Ene', value: 45000 },
-    { month: 'Feb', value: 76000 },
-    { month: 'Mar', value: 89000 },
-    { month: 'Abr', value: 70000 },
-    { month: 'May', value: 98000 },
-    { month: 'Jun', value: 78000 },
-  ],
-  holdings: [
-    { assetId: '1', asset: { id: '1', symbol: 'BTC', name: 'Bitcoin', type: 'crypto', currency: 'USD' }, quantity: 0.5, avgPrice: 40000, currentPrice: 50000, value: 25000, pnl: 2500, pnlPercent: 12.5 },
-    { assetId: '2', asset: { id: '2', symbol: 'AAPL', name: 'Apple Inc.', type: 'stock', currency: 'USD' }, quantity: 100, avgPrice: 150, currentPrice: 180, value: 18000, pnl: 1380, pnlPercent: 8.3 },
-    { assetId: '3', asset: { id: '3', symbol: 'ETH', name: 'Ethereum', type: 'crypto', currency: 'USD' }, quantity: 8, avgPrice: 2500, currentPrice: 2420, value: 20000, pnl: -640, pnlPercent: -3.2 },
-    { assetId: '4', asset: { id: '4', symbol: 'US-T', name: 'US Treasury', type: 'bond', currency: 'USD' }, quantity: 150, avgPrice: 100, currentPrice: 102, value: 15000, pnl: 315, pnlPercent: 2.1 },
-    { assetId: '5', asset: { id: '5', symbol: 'EUR', name: 'EUR/USD', type: 'currency', currency: 'USD' }, quantity: 8000, avgPrice: 1.08, currentPrice: 1.1, value: 8600, pnl: 154, pnlPercent: 1.8 },
-  ],
-}
-
+// El portfolio ya consume datos reales (GF-225). Estos mocks quedan solo para
+// el Test de Perfil, que aun no tiene backend.
 export const mockQuiz: QuizQuestion[] = [
   {
     id: 'q1', order: 1,
