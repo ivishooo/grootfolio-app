@@ -1,27 +1,70 @@
-import { mockProfileResult } from '@/mocks/portfolio'
 import { useNavigate } from 'react-router-dom'
+import type { RiskProfileType } from '@grootfolio/shared'
 import { useTheme } from '@/theme/ThemeProvider'
 import { themes } from '@grootfolio/tokens'
+import { useQuizResult } from '@/lib/queries'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States'
 
-const labels = { conservative: 'Conservador', moderate: 'Moderado', aggressive: 'Agresivo' } as const
+const labels: Record<RiskProfileType, string> = {
+  conservative: 'Conservador',
+  moderate: 'Moderado',
+  aggressive: 'Agresivo',
+}
 
-const allocation = [
-  { label: 'Renta fija', pct: 40 },
-  { label: 'Acciones', pct: 35 },
-  { label: 'Criptomonedas', pct: 15 },
-  { label: 'Cash', pct: 10 },
-]
+// Asignacion sugerida por perfil (presentacion: se deriva del perfil, el backend
+// devuelve perfil/score/descripcion/recomendaciones, no la distribucion).
+const ALLOCATION: Record<RiskProfileType, Array<{ label: string; pct: number }>> = {
+  conservative: [
+    { label: 'Renta fija', pct: 60 }, { label: 'Acciones', pct: 20 },
+    { label: 'Criptomonedas', pct: 5 }, { label: 'Cash', pct: 15 },
+  ],
+  moderate: [
+    { label: 'Renta fija', pct: 40 }, { label: 'Acciones', pct: 35 },
+    { label: 'Criptomonedas', pct: 15 }, { label: 'Cash', pct: 10 },
+  ],
+  aggressive: [
+    { label: 'Renta fija', pct: 15 }, { label: 'Acciones', pct: 50 },
+    { label: 'Criptomonedas', pct: 30 }, { label: 'Cash', pct: 5 },
+  ],
+}
 
 export function ProfileResultPage() {
-  const result = mockProfileResult
   const navigate = useNavigate()
   const { theme: themeName } = useTheme()
+  const { data: result, isLoading, isError, error, refetch } = useQuizResult()
   const chartColors = [
     themes[themeName].chart.series1,
     themes[themeName].chart.series2,
     themes[themeName].chart.series3,
     themes[themeName].chart.series4,
   ]
+
+  if (isLoading) return <LoadingState label="Cargando tu perfil…" />
+  if (isError) {
+    return (
+      <ErrorState
+        message={error instanceof Error ? error.message : 'No se pudo cargar tu perfil.'}
+        onRetry={() => void refetch()}
+      />
+    )
+  }
+  if (!result) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <EmptyState
+          title="Todavia no hiciste el test"
+          description="Responde el cuestionario para conocer tu perfil de inversor."
+          action={
+            <button onClick={() => navigate('/profile-test')} className="rounded-lg bg-brand-500 px-5 py-2 font-medium text-white hover:bg-brand-600">
+              Hacer el test
+            </button>
+          }
+        />
+      </div>
+    )
+  }
+
+  const allocation = ALLOCATION[result.profile]
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -46,10 +89,7 @@ export function ProfileResultPage() {
                 <span className="font-medium">{a.pct}%</span>
               </div>
               <div className="h-3 rounded-full bg-neutral-100 dark:bg-neutral-800">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${a.pct}%`, backgroundColor: chartColors[i] }}
-                />
+                <div className="h-full rounded-full transition-all" style={{ width: `${a.pct}%`, backgroundColor: chartColors[i] }} />
               </div>
             </div>
           ))}

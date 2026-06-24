@@ -1,23 +1,49 @@
 /**
- * ProfileTestPage - cuestionario de perfil de inversor.
- * Implementar segun Figma "04 - Profile Test - Desktop". Ver CLAUDE_CODE_PLAN.md Fase 3.
+ * ProfileTestPage - cuestionario de perfil de inversor (datos reales).
  */
 import { useState } from 'react'
-import { mockQuiz } from '@/mocks/portfolio'
 import { useNavigate } from 'react-router-dom'
+import { useQuiz, useSubmitQuiz } from '@/lib/queries'
+import { ErrorState, LoadingState } from '@/components/ui/States'
 
 export function ProfileTestPage() {
+  const navigate = useNavigate()
+  const { data: questions, isLoading, isError, error, refetch } = useQuiz()
+  const submitQuiz = useSubmitQuiz()
   const [step, setStep] = useState(0)
   const [selected, setSelected] = useState<Record<string, string>>({})
-  const navigate = useNavigate()
-  const question = mockQuiz[step]!
-  const progress = ((step + 1) / mockQuiz.length) * 100
+
+  if (isLoading) return <LoadingState label="Cargando el cuestionario…" />
+  if (isError) {
+    return (
+      <ErrorState
+        message={error instanceof Error ? error.message : 'No se pudo cargar el cuestionario.'}
+        onRetry={() => void refetch()}
+      />
+    )
+  }
+  if (!questions || questions.length === 0) return null
+
+  const question = questions[step]!
+  const progress = ((step + 1) / questions.length) * 100
+  const isLast = step + 1 >= questions.length
+
+  const handleNext = () => {
+    if (!isLast) {
+      setStep(step + 1)
+      return
+    }
+    const answers = questions.map((q) => ({ questionId: q.id, optionId: selected[q.id]! }))
+    submitQuiz.mutate(answers, {
+      onSuccess: () => navigate('/profile-test/result'),
+    })
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <h2 className="text-2xl font-bold">Test de Perfil</h2>
       <div className="flex items-center justify-between text-sm">
-        <span className="text-neutral-500">Pregunta {step + 1} de {mockQuiz.length}</span>
+        <span className="text-neutral-500">Pregunta {step + 1} de {questions.length}</span>
         <span className="text-brand-500">{Math.round(progress)}% Completado</span>
       </div>
       <div className="h-2 rounded-full bg-neutral-200 dark:bg-neutral-800">
@@ -43,20 +69,25 @@ export function ProfileTestPage() {
           })}
         </div>
       </div>
+      {submitQuiz.isError && (
+        <p className="text-danger-500 text-sm font-medium">
+          {submitQuiz.error instanceof Error ? submitQuiz.error.message : 'No se pudo calcular tu perfil.'}
+        </p>
+      )}
       <div className="flex gap-3">
         <button
-          disabled={step === 0}
+          disabled={step === 0 || submitQuiz.isPending}
           onClick={() => setStep(step - 1)}
           className="rounded-lg border border-neutral-300 px-6 py-2 disabled:opacity-50 dark:border-neutral-700"
         >
           ← Anterior
         </button>
         <button
-          disabled={!selected[question.id]}
-          onClick={() => (step + 1 < mockQuiz.length ? setStep(step + 1) : navigate('/profile-test/result'))}
+          disabled={!selected[question.id] || submitQuiz.isPending}
+          onClick={handleNext}
           className="flex-1 rounded-lg bg-brand-500 py-2 font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {step + 1 < mockQuiz.length ? 'Siguiente →' : 'Finalizar'}
+          {isLast ? (submitQuiz.isPending ? 'Calculando…' : 'Finalizar') : 'Siguiente →'}
         </button>
       </div>
     </div>
