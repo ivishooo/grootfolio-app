@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 interface UserMenuProps {
-  user: { name: string; email: string } | null
+  user: { fullName: string | null; email: string } | null
   open: boolean
   onToggle: () => void
   onLogout: () => void
@@ -20,12 +20,14 @@ export function UserMenu({ user, open, onToggle, onLogout, position = 'bottom' }
     return () => document.removeEventListener('mousedown', handler)
   }, [open, onToggle])
 
-  const initials = user?.name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) ?? 'U'
+  const displayName = user?.fullName ?? user?.email ?? 'Usuario'
+  const initials =
+    displayName
+      .split(' ')
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'U'
 
   return (
     <div ref={ref} className="relative">
@@ -37,8 +39,8 @@ export function UserMenu({ user, open, onToggle, onLogout, position = 'bottom' }
           {initials}
         </div>
         <div className="min-w-0 text-left">
-          <p className="truncate text-sm font-medium">{user?.name ?? 'Usuario Demo'}</p>
-          <p className="truncate text-xs text-neutral-500">{user?.email ?? 'demo@grootfolio.com'}</p>
+          <p className="truncate text-sm font-medium">{displayName}</p>
+          <p className="truncate text-xs text-neutral-500">{user?.email ?? ''}</p>
         </div>
       </button>
 
@@ -48,8 +50,8 @@ export function UserMenu({ user, open, onToggle, onLogout, position = 'bottom' }
             position === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
           }`}
         >
-          <p className="text-sm font-semibold">{user?.name}</p>
-          <p className="text-xs text-neutral-500">{user?.email}</p>
+          <p className="text-sm font-semibold">{displayName}</p>
+          <p className="text-xs text-neutral-500">{user?.email ?? ''}</p>
           <hr className="my-2 border-neutral-200 dark:border-neutral-700" />
           <button
             onClick={onLogout}
