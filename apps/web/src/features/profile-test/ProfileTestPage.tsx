@@ -1,19 +1,30 @@
 /**
  * ProfileTestPage - cuestionario de perfil de inversor (datos reales).
+ * Si el usuario ya tiene un perfil, muestra un resumen con la opcion de rehacer
+ * el test en vez de mostrar el formulario directo.
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuiz, useSubmitQuiz } from '@/lib/queries'
+import type { RiskProfileType } from '@grootfolio/shared'
+import { useQuiz, useQuizResult, useSubmitQuiz } from '@/lib/queries'
 import { ErrorState, LoadingState } from '@/components/ui/States'
+
+const labels: Record<RiskProfileType, string> = {
+  conservative: 'Conservador',
+  moderate: 'Moderado',
+  aggressive: 'Agresivo',
+}
 
 export function ProfileTestPage() {
   const navigate = useNavigate()
+  const result = useQuizResult()
   const { data: questions, isLoading, isError, error, refetch } = useQuiz()
   const submitQuiz = useSubmitQuiz()
+  const [retake, setRetake] = useState(false)
   const [step, setStep] = useState(0)
   const [selected, setSelected] = useState<Record<string, string>>({})
 
-  if (isLoading) return <LoadingState label="Cargando el cuestionario…" />
+  if (isLoading || result.isLoading) return <LoadingState label="Cargando el cuestionario…" />
   if (isError) {
     return (
       <ErrorState
@@ -22,6 +33,37 @@ export function ProfileTestPage() {
       />
     )
   }
+
+  // Ya tiene perfil y no eligio rehacer: mostramos el perfil actual.
+  if (result.data && !retake) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <h2 className="text-2xl font-bold">Test de Perfil</h2>
+        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center dark:border-neutral-800 dark:bg-neutral-900">
+          <p className="text-sm text-neutral-500">Tu perfil de inversor es</p>
+          <div className="mx-auto mt-3 inline-block rounded-full bg-brand-100 px-6 py-2 text-lg font-semibold text-brand-500 dark:bg-brand-500/10">
+            {labels[result.data.profile]}
+          </div>
+          <p className="mt-4 text-sm text-neutral-500">{result.data.description}</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate('/profile-test/result')}
+            className="flex-1 rounded-lg border border-neutral-300 py-2.5 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          >
+            Ver detalle
+          </button>
+          <button
+            onClick={() => { setRetake(true); setStep(0); setSelected({}) }}
+            className="flex-1 rounded-lg bg-brand-500 py-2.5 font-medium text-white hover:bg-brand-600"
+          >
+            Volver a hacer el test
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (!questions || questions.length === 0) return null
 
   const question = questions[step]!
