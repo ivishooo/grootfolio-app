@@ -24,7 +24,17 @@ interface YahooQuoteShape {
   currency?: string
 }
 
-const yahooFinance = new YahooFinance()
+/**
+ * yahoo-finance2 v3 exporta el default como constructor (`new YahooFinance()`,
+ * segun su propia doc), pero ts-node-maintained no resuelve su tipo como
+ * construible (TS2351) por una diferencia de moduleResolution con tsc — lo que
+ * en runtime rompia el import del modulo (y por ende GET /portfolio). Tipamos
+ * solo lo que consumimos (`quote`) y construimos por ese contrato, sin depender
+ * de esa resolucion. En runtime el default ES la clase.
+ */
+type YahooClient = { quote(symbols: string[]): Promise<unknown> }
+const YahooFinanceCtor = YahooFinance as unknown as new () => YahooClient
+const yahooFinance = new YahooFinanceCtor()
 
 export const yahooProvider: PriceProvider = {
   name: 'yahoo',
