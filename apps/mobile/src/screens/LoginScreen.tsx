@@ -14,8 +14,10 @@ export function LoginScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const result = loginInputSchema.safeParse({ email, password })
     if (!result.success) {
       const fieldErrors = result.error.flatten().fieldErrors
@@ -23,7 +25,15 @@ export function LoginScreen() {
       return
     }
     setErrors({})
-    login()
+    setFormError(null)
+    setSubmitting(true)
+    try {
+      await login(email, password)
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'No se pudo iniciar sesion')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -52,7 +62,12 @@ export function LoginScreen() {
             error={errors.password}
             secureTextEntry
           />
-          <Button fullWidth onPress={handleLogin} disabled={!email && !password}>Ingresar</Button>
+          {formError && (
+            <Text style={{ color: '#EF4444', textAlign: 'center', fontSize: 13 }}>{formError}</Text>
+          )}
+          <Button fullWidth onPress={handleLogin} disabled={submitting || (!email && !password)}>
+            {submitting ? 'Ingresando…' : 'Ingresar'}
+          </Button>
         </View>
       </Card>
     </SafeAreaView>
