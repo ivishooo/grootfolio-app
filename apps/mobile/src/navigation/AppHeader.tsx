@@ -11,12 +11,14 @@ export function AppHeader() {
   const insets = useSafeAreaInsets()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const initials = user?.name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) ?? 'U'
+  const displayName = user?.fullName ?? user?.email ?? 'Usuario'
+  const initials =
+    displayName
+      .split(' ')
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'U'
 
   return (
     <View style={[styles.wrapper, { paddingTop: insets.top, backgroundColor: theme.background.surface, borderBottomColor: theme.border.default }]}>
@@ -41,8 +43,8 @@ export function AppHeader() {
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)}>
           <View style={[styles.menu, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-            <Text style={[styles.menuName, { color: theme.text.primary }]}>{user?.name}</Text>
-            <Text style={[styles.menuEmail, { color: theme.text.muted }]}>{user?.email}</Text>
+            <Text style={[styles.menuName, { color: theme.text.primary }]}>{displayName}</Text>
+            <Text style={[styles.menuEmail, { color: theme.text.muted }]}>{user?.email ?? ''}</Text>
             <View style={[styles.separator, { backgroundColor: theme.border.default }]} />
             <TouchableOpacity
               onPress={() => { setMenuOpen(false); logout() }}
