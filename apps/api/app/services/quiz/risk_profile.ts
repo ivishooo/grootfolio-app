@@ -35,32 +35,32 @@ export interface ProfileContent {
 const CONTENT: Record<RiskProfileType, ProfileContent> = {
   conservative: {
     description:
-      'Priorizas preservar tu capital por sobre maximizar el rendimiento. Toleras poca volatilidad y preferis instrumentos estables.',
+      'Priorizás preservar tu capital por sobre maximizar el rendimiento. Tolerás poca volatilidad y preferís instrumentos estables.',
     recommendations: [
-      'Concentra la mayor parte en renta fija y money market.',
-      'Limita la exposicion a cripto y acciones volatiles.',
-      'Manten un fondo de emergencia antes de invertir.',
-      'Revisa tu cartera de forma periodica, sin sobrerreaccionar a las bajas.',
+      'Concentrá la mayor parte en renta fija y money market.',
+      'Limitá la exposición a cripto y acciones volátiles.',
+      'Mantené un fondo de emergencia antes de invertir.',
+      'Revisá tu cartera de forma periódica, sin sobrerreaccionar a las bajas.',
     ],
   },
   moderate: {
     description:
-      'Buscas un equilibrio entre crecimiento y estabilidad. Aceptas algo de volatilidad a cambio de mejor rendimiento en el mediano plazo.',
+      'Buscás un equilibrio entre crecimiento y estabilidad. Aceptás algo de volatilidad a cambio de mejor rendimiento en el mediano plazo.',
     recommendations: [
-      'Combina renta fija con una porcion de acciones y ETFs diversificados.',
-      'Suma cripto de forma acotada, como satelite de la cartera.',
-      'Diversifica por tipo de activo y moneda.',
-      'Rebalancea cuando una clase de activo se desvie de tu objetivo.',
+      'Combiná renta fija con una porción de acciones y ETFs diversificados.',
+      'Sumá cripto de forma acotada, como satélite de la cartera.',
+      'Diversificá por tipo de activo y moneda.',
+      'Rebalanceá cuando una clase de activo se desvíe de tu objetivo.',
     ],
   },
   aggressive: {
     description:
-      'Priorizas maximizar el rendimiento y toleras caidas fuertes en el corto plazo. Tu horizonte es largo y aceptas alta volatilidad.',
+      'Priorizás maximizar el rendimiento y tolerás caídas fuertes en el corto plazo. Tu horizonte es largo y aceptás alta volatilidad.',
     recommendations: [
       'Mayor peso en acciones de crecimiento, ETFs y cripto.',
-      'Aprovecha las bajas para promediar posiciones de conviccion.',
-      'Diversifica igual: la concentracion extrema agrega riesgo evitable.',
-      'Define limites de perdida para no exponerte de mas.',
+      'Aprovechá las bajas para promediar posiciones de convicción.',
+      'Diversificá igual: la concentración extrema agrega riesgo evitable.',
+      'Definí límites de pérdida para no exponerte de más.',
     ],
   },
 }

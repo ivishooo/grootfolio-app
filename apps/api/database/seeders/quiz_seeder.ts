@@ -17,7 +17,7 @@ interface SeedQuestion {
 const QUESTIONS: SeedQuestion[] = [
   {
     order: 1,
-    text: 'Que experiencia previa tenes en inversiones?',
+    text: '¿Qué experiencia previa tenés en inversiones?',
     options: [
       { label: 'No tengo experiencia en inversiones', score: 1 },
       { label: 'Invierto en plazo fijo', score: 2 },
@@ -28,32 +28,32 @@ const QUESTIONS: SeedQuestion[] = [
   },
   {
     order: 2,
-    text: 'Cual es tu horizonte de inversion?',
+    text: '¿Cuál es tu horizonte de inversión?',
     options: [
-      { label: 'Menos de 1 ano', score: 1 },
-      { label: 'Entre 1 y 3 anos', score: 2 },
-      { label: 'Entre 3 y 5 anos', score: 3 },
-      { label: 'Mas de 5 anos', score: 4 },
+      { label: 'Menos de 1 año', score: 1 },
+      { label: 'Entre 1 y 3 años', score: 2 },
+      { label: 'Entre 3 y 5 años', score: 3 },
+      { label: 'Más de 5 años', score: 4 },
     ],
   },
   {
     order: 3,
-    text: 'Como reaccionarias ante una caida del 20% en tu portafolio?',
+    text: '¿Cómo reaccionarías ante una caída del 20% en tu portafolio?',
     options: [
-      { label: 'Vendo todo para evitar perder mas', score: 1 },
-      { label: 'Vendo una parte para limitar perdidas', score: 2 },
+      { label: 'Vendo todo para evitar perder más', score: 1 },
+      { label: 'Vendo una parte para limitar pérdidas', score: 2 },
       { label: 'Mantengo posiciones y espero', score: 3 },
-      { label: 'Compro mas aprovechando los precios bajos', score: 4 },
+      { label: 'Compro más aprovechando los precios bajos', score: 4 },
     ],
   },
   {
     order: 4,
-    text: 'Que porcentaje de tus ingresos pensas invertir?',
+    text: '¿Qué porcentaje de tus ingresos pensás invertir?',
     options: [
       { label: 'Menos del 10%', score: 1 },
       { label: 'Entre 10% y 25%', score: 2 },
       { label: 'Entre 25% y 50%', score: 3 },
-      { label: 'Mas del 50%', score: 4 },
+      { label: 'Más del 50%', score: 4 },
     ],
   },
 ]

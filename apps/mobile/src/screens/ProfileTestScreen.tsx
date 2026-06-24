@@ -2,20 +2,29 @@ import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { RiskProfileType } from '@grootfolio/shared'
 import { useTheme } from '@/theme/ThemeProvider'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
-import { useQuiz, useSubmitQuiz } from '@/lib/queries'
+import { useQuiz, useQuizResult, useSubmitQuiz } from '@/lib/queries'
 import { ErrorState, LoadingState } from '@/components/ui/States'
+
+const labels: Record<RiskProfileType, string> = {
+  conservative: 'Conservador',
+  moderate: 'Moderado',
+  aggressive: 'Agresivo',
+}
 
 export function ProfileTestScreen() {
   const { theme } = useTheme()
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Main'>>()
+  const result = useQuizResult()
   const { data: questions, isLoading, isError, error, refetch } = useQuiz()
   const submitQuiz = useSubmitQuiz()
+  const [retake, setRetake] = useState(false)
   const [step, setStep] = useState(0)
   const [selected, setSelected] = useState<Record<string, string>>({})
 
-  if (isLoading) {
+  if (isLoading || result.isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background.canvas }}>
         <LoadingState label="Cargando el cuestionario…" />
@@ -32,6 +41,36 @@ export function ProfileTestScreen() {
       </View>
     )
   }
+
+  // Ya tiene perfil y no eligio rehacer: mostramos el perfil actual.
+  if (result.data && !retake) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background.canvas }}>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+          <Text style={{ color: theme.text.primary, fontSize: 20, fontWeight: '700' }}>Test de Perfil</Text>
+          <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default, alignItems: 'center' }]}>
+            <Text style={{ color: theme.text.secondary }}>Tu perfil de inversor es</Text>
+            <Text style={{ color: theme.brand.solid, fontSize: 30, fontWeight: '800', marginVertical: 6 }}>
+              {labels[result.data.profile]}
+            </Text>
+            <Text style={{ color: theme.text.secondary, textAlign: 'center', lineHeight: 20 }}>
+              {result.data.description}
+            </Text>
+          </View>
+          <TouchableOpacity style={[s.btnPrimary, { backgroundColor: theme.brand.solid }]} onPress={() => nav.getParent()?.navigate('ProfileResult')}>
+            <Text style={{ color: theme.text.onBrand, fontWeight: '600' }}>Ver detalle</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.btnSecondaryFull, { borderColor: theme.border.default }]}
+            onPress={() => { setRetake(true); setStep(0); setSelected({}) }}
+          >
+            <Text style={{ color: theme.text.secondary, fontWeight: '600' }}>Volver a hacer el test</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    )
+  }
+
   if (!questions || questions.length === 0) return null
 
   const total = questions.length
@@ -113,7 +152,7 @@ export function ProfileTestScreen() {
           <TouchableOpacity
             onPress={handleNext}
             disabled={!currentSelected || submitQuiz.isPending}
-            style={[s.btnPrimary, { backgroundColor: theme.brand.solid, opacity: currentSelected && !submitQuiz.isPending ? 1 : 0.5 }]}
+            style={[s.btnPrimary, { flex: 1, backgroundColor: theme.brand.solid, opacity: currentSelected && !submitQuiz.isPending ? 1 : 0.5 }]}
           >
             <Text style={{ color: theme.text.onBrand, fontWeight: '600' }}>
               {isLast ? (submitQuiz.isPending ? 'Calculando…' : 'Finalizar') : 'Siguiente →'}
@@ -132,5 +171,6 @@ const s = StyleSheet.create({
   option: { padding: 14, borderWidth: 1, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   radio: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   btnSecondary: { borderWidth: 1, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20 },
-  btnPrimary: { flex: 1, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  btnSecondaryFull: { borderWidth: 1, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  btnPrimary: { borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
 })
