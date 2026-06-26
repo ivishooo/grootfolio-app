@@ -7,8 +7,6 @@ import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton'
 export function DashboardSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true">
-      <Skeleton className="h-8 w-40" />
-
       <div className="grid gap-4 md:grid-cols-3">
         {[0, 1, 2].map((i) => (
           <SkeletonCard key={i}>

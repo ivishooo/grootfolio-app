@@ -99,6 +99,7 @@ export function ProfileTestPage() {
             return (
               <button
                 key={o.id}
+                data-testid="quiz-option"
                 onClick={() => setSelected({ ...selected, [question.id]: o.id })}
                 className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left ${isSelected ? 'border-brand-500 bg-brand-100 dark:bg-brand-500/10' : 'border-neutral-200 dark:border-neutral-800'}`}
               >
