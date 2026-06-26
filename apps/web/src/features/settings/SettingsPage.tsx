@@ -51,6 +51,7 @@ export function SettingsPage() {
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
+            aria-label="Moneda base"
             className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
           >
             {CURRENCIES.map((c) => (
