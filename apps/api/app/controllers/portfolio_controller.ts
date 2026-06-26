@@ -13,6 +13,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Transaction from '#models/transaction'
 import { aggregateHoldings } from '#services/portfolio/holdings_service'
 import { aggregatePortfolio } from '#services/portfolio/portfolio_service'
+import { computeMonthlyReturn } from '#services/portfolio/monthly_return'
 import { getPrices } from '#services/prices/price_service'
 import { getRateToUsd } from '#services/prices/fx/fx_service'
 
@@ -42,6 +43,8 @@ export default class PortfolioController {
     }
 
     const portfolio = aggregatePortfolio(holdings, prices, fxRates)
+    // Valor del portfolio mes a mes (GF-246; solo crypto en esta version).
+    portfolio.monthlyReturn = await computeMonthlyReturn(transactions, prices)
 
     return response.status(200).send({ portfolio })
   }
