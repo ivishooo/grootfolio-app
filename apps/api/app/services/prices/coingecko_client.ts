@@ -46,3 +46,39 @@ export async function fetchSimplePrice(coingeckoIds: string[]): Promise<SimplePr
 
   return (await res.json()) as SimplePriceResponse
 }
+
+export interface MarketChartPoint {
+  timestamp: number
+  price: number
+}
+
+/**
+ * Historico de precios de un activo via `/coins/{id}/market_chart`. Para
+ * `days > 90` CoinGecko devuelve granularidad diaria automaticamente; NO
+ * pasamos `interval=daily` porque esta restringido a planes pagos en el tier
+ * free. Lo usa la reconstruccion del monthlyReturn (GF-246).
+ */
+export async function fetchMarketChart(
+  coingeckoId: string,
+  days: number
+): Promise<MarketChartPoint[]> {
+  const url = new URL(`${BASE_URL}/coins/${coingeckoId}/market_chart`)
+  url.searchParams.set('vs_currency', 'usd')
+  url.searchParams.set('days', String(days))
+
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  const apiKey = env.get('COINGECKO_API_KEY')
+  if (apiKey) headers['x-cg-demo-api-key'] = apiKey
+
+  const res = await fetch(url, { headers })
+  if (res.status === 429) {
+    throw new CoinGeckoRateLimitError()
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`CoinGecko market_chart HTTP ${res.status}: ${body.slice(0, 200)}`)
+  }
+
+  const data = (await res.json()) as { prices?: Array<[number, number]> }
+  return (data.prices ?? []).map(([timestamp, price]) => ({ timestamp, price }))
+}

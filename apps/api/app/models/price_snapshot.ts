@@ -36,6 +36,13 @@ export default class PriceSnapshot extends BaseModel {
   @column.dateTime({ columnName: 'fetched_at' })
   declare fetchedAt: DateTime
 
+  /**
+   * true = precio de cierre mensual reconstruido (GF-246); false = snapshot
+   * actual del cache (GF-220). En historicos, `fetchedAt` es el cierre del mes.
+   */
+  @column({ columnName: 'is_historical' })
+  declare isHistorical: boolean
+
   @column()
   declare raw: Record<string, unknown> | null
 
