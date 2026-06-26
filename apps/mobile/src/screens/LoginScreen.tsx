@@ -47,6 +47,7 @@ export function LoginScreen() {
           <Text style={{ color: theme.text.secondary, textAlign: 'center' }}>Ingresa a tu portfolio</Text>
 
           <FormField
+            testID="login-email"
             label="Email"
             placeholder="tu@email.com"
             value={email}
@@ -55,6 +56,7 @@ export function LoginScreen() {
             keyboard="email-address"
           />
           <FormField
+            testID="login-password"
             label="Contrasena"
             placeholder="••••••••"
             value={password}
@@ -65,7 +67,7 @@ export function LoginScreen() {
           {formError && (
             <Text style={{ color: '#EF4444', textAlign: 'center', fontSize: 13 }}>{formError}</Text>
           )}
-          <Button fullWidth onPress={handleLogin} disabled={submitting || (!email && !password)}>
+          <Button testID="login-submit" fullWidth onPress={handleLogin} disabled={submitting || (!email && !password)}>
             {submitting ? 'Ingresando…' : 'Ingresar'}
           </Button>
         </View>

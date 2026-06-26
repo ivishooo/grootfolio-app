@@ -10,15 +10,17 @@ interface FormFieldProps {
   multiline?: boolean
   keyboard?: KeyboardTypeOptions
   secureTextEntry?: boolean
+  testID?: string
 }
 
-export function FormField({ label, value, onChange, error, placeholder, multiline, keyboard, secureTextEntry }: FormFieldProps) {
+export function FormField({ label, value, onChange, error, placeholder, multiline, keyboard, secureTextEntry, testID }: FormFieldProps) {
   const { theme } = useTheme()
 
   return (
     <View style={{ gap: 4 }}>
       <Text style={{ color: theme.text.primary, fontSize: 13, fontWeight: '600' }}>{label}</Text>
       <TextInput
+        testID={testID}
         placeholder={placeholder}
         placeholderTextColor={theme.text.placeholder}
         value={value}

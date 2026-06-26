@@ -1,0 +1,16 @@
+# Flujo E2E mobile (GF-234): login -> dashboard.
+# Se corre con Maestro sobre la app en un simulador/emulador (ver README.md).
+# appId del dev build; para Expo Go usar host.exp.Exponent.
+appId: com.grootfolio.app
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: 'login-email'
+- inputText: 'dev@grootfolio.test'
+- tapOn:
+    id: 'login-password'
+- inputText: 'DevPass123!'
+- tapOn:
+    id: 'login-submit'
+- assertVisible: 'Dashboard'
