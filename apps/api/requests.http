@@ -1,0 +1,143 @@
+###############################################################################
+# GrootFolio API — colección de requests para testing manual
+#
+# CÓMO USAR (la forma fácil, sin curl):
+#   1. En VS Code instalá la extensión "REST Client" (humao.rest-client).
+#   2. Abrí este archivo. Sobre cada request aparece un link "Send Request".
+#   3. Asegurate de tener la API corriendo: `pnpm dev:api` (http://localhost:3333).
+#   4. Hacé clic en "Send Request" del LOGIN primero: eso captura el token y el
+#      resto de las requests autenticadas lo reusan solas ({{login.response...}}).
+#
+# Cada bloque separado por "###" es una request independiente.
+# Los IDs (A1, T1, ...) coinciden con los casos de docs/TESTING_MANUAL.md.
+###############################################################################
+
+@base = http://localhost:3333
+
+### Health (público) → 200 {"status":"ok"}
+GET {{base}}/health
+
+### Metadata (público) → 200 {"name":"GrootFolio API"}
+GET {{base}}/
+
+# ─────────────────────────── AUTH (GF-206→209) ──────────────────────────────
+
+### A1 · Registro OK → 201 + user + tokens
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "test1@grootfolio.test", "password": "Password123", "fullName": "Test Uno" }
+
+### A2 · Email duplicado → 409 AUTH_EMAIL_TAKEN  (mandá A1 dos veces)
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "test1@grootfolio.test", "password": "Password123" }
+
+### A3 · Password corto → 422 VALIDATION_ERROR
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "test2@grootfolio.test", "password": "123" }
+
+### A4 · Email inválido → 422 VALIDATION_ERROR
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "email": "noesmail", "password": "Password123" }
+
+### A5 · Login OK → 200 + tokens   (ESTA captura el token: @name login)
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "dev@grootfolio.test", "password": "DevPass123!" }
+
+### A6 · Login mal → 401 AUTH_INVALID_CREDENTIALS
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "dev@grootfolio.test", "password": "malpassword" }
+
+### A7 · GET /me con token → 200 {user}   (reusa el token del login de arriba)
+GET {{base}}/me
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### A8 · GET /me sin token → 401 AUTH_NO_TOKEN
+GET {{base}}/me
+
+### A9 · GET /me token roto → 401 AUTH_INVALID_TOKEN
+GET {{base}}/me
+Authorization: Bearer xxx
+
+### A10 · Refresh OK → 200 + nuevo par de tokens
+POST {{base}}/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{login.response.body.refreshToken}}" }
+
+# ──────────────────────── TRANSACTIONS (GF-212) ─────────────────────────────
+
+### T1 · Crear compra de BTC → 201   (@name para reusar el id en el delete)
+# @name createTx
+POST {{base}}/transactions
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "symbol": "BTC", "type": "crypto", "kind": "buy",
+  "quantity": 0.5, "unitPrice": 40000, "fee": 100,
+  "purchasedAt": "2026-01-15T10:00:00.000Z", "notes": "primera compra"
+}
+
+### T3 · Validación: quantity 0 → 422 VALIDATION_ERROR
+POST {{base}}/transactions
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "symbol": "BTC", "type": "crypto", "quantity": 0, "unitPrice": 40000, "purchasedAt": "2026-01-15T10:00:00.000Z" }
+
+### T7 · Listar transacciones → 200 (orden purchasedAt DESC)
+GET {{base}}/transactions
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### T8 · Borrar la transacción creada en T1 → 204
+DELETE {{base}}/transactions/{{createTx.response.body.transaction.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+# ───────────────── HOLDINGS / PORTFOLIO (GF-213 / GF-214) ───────────────────
+
+### Holdings agregados (WAC) → 200
+GET {{base}}/holdings
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Portfolio con precios en vivo → 200
+GET {{base}}/portfolio
+Authorization: Bearer {{login.response.body.accessToken}}
+
+# ──────────────── PERFIL DE INVERSOR / QUIZ (GF-2) ──────────────────────────
+
+### Q1 · Preguntas del cuestionario → 200   (@name para reusar los ids en el submit)
+# @name quiz
+GET {{base}}/quiz
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Q2 · Enviar respuestas → 200 (perfil calculado)
+#   Toma la 1ra opcion de cada pregunta del GET de arriba (-> perfil conservador).
+#   Manda primero "Q1 · Preguntas" para que se resuelvan las referencias.
+POST {{base}}/quiz/submit
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "answers": [
+    { "questionId": "{{quiz.response.body.questions[0].id}}", "optionId": "{{quiz.response.body.questions[0].options[0].id}}" },
+    { "questionId": "{{quiz.response.body.questions[1].id}}", "optionId": "{{quiz.response.body.questions[1].options[0].id}}" },
+    { "questionId": "{{quiz.response.body.questions[2].id}}", "optionId": "{{quiz.response.body.questions[2].options[0].id}}" },
+    { "questionId": "{{quiz.response.body.questions[3].id}}", "optionId": "{{quiz.response.body.questions[3].options[0].id}}" }
+  ]
+}
+
+### Q3 · Ultimo perfil del usuario → 200 { result } | null
+GET {{base}}/quiz/result
+Authorization: Bearer {{login.response.body.accessToken}}
