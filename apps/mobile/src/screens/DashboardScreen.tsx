@@ -5,7 +5,8 @@ import { formatCurrency, formatPercent } from '@grootfolio/shared'
 import { Screen } from '@/components/ui/Screen'
 import { Card } from '@/components/ui/Card'
 import { StatCard } from '@/components/ui/StatCard'
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States'
+import { EmptyState, ErrorState } from '@/components/ui/States'
+import { DashboardSkeleton } from './DashboardSkeleton'
 
 const TYPE_LABELS: Record<string, string> = {
   crypto: 'Cripto', stock: 'Acciones', bond: 'Bonos', currency: 'Divisas',
@@ -23,7 +24,7 @@ export function DashboardScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
         <Text style={{ color: theme.text.primary, fontSize: 20, fontWeight: '700' }}>Dashboard</Text>
 
-        {isLoading && <LoadingState label="Cargando tu portfolio…" />}
+        {isLoading && <DashboardSkeleton />}
         {isError && (
           <ErrorState
             message={error instanceof Error ? error.message : 'No se pudo cargar el portfolio.'}

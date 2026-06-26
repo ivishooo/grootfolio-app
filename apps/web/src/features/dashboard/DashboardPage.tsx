@@ -6,7 +6,8 @@ import { themes } from '@grootfolio/tokens'
 import { Card } from '@/components/ui/Card'
 import { StatCard } from '@/components/ui/StatCard'
 import { Button } from '@/components/ui/Button'
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States'
+import { EmptyState, ErrorState } from '@/components/ui/States'
+import { DashboardSkeleton } from './DashboardSkeleton'
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -21,7 +22,7 @@ export function DashboardPage() {
   const t = themes[themeName]
   const { data: p, isLoading, isError, error, refetch } = usePortfolio()
 
-  if (isLoading) return <LoadingState label="Cargando tu portfolio…" />
+  if (isLoading) return <DashboardSkeleton />
   if (isError) {
     return (
       <ErrorState
