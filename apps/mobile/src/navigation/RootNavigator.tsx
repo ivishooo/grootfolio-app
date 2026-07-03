@@ -1,5 +1,7 @@
+import { ActivityIndicator, View } from 'react-native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { useAuth } from '@/auth/AuthProvider'
+import { useTheme } from '@/theme/ThemeProvider'
 import { LoginScreen } from '@/screens/LoginScreen'
 import { ProfileResultScreen } from '@/screens/ProfileResultScreen'
 import { TabNavigator } from './TabNavigator'
@@ -13,7 +15,17 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
 export function RootNavigator() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
+  const { theme } = useTheme()
+
+  // Mientras recuperamos la sesion (/me), evitamos parpadear el login.
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background.canvas }}>
+        <ActivityIndicator color={theme.brand.solid} />
+      </View>
+    )
+  }
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>

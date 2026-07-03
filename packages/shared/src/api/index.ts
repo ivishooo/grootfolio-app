@@ -8,19 +8,32 @@ import type { ApiError } from '../types'
 export interface ApiClientOptions {
   baseUrl: string
   getAccessToken?: () => string | null | Promise<string | null>
+  /**
+   * Renueva el access token (refresh rotatorio). Devuelve true si lo logro.
+   * Ante un 401, el cliente lo invoca UNA vez y reintenta la request original.
+   * La implementacion debe ser single-flight (compartir un refresh en curso)
+   * para no disparar varios refresh en paralelo: con rotacion, el segundo
+   * usaria un token ya consumido y el backend revocaria toda la sesion.
+   */
+  refreshAccessToken?: () => Promise<boolean>
   onUnauthorized?: () => void
 }
 
 export class ApiClient {
   constructor(private readonly opts: ApiClientOptions) {}
 
-  async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  async request<T>(path: string, init: RequestInit = {}, retryOn401 = true): Promise<T> {
     const token = await this.opts.getAccessToken?.()
     const headers = new Headers(init.headers)
     headers.set('Content-Type', 'application/json')
     if (token) headers.set('Authorization', `Bearer ${token}`)
 
     const res = await fetch(`${this.opts.baseUrl}${path}`, { ...init, headers })
+
+    if (res.status === 401 && retryOn401 && this.opts.refreshAccessToken) {
+      const refreshed = await this.opts.refreshAccessToken()
+      if (refreshed) return this.request<T>(path, init, false)
+    }
     if (res.status === 401) {
       this.opts.onUnauthorized?.()
     }

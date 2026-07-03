@@ -34,4 +34,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   // tasas, default 3600s (las cotizaciones de cierre se mueven lento).
   FX_ARS_SOURCE: Env.schema.enum.optional(['ccl', 'oficial'] as const),
   FX_TTL_SECONDS: Env.schema.number.optional(),
+
+  // Job de actualizacion periodica de precios (GF-221). El scheduler in-process
+  // solo arranca con PRICES_REFRESH_ENABLED=true (default off para no fetchear
+  // en dev/test sin querer). Intervalo por tipo de activo, en segundos.
+  PRICES_REFRESH_ENABLED: Env.schema.boolean.optional(),
+  PRICES_REFRESH_CRYPTO_SECONDS: Env.schema.number.optional(),
+  PRICES_REFRESH_STOCK_SECONDS: Env.schema.number.optional(),
+  PRICES_REFRESH_CURRENCY_SECONDS: Env.schema.number.optional(),
 })

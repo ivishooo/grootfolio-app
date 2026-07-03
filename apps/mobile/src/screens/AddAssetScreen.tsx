@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ScrollView, View, Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { useTheme } from '@/theme/ThemeProvider'
 import { createTransactionInputSchema, type CreateTransactionInput } from '@grootfolio/shared'
+import { useCreateTransaction } from '@/lib/queries'
 import { Screen } from '@/components/ui/Screen'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -23,6 +24,7 @@ export function AddAssetScreen() {
   const [kind, setKind] = useState<'buy' | 'sell'>('buy')
   const [form, setForm] = useState({ symbol: '', quantity: '', unitPrice: '', fee: '', purchasedAt: '', notes: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const createTx = useCreateTransaction()
 
   const updateField = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }))
@@ -47,10 +49,15 @@ export function AddAssetScreen() {
       return
     }
     setErrors({})
-    // eslint-disable-next-line no-console
-    console.log('Mock submit:', result.data)
-    Alert.alert('Exito', 'Activo guardado correctamente (mock)')
-    setForm({ symbol: '', quantity: '', unitPrice: '', fee: '', purchasedAt: '', notes: '' })
+    createTx.mutate(result.data, {
+      onSuccess: () => {
+        Alert.alert('Exito', 'Transaccion guardada correctamente')
+        setForm({ symbol: '', quantity: '', unitPrice: '', fee: '', purchasedAt: '', notes: '' })
+      },
+      onError: (err) => {
+        Alert.alert('Error', err instanceof Error ? err.message : 'No se pudo guardar la transaccion.')
+      },
+    })
   }
 
   return (
@@ -86,7 +93,9 @@ export function AddAssetScreen() {
               <FormField label="Comision (USD)" placeholder="0" value={form.fee} error={errors.fee} onChange={(v) => updateField('fee', v)} keyboard="numeric" />
               <FormField label="Fecha (dd/mm/yyyy)" placeholder="15/05/2026" value={form.purchasedAt} error={errors.purchasedAt} onChange={(v) => updateField('purchasedAt', v)} />
               <FormField label="Notas" placeholder="Observaciones..." value={form.notes} error={errors.notes} onChange={(v) => updateField('notes', v)} multiline />
-              <Button fullWidth onPress={handleSubmit}>Guardar Activo</Button>
+              <Button fullWidth onPress={handleSubmit} disabled={createTx.isPending}>
+                {createTx.isPending ? 'Guardando…' : 'Guardar Activo'}
+              </Button>
             </View>
           </Card>
         </ScrollView>

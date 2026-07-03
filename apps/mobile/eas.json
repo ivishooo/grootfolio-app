@@ -1,0 +1,42 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:3333"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://REEMPLAZAR-backend-staging.example.com"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://REEMPLAZAR-backend-prod.example.com"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascApiKeyPath": "./REEMPLAZAR-AuthKey.p8",
+        "ascApiKeyId": "REEMPLAZAR_ASC_API_KEY_ID",
+        "ascApiKeyIssuerId": "REEMPLAZAR_ASC_ISSUER_ID"
+      }
+    }
+  }
+}

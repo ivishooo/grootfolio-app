@@ -2,68 +2,93 @@ import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { RiskProfileType } from '@grootfolio/shared'
 import { useTheme } from '@/theme/ThemeProvider'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
-import type { QuizQuestion } from '@grootfolio/shared'
+import { useQuiz, useQuizResult, useSubmitQuiz } from '@/lib/queries'
+import { ErrorState, LoadingState } from '@/components/ui/States'
 
-const mockQuiz: QuizQuestion[] = [
-  {
-    id: 'q1', order: 1,
-    text: 'Que experiencia previa tenes en inversiones?',
-    options: [
-      { id: 'q1-o1', label: 'No tengo experiencia en inversiones', score: 1 },
-      { id: 'q1-o2', label: 'Invierto en plazo fijo', score: 2 },
-      { id: 'q1-o3', label: 'Invierto en bonos, letras u obligaciones negociables', score: 3 },
-      { id: 'q1-o4', label: 'Invierto en acciones', score: 4 },
-      { id: 'q1-o5', label: 'Invierto en instrumentos como CFD, futuros u opciones', score: 5 },
-    ],
-  },
-  {
-    id: 'q2', order: 2,
-    text: 'Cual es tu horizonte de inversion?',
-    options: [
-      { id: 'q2-o1', label: 'Menos de 1 ano', score: 1 },
-      { id: 'q2-o2', label: 'Entre 1 y 3 anos', score: 2 },
-      { id: 'q2-o3', label: 'Entre 3 y 5 anos', score: 3 },
-      { id: 'q2-o4', label: 'Mas de 5 anos', score: 4 },
-    ],
-  },
-  {
-    id: 'q3', order: 3,
-    text: 'Como reaccionarias ante una caida del 20% en tu portafolio?',
-    options: [
-      { id: 'q3-o1', label: 'Vendo todo para evitar perder mas', score: 1 },
-      { id: 'q3-o2', label: 'Vendo una parte para limitar perdidas', score: 2 },
-      { id: 'q3-o3', label: 'Mantengo posiciones y espero', score: 3 },
-      { id: 'q3-o4', label: 'Compro mas aprovechando los precios bajos', score: 4 },
-    ],
-  },
-  {
-    id: 'q4', order: 4,
-    text: 'Que porcentaje de tus ingresos pensas invertir?',
-    options: [
-      { id: 'q4-o1', label: 'Menos del 10%', score: 1 },
-      { id: 'q4-o2', label: 'Entre 10% y 25%', score: 2 },
-      { id: 'q4-o3', label: 'Entre 25% y 50%', score: 3 },
-      { id: 'q4-o4', label: 'Mas del 50%', score: 4 },
-    ],
-  },
-]
+const labels: Record<RiskProfileType, string> = {
+  conservative: 'Conservador',
+  moderate: 'Moderado',
+  aggressive: 'Agresivo',
+}
 
 export function ProfileTestScreen() {
   const { theme } = useTheme()
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Main'>>()
+  const result = useQuizResult()
+  const { data: questions, isLoading, isError, error, refetch } = useQuiz()
+  const submitQuiz = useSubmitQuiz()
+  const [retake, setRetake] = useState(false)
   const [step, setStep] = useState(0)
   const [selected, setSelected] = useState<Record<string, string>>({})
-  const total = mockQuiz.length
-  const current = mockQuiz[step]!
+
+  if (isLoading || result.isLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background.canvas }}>
+        <LoadingState label="Cargando el cuestionario…" />
+      </View>
+    )
+  }
+  if (isError) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background.canvas }}>
+        <ErrorState
+          message={error instanceof Error ? error.message : 'No se pudo cargar el cuestionario.'}
+          onRetry={() => void refetch()}
+        />
+      </View>
+    )
+  }
+
+  // Ya tiene perfil y no eligio rehacer: mostramos el perfil actual.
+  if (result.data && !retake) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background.canvas }}>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+          <Text style={{ color: theme.text.primary, fontSize: 20, fontWeight: '700' }}>Test de Perfil</Text>
+          <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default, alignItems: 'center' }]}>
+            <Text style={{ color: theme.text.secondary }}>Tu perfil de inversor es</Text>
+            <Text style={{ color: theme.brand.solid, fontSize: 30, fontWeight: '800', marginVertical: 6 }}>
+              {labels[result.data.profile]}
+            </Text>
+            <Text style={{ color: theme.text.secondary, textAlign: 'center', lineHeight: 20 }}>
+              {result.data.description}
+            </Text>
+          </View>
+          <TouchableOpacity style={[s.btnPrimary, { backgroundColor: theme.brand.solid }]} onPress={() => nav.getParent()?.navigate('ProfileResult')}>
+            <Text style={{ color: theme.text.onBrand, fontWeight: '600' }}>Ver detalle</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.btnSecondaryFull, { borderColor: theme.border.default }]}
+            onPress={() => { setRetake(true); setStep(0); setSelected({}) }}
+          >
+            <Text style={{ color: theme.text.secondary, fontWeight: '600' }}>Volver a hacer el test</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    )
+  }
+
+  if (!questions || questions.length === 0) return null
+
+  const total = questions.length
+  const current = questions[step]!
   const progress = ((step + 1) / total) * 100
   const currentSelected = selected[current.id]
+  const isLast = step + 1 >= total
 
   const handleNext = () => {
     if (!currentSelected) return
-    if (step < total - 1) setStep(step + 1)
-    else nav.getParent()?.navigate('ProfileResult')
+    if (!isLast) {
+      setStep(step + 1)
+      return
+    }
+    const answers = questions.map((q) => ({ questionId: q.id, optionId: selected[q.id]! }))
+    submitQuiz.mutate(answers, {
+      onSuccess: () => nav.getParent()?.navigate('ProfileResult'),
+    })
   }
 
   return (
@@ -109,6 +134,12 @@ export function ProfileTestScreen() {
           })}
         </View>
 
+        {submitQuiz.isError && (
+          <Text style={{ color: '#EF4444', fontSize: 13 }}>
+            {submitQuiz.error instanceof Error ? submitQuiz.error.message : 'No se pudo calcular tu perfil.'}
+          </Text>
+        )}
+
         <View style={{ flexDirection: 'row', gap: 12 }}>
           {step > 0 && (
             <TouchableOpacity
@@ -120,11 +151,11 @@ export function ProfileTestScreen() {
           )}
           <TouchableOpacity
             onPress={handleNext}
-            disabled={!currentSelected}
-            style={[s.btnPrimary, { backgroundColor: theme.brand.solid, opacity: currentSelected ? 1 : 0.5 }]}
+            disabled={!currentSelected || submitQuiz.isPending}
+            style={[s.btnPrimary, { flex: 1, backgroundColor: theme.brand.solid, opacity: currentSelected && !submitQuiz.isPending ? 1 : 0.5 }]}
           >
             <Text style={{ color: theme.text.onBrand, fontWeight: '600' }}>
-              {step + 1 < total ? 'Siguiente →' : 'Finalizar'}
+              {isLast ? (submitQuiz.isPending ? 'Calculando…' : 'Finalizar') : 'Siguiente →'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -140,5 +171,6 @@ const s = StyleSheet.create({
   option: { padding: 14, borderWidth: 1, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   radio: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   btnSecondary: { borderWidth: 1, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20 },
-  btnPrimary: { flex: 1, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  btnSecondaryFull: { borderWidth: 1, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  btnPrimary: { borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
 })

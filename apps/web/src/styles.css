@@ -7,4 +7,16 @@
     height: 100%;
     font-family: 'Inter', system-ui, sans-serif;
   }
+
+  /* Foco visible por teclado (GF-232): outline consistente en elementos
+     interactivos sin focus propio. Los inputs ya muestran su anillo via Tailwind. */
+  a:focus-visible,
+  button:focus-visible,
+  select:focus-visible,
+  summary:focus-visible,
+  [role='button']:focus-visible {
+    outline: 2px solid #f97316;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }

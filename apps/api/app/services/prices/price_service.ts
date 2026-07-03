@@ -25,6 +25,7 @@
 import logger from '@adonisjs/core/services/logger'
 import { DateTime } from 'luxon'
 import env from '#start/env'
+import Asset from '#models/asset'
 import PriceSnapshot from '#models/price_snapshot'
 import { CoinGeckoRateLimitError, coingeckoProvider } from './providers/coingecko_provider.js'
 import { yahooProvider } from './providers/yahoo_provider.js'
@@ -207,6 +208,102 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
   }
 
   return out
+}
+
+export interface RefreshSummary {
+  refreshed: number
+  unsupported: number
+  failed: number
+}
+
+/**
+ * Activos que aparecen en alguna cartera (con transacciones no borradas),
+ * opcionalmente filtrados por tipo. Es el universo que el job periodico
+ * refresca: no tiene sentido pedir precios de activos que nadie tiene (GF-221).
+ */
+export async function assetsInPortfolios(type?: AssetRef['type']): Promise<AssetRef[]> {
+  const query = Asset.query().whereExists((sub) =>
+    sub
+      .from('transactions')
+      .whereColumn('transactions.asset_id', 'asset_catalog.id')
+      .whereNull('transactions.deleted_at')
+  )
+  if (type) query.where('type', type)
+  const assets = await query
+  return assets.map((a) => ({ id: a.id, symbol: a.symbol, type: a.type }))
+}
+
+/**
+ * Refresca precios FORZANDO el fetch al provider (ignora cache y TTL), persiste
+ * un snapshot nuevo por activo y actualiza el cache in-memory. Lo usa el job
+ * periodico (GF-221); `getPrices` sigue con su cascada con TTL para las
+ * requests de los usuarios. A diferencia de `getPrices`, ante un fallo de
+ * provider no hay fallback: se loguea y se cuenta como `failed`.
+ */
+export async function refreshPrices(assets: AssetRef[]): Promise<RefreshSummary> {
+  const now = Date.now()
+  const summary: RefreshSummary = { refreshed: 0, unsupported: 0, failed: 0 }
+
+  const byProvider = new Map<PriceProvider, AssetRef[]>()
+  for (const a of assets) {
+    const provider = PROVIDER_BY_TYPE[a.type]
+    if (!provider) {
+      summary.unsupported++
+      continue
+    }
+    const bucket = byProvider.get(provider)
+    if (bucket) bucket.push(a)
+    else byProvider.set(provider, [a])
+  }
+
+  const newRows: Array<{
+    assetId: string
+    price: number
+    currency: string
+    provider: string
+    fetchedAt: DateTime
+  }> = []
+
+  for (const [provider, items] of byProvider) {
+    try {
+      const quotes = await provider.fetchQuotes(items)
+      for (const asset of items) {
+        const symbol = asset.symbol.toUpperCase()
+        const q = quotes[symbol]
+        if (!q) {
+          summary.unsupported++
+          continue
+        }
+        let priceUsd = q.price
+        if (q.currency !== BASE_CURRENCY) {
+          const rate = await getRateToUsd(q.currency)
+          if (rate === null) {
+            summary.unsupported++
+            continue
+          }
+          priceUsd = convertToUsd(q.price, rate)
+        }
+        cache.set(symbol, { price: priceUsd, fetchedAt: now })
+        newRows.push({
+          assetId: asset.id,
+          price: priceUsd,
+          currency: BASE_CURRENCY,
+          provider: provider.name,
+          fetchedAt: DateTime.fromMillis(now),
+        })
+        summary.refreshed++
+      }
+    } catch (err) {
+      logger.error({ err, provider: provider.name }, 'refreshPrices: fallo el provider')
+      summary.failed += items.length
+    }
+  }
+
+  if (newRows.length > 0) {
+    await PriceSnapshot.createMany(newRows)
+  }
+
+  return summary
 }
 
 /**
