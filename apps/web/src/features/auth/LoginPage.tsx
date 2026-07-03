@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { loginInputSchema } from '@grootfolio/shared'
 import { Button } from '@/components/ui/Button'
@@ -12,12 +12,14 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (isAuthenticated) navigate('/dashboard', { replace: true })
   }, [isAuthenticated, navigate])
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const result = loginInputSchema.safeParse({ email, password })
     if (!result.success) {
       const fieldErrors = result.error.flatten().fieldErrors
@@ -25,8 +27,16 @@ export function LoginPage() {
       return
     }
     setErrors({})
-    login()
-    navigate('/dashboard')
+    setFormError(null)
+    setSubmitting(true)
+    try {
+      await login(email, password)
+      navigate('/dashboard')
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'No se pudo iniciar sesion')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -54,11 +64,19 @@ export function LoginPage() {
             onChange={(v) => { setPassword(v); setErrors((p) => ({ ...p, password: '' })) }}
             error={errors.password}
           />
-          <Button fullWidth onClick={handleSubmit} disabled={!email && !password}>
-            Ingresar
+          {formError && (
+            <p className="rounded-lg bg-danger-50 px-3 py-2 text-center text-sm text-danger-600 dark:bg-danger-950/40">
+              {formError}
+            </p>
+          )}
+          <Button fullWidth onClick={handleSubmit} disabled={submitting || (!email && !password)}>
+            {submitting ? 'Ingresando…' : 'Ingresar'}
           </Button>
           <p className="text-center text-sm text-neutral-500">
-            No tenes cuenta? <span className="text-brand-500 cursor-pointer">Creala aqui</span>
+            No tenes cuenta?{' '}
+            <Link to="/register" className="text-brand-500 hover:underline">
+              Creala aqui
+            </Link>
           </p>
         </form>
       </Card>

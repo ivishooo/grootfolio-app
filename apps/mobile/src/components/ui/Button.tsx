@@ -9,9 +9,10 @@ interface ButtonProps {
   onPress: () => void
   children: string
   style?: ViewStyle
+  testID?: string
 }
 
-export function Button({ variant = 'primary', size = 'md', fullWidth, disabled, onPress, children, style }: ButtonProps) {
+export function Button({ variant = 'primary', size = 'md', fullWidth, disabled, onPress, children, style, testID }: ButtonProps) {
   const { theme } = useTheme()
 
   const bg = variant === 'primary' ? theme.brand.solid
@@ -25,6 +26,8 @@ export function Button({ variant = 'primary', size = 'md', fullWidth, disabled, 
 
   return (
     <TouchableOpacity
+      testID={testID}
+      accessibilityRole="button"
       onPress={onPress}
       disabled={disabled}
       style={[

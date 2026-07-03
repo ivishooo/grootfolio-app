@@ -12,8 +12,8 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const [currency, setCurrency] = useState('USD')
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login')
   }
 
@@ -51,6 +51,7 @@ export function SettingsPage() {
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
+            aria-label="Moneda base"
             className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
           >
             {CURRENCIES.map((c) => (
@@ -66,11 +67,11 @@ export function SettingsPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-neutral-500">Nombre</span>
-            <span className="text-sm font-medium">{user?.name ?? 'Usuario Demo'}</span>
+            <span className="text-sm font-medium">{user?.fullName ?? '—'}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-neutral-500">Email</span>
-            <span className="text-sm font-medium">{user?.email ?? 'demo@grootfolio.com'}</span>
+            <span className="text-sm font-medium">{user?.email ?? '—'}</span>
           </div>
           <hr className="border-neutral-200 dark:border-neutral-700" />
           <button

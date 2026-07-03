@@ -3,9 +3,11 @@
     "name": "GrootFolio",
     "slug": "grootfolio",
     "version": "0.1.0",
+    "icon": "./assets/images/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "splash": {
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0A0A0A"
     },
@@ -14,15 +16,29 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.grootfolio.app"
+      "bundleIdentifier": "com.grootfolio.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSExceptionDomains": {
+            "localhost": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true
+            }
+          }
+        }
+      }
     },
     "android": {
       "package": "com.grootfolio.app",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#F97316"
       }
     },
-    "web": {},
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    },
     "extra": {
       "eas": {
         "projectId": "REPLACE_ME"
