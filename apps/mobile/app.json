@@ -16,7 +16,18 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.grootfolio.app"
+      "bundleIdentifier": "com.grootfolio.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSExceptionDomains": {
+            "localhost": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true
+            }
+          }
+        }
+      }
     },
     "android": {
       "package": "com.grootfolio.app",
