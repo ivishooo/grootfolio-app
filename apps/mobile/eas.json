@@ -20,13 +20,13 @@
         "simulator": false
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REEMPLAZAR-backend-staging.example.com"
+        "EXPO_PUBLIC_API_URL": "https://grootfolio-app-production.up.railway.app"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REEMPLAZAR-backend-prod.example.com"
+        "EXPO_PUBLIC_API_URL": "https://grootfolio-app-production.up.railway.app"
       }
     }
   },
