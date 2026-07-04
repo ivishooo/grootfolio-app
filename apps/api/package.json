@@ -21,7 +21,7 @@
   },
   "scripts": {
     "dev": "node --import=ts-node-maintained/register/esm --enable-source-maps ace.js serve --watch",
-    "start": "echo 'TODO(GF-182): correr build y arrancar build/bin/server.js en deploy' && exit 0",
+    "start": "node --import=ts-node-maintained/register/esm bin/server.js",
     "build": "node --import=ts-node-maintained/register/esm ace.js build",
     "migrate": "node --import=ts-node-maintained/register/esm ace.js migration:run",
     "rollback": "node --import=ts-node-maintained/register/esm ace.js migration:rollback",

@@ -1,0 +1,45 @@
+# Fly.io — deploy de apps/api. El build context es la raiz del repo.
+# Primera vez:
+#   fly launch --no-deploy --copy-config --dockerfile apps/api/Dockerfile
+# Setear secretos (ver .env.production.example) y luego:
+#   fly secrets set APP_KEY=... JWT_SECRET=... DATABASE_URL=... CORS_ORIGINS=...
+#   fly deploy -c apps/api/fly.toml
+#
+# El Postgres se crea con `fly postgres create` y se ata con `fly postgres attach`,
+# que inyecta DATABASE_URL como secreto automaticamente.
+
+app = "grootfolio-api"
+primary_region = "eze" # Ezeiza (Buenos Aires). Ajustar si se prefiere otra.
+
+[build]
+  dockerfile = "apps/api/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3333"
+  HOST = "0.0.0.0"
+  TZ = "America/Argentina/Buenos_Aires"
+  # DATABASE_URL implica SSL por default (ver config/database.ts). El resto de
+  # los valores sensibles van por `fly secrets set`, no aca.
+
+# Corre las migraciones en cada deploy, antes de swappear la version nueva.
+[deploy]
+  release_command = "node --import=ts-node-maintained/register/esm ace.js migration:run"
+
+[http_service]
+  internal_port = 3333
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
