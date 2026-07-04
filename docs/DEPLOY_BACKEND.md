@@ -62,8 +62,14 @@ openssl rand -base64 48             # JWT_SECRET
    ```
    node --import=ts-node-maintained/register/esm ace.js migration:run --force
    ```
-   Seed opcional (usuario dev + catálogo), como segunda línea o vía la pestaña
-   **Console**: `node --import=ts-node-maintained/register/esm ace.js db:seed --force`.
+   Seed opcional (catálogo de activos + preguntas del quiz), como segunda línea
+   o vía la pestaña **Console**:
+   `node --import=ts-node-maintained/register/esm ace.js db:seed`.
+   `db:seed` **no** acepta `--force` (solo lo lleva `migration:run`); en una
+   consola interactiva, si pregunta por producción, respondé `y`. Nota: el
+   `dev_user_seeder` está **deshabilitado en producción** a propósito, así que el
+   usuario `dev@grootfolio.test` no se crea en prod — registrá un usuario nuevo
+   desde la app para logear.
 6. **Networking → Generate Domain** (target port **3333**) y verificar:
    `curl https://<tu-app>.up.railway.app/health` → `{"status":"ok"}`.
 
@@ -86,7 +92,7 @@ openssl rand -base64 48             # JWT_SECRET
    ```
 4. `fly deploy -c apps/api/fly.toml`. El `release_command` corre las
    **migraciones** automáticamente en cada deploy.
-5. Seed inicial (una vez): `fly ssh console -C "node --import=ts-node-maintained/register/esm ace.js db:seed --force"`.
+5. Seed inicial (una vez): `fly ssh console -C "node --import=ts-node-maintained/register/esm ace.js db:seed"` (sin `--force`; el `dev_user_seeder` no corre en prod).
 6. Verificar: `curl https://grootfolio-api.fly.dev/health`.
 
 ---
