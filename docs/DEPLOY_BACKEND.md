@@ -43,24 +43,29 @@ openssl rand -base64 48             # JWT_SECRET
 ## Opción A — Railway
 
 1. Crear proyecto en Railway y **agregar un Postgres** (New → Database → Postgres).
-   Railway expone `DATABASE_URL` en el servicio de la DB.
-2. Crear el servicio de la API desde el repo de GitHub. Railway detecta
-   `apps/api/railway.json` y buildea con el `Dockerfile`.
-3. En el servicio de la API → **Variables**: setear las de
-   `.env.production.example`. Para la DB, referenciar la del Postgres:
-   `DATABASE_URL=${{Postgres.DATABASE_URL}}`.
-4. Deploy. Cuando esté verde, correr migraciones y seed una vez:
+2. Crear el servicio de la API desde el repo de GitHub (New → GitHub Repository).
+3. Servicio de la API → **Settings**, configurar (Railway **no** autodetecta
+   `apps/api/railway.json` porque no está en la raíz del repo; se hace a mano):
+   - **Source → Branch**: la rama donde vive el `Dockerfile` (`develop` hoy,
+     `main` cuando se libere). El default de Railway es `main`.
+   - **Source → Root Directory**: `/` (raíz). El Dockerfile necesita todo el
+     monorepo como context; **no** poner `apps/api`.
+   - **Build → Dockerfile Path**: `apps/api/Dockerfile`.
+4. Servicio de la API → **Variables**: setear las de `.env.production.example`
+   (`APP_KEY`, `JWT_SECRET`, `DATABASE_URL=${{Postgres.DATABASE_URL}}`,
+   `CORS_ORIGINS`) **más `PORT=3333`**. Sin `PORT=3333`, Railway inyecta su
+   propio puerto y el dominio da **502** (la app queda escuchando en otro lado).
+5. Deploy. Correr **migraciones** con un **Pre-Deploy Command**
+   (Settings → Deploy). Ojo con `--force`: en producción Adonis pide
+   confirmación interactiva y sin TTY aborta sin migrar.
 
-   ```bash
-   railway link                                   # elegí el proyecto/servicio API
-   railway run pnpm --filter @grootfolio/api migrate
-   railway run pnpm --filter @grootfolio/api seed   # opcional: usuario dev + catálogo
    ```
-5. Generar el dominio público (Settings → Networking → Generate Domain) y
-   verificar: `curl https://<tu-app>.up.railway.app/health` → `{"status":"ok"}`.
-
-> Railway no tiene "release command"; por eso las migraciones se corren a mano
-> con `railway run` (o se agregan a un paso de deploy propio).
+   node --import=ts-node-maintained/register/esm ace.js migration:run --force
+   ```
+   Seed opcional (usuario dev + catálogo), como segunda línea o vía la pestaña
+   **Console**: `node --import=ts-node-maintained/register/esm ace.js db:seed --force`.
+6. **Networking → Generate Domain** (target port **3333**) y verificar:
+   `curl https://<tu-app>.up.railway.app/health` → `{"status":"ok"}`.
 
 ---
 
@@ -81,7 +86,7 @@ openssl rand -base64 48             # JWT_SECRET
    ```
 4. `fly deploy -c apps/api/fly.toml`. El `release_command` corre las
    **migraciones** automáticamente en cada deploy.
-5. Seed inicial (una vez): `fly ssh console -C "node --import=ts-node-maintained/register/esm ace.js db:seed"`.
+5. Seed inicial (una vez): `fly ssh console -C "node --import=ts-node-maintained/register/esm ace.js db:seed --force"`.
 6. Verificar: `curl https://grootfolio-api.fly.dev/health`.
 
 ---

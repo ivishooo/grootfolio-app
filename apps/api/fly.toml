@@ -24,7 +24,9 @@ primary_region = "eze" # Ezeiza (Buenos Aires). Ajustar si se prefiere otra.
 
 # Corre las migraciones en cada deploy, antes de swappear la version nueva.
 [deploy]
-  release_command = "node --import=ts-node-maintained/register/esm ace.js migration:run"
+  # --force: en produccion Adonis pide confirmacion interactiva y, sin TTY,
+  # aborta sin migrar. El flag la salta.
+  release_command = "node --import=ts-node-maintained/register/esm ace.js migration:run --force"
 
 [http_service]
   internal_port = 3333
