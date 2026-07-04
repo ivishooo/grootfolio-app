@@ -39,14 +39,15 @@
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "REPLACE_ME"
-      }
-    },
     "plugins": [
       "expo-font",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c7fa805a-a717-4208-a34a-f40c56fbe1da"
+      }
+    },
+    "owner": "ivishooo"
   }
 }
