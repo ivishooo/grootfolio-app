@@ -1,0 +1,23 @@
+# Contexto de build de Docker (raiz del monorepo). Mantener liviano y sin
+# secretos ni node_modules del host (plataforma/arquitectura distinta).
+**/node_modules
+**/dist
+**/build
+**/.turbo
+**/coverage
+**/.expo
+**/.expo-shared
+
+.git
+.github
+.vscode
+
+# Secretos: nunca copiar .env al contexto; la config va por env vars de la
+# plataforma. Se preservan los ejemplos.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.production.example
+
+*.log
+**/*.tsbuildinfo

@@ -12,11 +12,18 @@ export default await Env.create(new URL('../', import.meta.url), {
   APP_KEY: Env.schema.string(),
   TZ: Env.schema.string.optional(),
 
-  DB_HOST: Env.schema.string({ format: 'host' }),
-  DB_PORT: Env.schema.number(),
-  DB_USER: Env.schema.string(),
+  // Conexion a Postgres. En local se usan las DB_* discretas (ver .env.example).
+  // En deploy (Railway/Fly), el Postgres gestionado expone una connection string
+  // en DATABASE_URL; si esta presente tiene prioridad sobre las DB_*. DB_SSL
+  // fuerza TLS (los Postgres gestionados suelen requerirlo); por default se
+  // activa cuando hay DATABASE_URL. Detalle en config/database.ts.
+  DATABASE_URL: Env.schema.string.optional(),
+  DB_SSL: Env.schema.boolean.optional(),
+  DB_HOST: Env.schema.string.optional({ format: 'host' }),
+  DB_PORT: Env.schema.number.optional(),
+  DB_USER: Env.schema.string.optional(),
   DB_PASSWORD: Env.schema.string.optional(),
-  DB_DATABASE: Env.schema.string(),
+  DB_DATABASE: Env.schema.string.optional(),
 
   JWT_SECRET: Env.schema.string(),
   JWT_ACCESS_TTL: Env.schema.string(),
