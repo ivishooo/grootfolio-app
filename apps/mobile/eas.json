@@ -31,12 +31,6 @@
     }
   },
   "submit": {
-    "production": {
-      "ios": {
-        "ascApiKeyPath": "./REEMPLAZAR-AuthKey.p8",
-        "ascApiKeyId": "REEMPLAZAR_ASC_API_KEY_ID",
-        "ascApiKeyIssuerId": "REEMPLAZAR_ASC_ISSUER_ID"
-      }
-    }
+    "production": {}
   }
 }
