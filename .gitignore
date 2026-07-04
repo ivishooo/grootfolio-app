@@ -61,3 +61,9 @@ web-build/
 # Misc
 .turbo/
 .cache/
+.vercel
+# Env: ignorar secretos reales (.env y *.local) pero versionar los *.example
+.env
+.env*.local
+# Claves de firma/API de Apple (App Store Connect API key .p8, etc.)
+*.p8
