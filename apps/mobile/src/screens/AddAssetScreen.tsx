@@ -18,6 +18,30 @@ const ASSET_TYPES = [
 
 type AssetType = CreateTransactionInput['type']
 
+/**
+ * Convierte una fecha "dd/mm/yyyy" (formato del campo) a ISO 8601, o devuelve
+ * '' si el formato o la fecha son invalidos. NUNCA tira: reemplaza el uso de
+ * `new Date(str).toISOString()`, que con un dd/mm/yyyy invalido (p. ej. dia > 12)
+ * producia `Invalid Date` y `.toISOString()` lanzaba RangeError, crasheando la app.
+ */
+function ddmmyyyyToIso(input: string): string {
+  const m = input.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (!m) return ''
+  const day = Number(m[1])
+  const month = Number(m[2])
+  const year = Number(m[3])
+  const date = new Date(Date.UTC(year, month - 1, day))
+  // Rechaza desbordes (31/02, mes 13, etc.): el Date "normaliza" y no coincide.
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return ''
+  }
+  return date.toISOString()
+}
+
 export function AddAssetScreen() {
   const { theme } = useTheme()
   const [activeType, setActiveType] = useState<AssetType>('crypto')
@@ -39,13 +63,18 @@ export function AddAssetScreen() {
       quantity: parseFloat(form.quantity) || 0,
       unitPrice: parseFloat(form.unitPrice) || 0,
       fee: form.fee ? parseFloat(form.fee) : 0,
-      purchasedAt: form.purchasedAt ? new Date(form.purchasedAt).toISOString() : '',
+      purchasedAt: ddmmyyyyToIso(form.purchasedAt),
       notes: form.notes || undefined,
     }
     const result = createTransactionInputSchema.safeParse(parsed)
     if (!result.success) {
       const fieldErrors = result.error.flatten().fieldErrors
-      setErrors(Object.fromEntries(Object.entries(fieldErrors).map(([k, v]) => [k, v?.[0] ?? ''])))
+      const mapped = Object.fromEntries(
+        Object.entries(fieldErrors).map(([k, v]) => [k, v?.[0] ?? '']),
+      )
+      // El schema solo dice "Invalid datetime"; damos un mensaje mas claro.
+      if (mapped.purchasedAt) mapped.purchasedAt = 'Ingresa una fecha valida (dd/mm/yyyy).'
+      setErrors(mapped)
       return
     }
     setErrors({})
