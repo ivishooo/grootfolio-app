@@ -49,4 +49,9 @@ export default await Env.create(new URL('../', import.meta.url), {
   PRICES_REFRESH_CRYPTO_SECONDS: Env.schema.number.optional(),
   PRICES_REFRESH_STOCK_SECONDS: Env.schema.number.optional(),
   PRICES_REFRESH_CURRENCY_SECONDS: Env.schema.number.optional(),
+
+  // Observabilidad (GF-185). Sentry se inicializa solo si SENTRY_DSN esta
+  // presente (sin DSN es un no-op). TRACES_SAMPLE_RATE default 0 (sin tracing).
+  SENTRY_DSN: Env.schema.string.optional(),
+  SENTRY_TRACES_SAMPLE_RATE: Env.schema.number.optional(),
 })
