@@ -42,8 +42,7 @@
     },
     "plugins": [
       "expo-font",
-      "expo-secure-store",
-      "@sentry/react-native"
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {
