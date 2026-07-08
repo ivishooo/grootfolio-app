@@ -11,6 +11,7 @@
 import app from '@adonisjs/core/services/app'
 import { ExceptionHandler, type HttpContext } from '@adonisjs/core/http'
 import { errors as vineErrors } from '@vinejs/vine'
+import * as Sentry from '@sentry/node'
 
 interface MaybeHttpError {
   status?: number
@@ -47,6 +48,13 @@ export default class HttpExceptionHandler extends ExceptionHandler {
   }
 
   async report(error: unknown, ctx: HttpContext) {
+    // Solo reportamos a Sentry los errores del servidor (5xx). Los 4xx
+    // (validacion, no encontrado, etc.) son esperables y no son incidentes.
+    // captureException es no-op si Sentry no fue inicializado (sin SENTRY_DSN).
+    const status = (error as MaybeHttpError | null)?.status
+    if (typeof status !== 'number' || status >= 500) {
+      Sentry.captureException(error)
+    }
     return super.report(error, ctx)
   }
 }

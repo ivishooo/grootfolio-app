@@ -33,6 +33,7 @@ export default defineConfig({
    * Archivos que se importan en orden durante el boot.
    */
   preloads: [
+    () => import('#start/sentry'),
     () => import('#start/kernel'),
     () => import('#start/validator'),
     () => import('#start/routes'),
