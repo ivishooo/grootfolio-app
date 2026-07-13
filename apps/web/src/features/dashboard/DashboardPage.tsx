@@ -41,7 +41,7 @@ export function DashboardPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <StatCard label="Valor Total" value={formatCurrency(p.totalValue)} delta={formatPercent(p.pnlPercent)} positive={p.pnlPercent >= 0} />
             <StatCard label="Ganancia/Perdida" value={formatCurrency(p.pnlAbsolute)} delta={formatPercent(p.pnlPercent)} positive={p.pnlAbsolute >= 0} />
-            <StatCard label="Mejor Activo" value={p.bestAsset?.name ?? '—'} delta={p.bestAsset ? formatPercent(p.pnlPercent) : ''} positive={p.pnlPercent >= 0} />
+            <StatCard label="Mejor Activo" value={p.bestAsset?.name ?? '—'} delta={p.bestAsset ? formatPercent(p.bestAsset.pnlPercent) : ''} positive={(p.bestAsset?.pnlPercent ?? 0) >= 0} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">

@@ -50,7 +50,7 @@ export interface PortfolioSummary {
   totalValue: number
   pnlAbsolute: number
   pnlPercent: number
-  bestAsset: Asset | null
+  bestAsset: (Asset & { pnlPercent: number }) | null
   distribution: Array<{ type: AssetType; value: number }>
   monthlyReturn: Array<{ month: string; value: number }>
   holdings: Holding[]

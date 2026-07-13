@@ -61,7 +61,9 @@ export function aggregatePortfolio(
   for (const h of priced) {
     if (!bestHolding || h.pnlPercent > bestHolding.pnlPercent) bestHolding = h
   }
-  const bestAsset: PortfolioSummary['bestAsset'] = bestHolding?.asset ?? null
+  const bestAsset: PortfolioSummary['bestAsset'] = bestHolding
+    ? { ...bestHolding.asset, pnlPercent: bestHolding.pnlPercent }
+    : null
 
   const byType = new Map<AssetType, number>()
   for (const h of holdings) {
