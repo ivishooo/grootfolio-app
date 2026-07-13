@@ -93,13 +93,15 @@ export function ProfileTestPage() {
       </div>
       <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
         <h3 className="text-lg font-semibold">{question.text}</h3>
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-3" role="radiogroup" aria-label={question.text}>
           {question.options.map((o) => {
             const isSelected = selected[question.id] === o.id
             return (
               <button
                 key={o.id}
                 data-testid="quiz-option"
+                role="radio"
+                aria-checked={isSelected}
                 onClick={() => setSelected({ ...selected, [question.id]: o.id })}
                 className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left ${isSelected ? 'border-brand-500 bg-brand-100 dark:bg-brand-500/10' : 'border-neutral-200 dark:border-neutral-800'}`}
               >

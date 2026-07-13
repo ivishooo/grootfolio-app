@@ -31,6 +31,8 @@ export function SettingsPage() {
           </div>
           <button
             onClick={toggleTheme}
+            aria-label="Cambiar tema"
+            aria-pressed={themeName === 'dark'}
             className="flex items-center gap-2 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
           >
             {themeName === 'light' ? '☀ Claro' : '☾ Oscuro'}
