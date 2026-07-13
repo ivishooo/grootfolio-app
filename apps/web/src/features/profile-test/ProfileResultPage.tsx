@@ -76,7 +76,7 @@ export function ProfileResultPage() {
         <div className="mt-3 rounded-full bg-brand-100 dark:bg-brand-500/10 py-2 text-brand-500 font-semibold">
           {labels[result.profile]}
         </div>
-        <p className="mt-3 text-sm text-neutral-500">{result.description}</p>
+        <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">{result.description}</p>
       </div>
 
       <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">

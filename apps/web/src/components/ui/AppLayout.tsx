@@ -97,6 +97,7 @@ export function AppLayout() {
             onClick={toggleTheme}
             className="grid h-8 w-8 place-items-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
             aria-label="Cambiar tema"
+            aria-pressed={themeName === 'dark'}
           >
             {themeName === 'light' ? '☀' : '☾'}
           </button>
