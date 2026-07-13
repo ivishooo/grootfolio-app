@@ -33,7 +33,7 @@ export function DashboardScreen() {
           <>
             <StatCard label="Valor Total" value={formatCurrency(p.totalValue)} delta={formatPercent(p.pnlPercent)} deltaColor={p.pnlPercent >= 0 ? theme.chart.positive : theme.chart.negative} />
             <StatCard label="Ganancia/Perdida" value={formatCurrency(p.pnlAbsolute)} delta={formatPercent(p.pnlPercent)} deltaColor={p.pnlAbsolute >= 0 ? theme.chart.positive : theme.chart.negative} />
-            <StatCard label="Mejor Activo" value={p.bestAsset?.name ?? '—'} delta={p.bestAsset ? formatPercent(p.pnlPercent) : ''} deltaColor={theme.chart.positive} />
+            <StatCard label="Mejor Activo" value={p.bestAsset?.name ?? '—'} delta={p.bestAsset ? formatPercent(p.bestAsset.pnlPercent) : ''} deltaColor={(p.bestAsset?.pnlPercent ?? 0) >= 0 ? theme.chart.positive : theme.chart.negative} />
 
             <Card title="Distribución del Portafolio">
               {p.distribution.length === 0 ? (
