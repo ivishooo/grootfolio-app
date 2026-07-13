@@ -21,7 +21,7 @@ export function DashboardSkeleton() {
         </Card>
       ))}
 
-      <Card title="Distribucion del Portafolio">
+      <Card title="Distribución del Portafolio">
         <Skeleton height={12} radius={6} />
         <View style={{ gap: 8, marginTop: 12 }}>
           {[0, 1, 2, 3].map((i) => (

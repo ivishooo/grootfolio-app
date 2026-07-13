@@ -50,7 +50,7 @@ export function AppHeader() {
               onPress={() => { setMenuOpen(false); logout() }}
               style={styles.menuItem}
             >
-              <Text style={{ color: '#EF4444', fontWeight: '600' }}>Cerrar sesion</Text>
+              <Text style={{ color: '#EF4444', fontWeight: '600' }}>Cerrar sesión</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

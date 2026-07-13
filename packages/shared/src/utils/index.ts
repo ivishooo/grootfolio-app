@@ -1,8 +1,21 @@
 import type { AssetType } from '../types'
 
+/**
+ * Etiquetas de tipo de activo, fuente única (M-09). Dos formas según contexto,
+ * fieles al diseño (docs/design-reference):
+ *  - `assetTypeLabels` (plural): categorías — chips de alta y leyenda de distribución.
+ *  - `assetTypeLabel` (singular): un activo puntual — columna "Tipo" de la tabla/tarjetas.
+ */
 export const assetTypeLabels: Record<AssetType, string> = {
   crypto: 'Criptomonedas',
-  stock: 'Accion',
+  stock: 'Acciones',
+  bond: 'Bonos',
+  currency: 'Divisas',
+}
+
+export const assetTypeLabel: Record<AssetType, string> = {
+  crypto: 'Crypto',
+  stock: 'Acción',
   bond: 'Bono',
   currency: 'Divisa',
 }

@@ -30,7 +30,7 @@ export function LoginScreen() {
     try {
       await login(email, password)
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'No se pudo iniciar sesion')
+      setFormError(err instanceof Error ? err.message : 'No se pudo iniciar sesión')
     } finally {
       setSubmitting(false)
     }
@@ -44,7 +44,7 @@ export function LoginScreen() {
             <Text style={{ color: theme.text.onBrand, fontWeight: '700' }}>GF</Text>
           </View>
           <Text style={[s.title, { color: theme.text.primary }]}>Bienvenido de vuelta</Text>
-          <Text style={{ color: theme.text.secondary, textAlign: 'center' }}>Ingresa a tu portfolio</Text>
+          <Text style={{ color: theme.text.secondary, textAlign: 'center' }}>Ingresá a tu portafolio</Text>
 
           <FormField
             testID="login-email"
@@ -57,7 +57,7 @@ export function LoginScreen() {
           />
           <FormField
             testID="login-password"
-            label="Contrasena"
+            label="Contraseña"
             placeholder="••••••••"
             value={password}
             onChange={(t) => { setPassword(t); setErrors((p) => ({ ...p, password: '' })) }}

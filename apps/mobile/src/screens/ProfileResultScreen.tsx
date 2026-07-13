@@ -51,7 +51,7 @@ export function ProfileResultScreen() {
           />
         )}
         {!isLoading && !isError && !result && (
-          <EmptyState title="Todavia no hiciste el test" description="Responde el cuestionario para conocer tu perfil." />
+          <EmptyState title="Todavía no hiciste el test" description="Respondé el cuestionario para conocer tu perfil." />
         )}
 
         {result && (
@@ -68,7 +68,7 @@ export function ProfileResultScreen() {
 
             <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
               <Text style={{ color: theme.text.primary, fontWeight: '700', marginBottom: 10 }}>
-                Asignacion sugerida
+                Asignación sugerida
               </Text>
               {ALLOCATION[result.profile].map((a, i) => (
                 <View key={a.label} style={{ gap: 4 }}>

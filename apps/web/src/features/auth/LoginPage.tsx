@@ -33,7 +33,7 @@ export function LoginPage() {
       await login(email, password)
       navigate('/dashboard')
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'No se pudo iniciar sesion')
+      setFormError(err instanceof Error ? err.message : 'No se pudo iniciar sesión')
     } finally {
       setSubmitting(false)
     }
@@ -46,7 +46,7 @@ export function LoginPage() {
           <div className="h-10 w-10 rounded-lg bg-brand-500 grid place-items-center text-white font-bold">GF</div>
         </div>
         <h1 className="text-center text-2xl font-bold">Bienvenido de vuelta</h1>
-        <p className="text-center text-sm text-neutral-500 mt-1">Ingresa a tu portfolio</p>
+        <p className="text-center text-sm text-neutral-500 mt-1">Ingresá a tu portafolio</p>
         <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
           <Input
             label="Email"
@@ -57,7 +57,7 @@ export function LoginPage() {
             error={errors.email}
           />
           <Input
-            label="Contrasena"
+            label="Contraseña"
             type="password"
             placeholder="••••••••"
             value={password}
@@ -73,9 +73,9 @@ export function LoginPage() {
             {submitting ? 'Ingresando…' : 'Ingresar'}
           </Button>
           <p className="text-center text-sm text-neutral-500">
-            No tenes cuenta?{' '}
+            ¿No tenés cuenta?{' '}
             <Link to="/register" className="text-brand-500 hover:underline">
-              Creala aqui
+              Creála aquí
             </Link>
           </p>
         </form>

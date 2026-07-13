@@ -52,8 +52,8 @@ export function ProfileResultPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <EmptyState
-          title="Todavia no hiciste el test"
-          description="Responde el cuestionario para conocer tu perfil de inversor."
+          title="Todavía no hiciste el test"
+          description="Respondé el cuestionario para conocer tu perfil de inversor."
           action={
             <button onClick={() => navigate('/profile-test')} className="rounded-lg bg-brand-500 px-5 py-2 font-medium text-white hover:bg-brand-600">
               Hacer el test
@@ -80,7 +80,7 @@ export function ProfileResultPage() {
       </div>
 
       <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-        <h3 className="font-semibold mb-4">Asignacion sugerida</h3>
+        <h3 className="font-semibold mb-4">Asignación sugerida</h3>
         <div className="space-y-3">
           {allocation.map((a, i) => (
             <div key={a.label}>

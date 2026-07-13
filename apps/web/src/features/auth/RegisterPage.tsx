@@ -50,8 +50,8 @@ export function RegisterPage() {
         <div className="flex justify-center mb-6">
           <div className="h-10 w-10 rounded-lg bg-brand-500 grid place-items-center text-white font-bold">GF</div>
         </div>
-        <h1 className="text-center text-2xl font-bold">Crea tu cuenta</h1>
-        <p className="text-center text-sm text-neutral-500 mt-1">Empeza a seguir tu portfolio</p>
+        <h1 className="text-center text-2xl font-bold">Creá tu cuenta</h1>
+        <p className="text-center text-sm text-neutral-500 mt-1">Empezá a seguir tu portafolio</p>
         <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
           <Input
             label="Nombre (opcional)"
@@ -69,7 +69,7 @@ export function RegisterPage() {
             error={errors.email}
           />
           <Input
-            label="Contrasena"
+            label="Contraseña"
             type="password"
             placeholder="••••••••"
             value={password}
@@ -85,9 +85,9 @@ export function RegisterPage() {
             {submitting ? 'Creando cuenta…' : 'Crear cuenta'}
           </Button>
           <p className="text-center text-sm text-neutral-500">
-            Ya tenes cuenta?{' '}
+            ¿Ya tenés cuenta?{' '}
             <Link to="/login" className="text-brand-500 hover:underline">
-              Inicia sesion
+              Iniciá sesión
             </Link>
           </p>
         </form>

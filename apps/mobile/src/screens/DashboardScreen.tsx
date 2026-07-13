@@ -1,16 +1,13 @@
 import { ScrollView, View, Text, StyleSheet } from 'react-native'
 import { useTheme } from '@/theme/ThemeProvider'
 import { usePortfolio } from '@/lib/queries'
-import { formatCurrency, formatPercent } from '@grootfolio/shared'
+import { formatCurrency, formatPercent, assetTypeLabels, assetTypeLabel } from '@grootfolio/shared'
+import type { AssetType } from '@grootfolio/shared'
 import { Screen } from '@/components/ui/Screen'
 import { Card } from '@/components/ui/Card'
 import { StatCard } from '@/components/ui/StatCard'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { DashboardSkeleton } from './DashboardSkeleton'
-
-const TYPE_LABELS: Record<string, string> = {
-  crypto: 'Cripto', stock: 'Acciones', bond: 'Bonos', currency: 'Divisas',
-}
 
 export function DashboardScreen() {
   const { theme } = useTheme()
@@ -38,9 +35,9 @@ export function DashboardScreen() {
             <StatCard label="Ganancia/Perdida" value={formatCurrency(p.pnlAbsolute)} delta={formatPercent(p.pnlPercent)} deltaColor={p.pnlAbsolute >= 0 ? theme.chart.positive : theme.chart.negative} />
             <StatCard label="Mejor Activo" value={p.bestAsset?.name ?? '—'} delta={p.bestAsset ? formatPercent(p.pnlPercent) : ''} deltaColor={theme.chart.positive} />
 
-            <Card title="Distribucion del Portafolio">
+            <Card title="Distribución del Portafolio">
               {p.distribution.length === 0 ? (
-                <EmptyState title="Sin datos para mostrar" description="Carga activos para ver la distribucion." />
+                <EmptyState title="Sin datos para mostrar" description="Cargá activos para ver la distribución." />
               ) : (
                 <>
                   <View style={s.distRow}>
@@ -52,7 +49,7 @@ export function DashboardScreen() {
                     {p.distribution.map((d, i) => (
                       <View key={d.type} style={s.legendRow}>
                         <View style={[s.legendDot, { backgroundColor: chartColors[i % chartColors.length] }]} />
-                        <Text style={{ color: theme.text.primary, flex: 1 }}>{TYPE_LABELS[d.type] ?? d.type}</Text>
+                        <Text style={{ color: theme.text.primary, flex: 1 }}>{assetTypeLabels[d.type as AssetType] ?? d.type}</Text>
                         <Text style={{ color: theme.text.secondary }}>{formatCurrency(d.value)} ({pct(d.value, p.totalValue)}%)</Text>
                       </View>
                     ))}
@@ -63,7 +60,7 @@ export function DashboardScreen() {
 
             <Card title="Rendimiento mensual">
               {p.monthlyReturn.length === 0 ? (
-                <EmptyState title="Sin historico aun" description="Se mostrara cuando haya datos historicos." />
+                <EmptyState title="Sin histórico aún" description="Se mostrará cuando haya datos históricos." />
               ) : (
                 <View style={s.barChart}>
                   {p.monthlyReturn.map((m) => {
@@ -83,13 +80,13 @@ export function DashboardScreen() {
 
             <Card title="Mis Activos">
               {p.holdings.length === 0 ? (
-                <EmptyState title="Todavia no tenes activos" description="Carga tu primera transaccion desde la pestana Cargar." />
+                <EmptyState title="Todavía no tenés activos" description="Cargá tu primera transacción desde la pestaña Cargar." />
               ) : (
                 p.holdings.map((h) => (
                   <View key={h.assetId} style={[s.holdingRow, { borderColor: theme.border.default }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{h.asset.name}</Text>
-                      <Text style={{ color: theme.text.muted, fontSize: 12 }}>{TYPE_LABELS[h.asset.type] ?? h.asset.type}</Text>
+                      <Text style={{ color: theme.text.muted, fontSize: 12 }}>{assetTypeLabel[h.asset.type as AssetType] ?? h.asset.type}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{formatCurrency(h.value)}</Text>

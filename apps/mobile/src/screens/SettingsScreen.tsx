@@ -6,9 +6,9 @@ export function SettingsScreen() {
 
   return (
     <View style={[s.container, { backgroundColor: theme.background.canvas }]}>
-      <Text style={[s.title, { color: theme.text.primary }]}>Configuracion</Text>
+      <Text style={[s.title, { color: theme.text.primary }]}>Configuración</Text>
       <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-        <Text style={{ color: theme.text.muted, textAlign: 'center' }}>Proximamente...</Text>
+        <Text style={{ color: theme.text.muted, textAlign: 'center' }}>Próximamente...</Text>
       </View>
     </View>
   )
