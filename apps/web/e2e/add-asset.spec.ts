@@ -11,5 +11,5 @@ test('cargar una transaccion muestra la confirmacion', async ({ page }) => {
   await page.getByLabel('Fecha de compra').fill('2026-01-15')
   await page.getByRole('button', { name: 'Guardar Activo' }).click()
 
-  await expect(page.getByText('Transaccion guardada correctamente')).toBeVisible()
+  await expect(page.getByText('Transacción guardada correctamente')).toBeVisible()
 })
