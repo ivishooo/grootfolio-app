@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { useTheme } from '@/theme/ThemeProvider'
 import { usePortfolio } from '@/lib/queries'
-import { formatCurrency, formatPercent } from '@grootfolio/shared'
+import { formatCurrency, formatPercent, assetTypeLabels, assetTypeLabel } from '@grootfolio/shared'
+import type { AssetType } from '@grootfolio/shared'
 import { themes } from '@grootfolio/tokens'
 import { Card } from '@/components/ui/Card'
 import { StatCard } from '@/components/ui/StatCard'
@@ -13,17 +14,16 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
 
-const TYPE_LABELS: Record<string, string> = {
-  crypto: 'Criptomonedas', stock: 'Acciones', bond: 'Bonos', currency: 'Divisas',
-}
-
 export function DashboardPage() {
   const { theme: themeName } = useTheme()
   const t = themes[themeName]
   const { data: p, isLoading, isError, error, refetch } = usePortfolio()
 
   const chartColors = [t.chart.series1, t.chart.series2, t.chart.series3, t.chart.series4]
-  const pieData = (p?.distribution ?? []).map((d) => ({ name: TYPE_LABELS[d.type] ?? d.type, value: d.value }))
+  const pieData = (p?.distribution ?? []).map((d) => ({
+    name: assetTypeLabels[d.type as AssetType] ?? d.type,
+    value: d.value,
+  }))
 
   return (
     <div className="space-y-6">
@@ -45,9 +45,9 @@ export function DashboardPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card title="Distribucion del Portafolio">
+            <Card title="Distribución del Portafolio">
               {pieData.length === 0 ? (
-                <EmptyState title="Sin datos para mostrar" description="Carga activos para ver la distribucion." />
+                <EmptyState title="Sin datos para mostrar" description="Cargá activos para ver la distribución." />
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
@@ -63,7 +63,7 @@ export function DashboardPage() {
 
             <Card title="Rendimiento mensual">
               {p.monthlyReturn.length === 0 ? (
-                <EmptyState title="Sin historico aun" description="El rendimiento mensual se mostrara cuando haya datos historicos." />
+                <EmptyState title="Sin histórico aún" description="El rendimiento mensual se mostrará cuando haya datos históricos." />
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={p.monthlyReturn}>
@@ -81,8 +81,8 @@ export function DashboardPage() {
           <Card title="Mis Activos">
             {p.holdings.length === 0 ? (
               <EmptyState
-                title="Todavia no tenes activos"
-                description="Carga tu primera transaccion para empezar a ver tu portfolio."
+                title="Todavía no tenés activos"
+                description="Cargá tu primera transacción para empezar a ver tu portafolio."
                 action={
                   <Link to="/assets/new">
                     <Button>Cargar activo</Button>
@@ -98,7 +98,7 @@ export function DashboardPage() {
                       <th>Tipo</th>
                       <th>Cantidad</th>
                       <th>Valor</th>
-                      <th>Variacion</th>
+                      <th>Variación</th>
                       <th>Rentabilidad</th>
                     </tr>
                   </thead>
@@ -106,7 +106,7 @@ export function DashboardPage() {
                     {p.holdings.map((h) => (
                       <tr key={h.assetId} className="border-t border-neutral-200 dark:border-neutral-800">
                         <td className="py-2 font-medium">{h.asset.name}</td>
-                        <td className="text-neutral-500">{TYPE_LABELS[h.asset.type] ?? h.asset.type}</td>
+                        <td className="text-neutral-500">{assetTypeLabel[h.asset.type as AssetType] ?? h.asset.type}</td>
                         <td>{h.quantity}</td>
                         <td>{formatCurrency(h.value)}</td>
                         <td className={h.pnlPercent >= 0 ? 'text-success-500' : 'text-danger-500'}>{formatPercent(h.pnlPercent)}</td>

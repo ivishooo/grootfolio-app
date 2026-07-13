@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createTransactionInputSchema, type CreateTransactionInput } from '@grootfolio/shared'
+import { createTransactionInputSchema, assetTypeLabels, type CreateTransactionInput } from '@grootfolio/shared'
 import { useCreateTransaction } from '@/lib/queries'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/Input'
 import { Tabs } from '@/components/ui/Tabs'
 
 const ASSET_TYPES = [
-  { value: 'crypto', label: 'Criptomonedas', icon: '₿' },
-  { value: 'stock', label: 'Accion', icon: '↗' },
-  { value: 'bond', label: 'Bono', icon: '🏛' },
-  { value: 'currency', label: 'Divisa', icon: '$' },
+  { value: 'crypto', label: assetTypeLabels.crypto, icon: '₿' },
+  { value: 'stock', label: assetTypeLabels.stock, icon: '↗' },
+  { value: 'bond', label: assetTypeLabels.bond, icon: '🏛' },
+  { value: 'currency', label: assetTypeLabels.currency, icon: '$' },
 ]
 
 type AssetType = CreateTransactionInput['type']
@@ -58,7 +58,7 @@ export function AddAssetPage() {
         setForm({ symbol: '', quantity: '', unitPrice: '', fee: '', purchasedAt: '', notes: '' })
       },
       onError: (err) => {
-        setSubmitError(err instanceof Error ? err.message : 'No se pudo guardar la transaccion.')
+        setSubmitError(err instanceof Error ? err.message : 'No se pudo guardar la transacción.')
       },
     })
   }
@@ -88,12 +88,12 @@ export function AddAssetPage() {
             <Input label="Precio unitario (USD)" placeholder="50000" value={form.unitPrice} error={errors.unitPrice} onChange={(v) => updateField('unitPrice', v)} type="number" />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <Input label="Comision (USD)" placeholder="0" value={form.fee} error={errors.fee} onChange={(v) => updateField('fee', v)} type="number" />
+            <Input label="Comisión (USD)" placeholder="0" value={form.fee} error={errors.fee} onChange={(v) => updateField('fee', v)} type="number" />
             <Input label="Fecha de compra" value={form.purchasedAt} error={errors.purchasedAt} onChange={(v) => updateField('purchasedAt', v)} type="date" />
           </div>
           <Input label="Notas (opcional)" placeholder="Observaciones..." value={form.notes} error={errors.notes} onChange={(v) => updateField('notes', v)} multiline />
 
-          {success && <p className="text-success-500 text-sm font-medium">Transaccion guardada correctamente</p>}
+          {success && <p className="text-success-500 text-sm font-medium">Transacción guardada correctamente</p>}
           {submitError && <p className="text-danger-500 text-sm font-medium">{submitError}</p>}
 
           <div className="flex gap-3 pt-2">

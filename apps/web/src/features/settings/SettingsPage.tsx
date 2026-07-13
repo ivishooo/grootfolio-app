@@ -19,7 +19,7 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h2 className="text-2xl font-bold">Configuracion</h2>
+      <h2 className="text-2xl font-bold">Configuración</h2>
 
       {/* Apariencia */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
@@ -27,7 +27,7 @@ export function SettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium">Tema</p>
-            <p className="text-xs text-neutral-500">Selecciona el modo visual de la aplicacion</p>
+            <p className="text-xs text-neutral-500">Seleccioná el modo visual de la aplicación</p>
           </div>
           <button
             onClick={toggleTheme}
@@ -78,7 +78,7 @@ export function SettingsPage() {
             onClick={handleLogout}
             className="w-full rounded-lg border border-danger-500 px-4 py-2 text-sm font-medium text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-500/15"
           >
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </div>
       </section>
