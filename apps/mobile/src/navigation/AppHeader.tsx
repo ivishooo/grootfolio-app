@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '../theme/ThemeProvider'
 import { useAuth } from '../auth/AuthProvider'
 import { brand } from '@grootfolio/tokens'
+import { Logo } from '@/components/ui/Logo'
 
 export function AppHeader() {
   const { theme, themeName, toggleTheme } = useTheme()
@@ -24,10 +25,7 @@ export function AppHeader() {
     <View style={[styles.wrapper, { paddingTop: insets.top, backgroundColor: theme.background.surface, borderBottomColor: theme.border.default }]}>
       <View style={styles.inner}>
         <View style={styles.logoRow}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoText}>GF</Text>
-          </View>
-          <Text style={[styles.title, { color: theme.text.primary }]}>GrootFolio</Text>
+          <Logo variant="lockup" size={26} />
         </View>
 
         <View style={styles.actions}>

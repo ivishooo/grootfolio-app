@@ -3,12 +3,13 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
 import { UserMenu } from './UserMenu'
+import { Logo } from './Logo'
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '▦' },
   { to: '/assets/new', label: 'Cargar Activo', icon: '+' },
   { to: '/profile-test', label: 'Test de Perfil', icon: '☑' },
-  { to: '/settings', label: 'Configuracion', icon: '⚙' },
+  { to: '/settings', label: 'Configuración', icon: '⚙' },
 ] as const
 
 export function AppLayout() {
@@ -40,9 +41,8 @@ export function AppLayout() {
         } md:translate-x-0`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2 px-5 py-4">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500 text-sm font-bold text-white">GF</div>
-          <span className="text-lg font-bold text-brand-500">GrootFolio</span>
+        <div className="flex items-center px-5 py-4">
+          <Logo variant="lockup" size={28} />
         </div>
 
         {/* Nav */}

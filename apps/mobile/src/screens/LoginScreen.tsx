@@ -7,6 +7,7 @@ import { loginInputSchema } from '@grootfolio/shared'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { FormField } from '@/components/ui/FormField'
+import { Logo } from '@/components/ui/Logo'
 
 export function LoginScreen() {
   const { theme } = useTheme()
@@ -40,8 +41,8 @@ export function LoginScreen() {
     <SafeAreaView style={[s.safe, { backgroundColor: theme.background.canvas }]}>
       <Card padding="lg">
         <View style={{ gap: 14 }}>
-          <View style={[s.logo, { backgroundColor: theme.brand.solid }]}>
-            <Text style={{ color: theme.text.onBrand, fontWeight: '700' }}>GF</Text>
+          <View style={{ alignItems: 'center' }}>
+            <Logo variant="lockup" />
           </View>
           <Text style={[s.title, { color: theme.text.primary }]}>Bienvenido de vuelta</Text>
           <Text style={{ color: theme.text.secondary, textAlign: 'center' }}>Ingresá a tu portafolio</Text>
