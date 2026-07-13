@@ -5,6 +5,7 @@ import { loginInputSchema } from '@grootfolio/shared'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { Logo } from '@/components/ui/Logo'
 
 export function LoginPage() {
   const { isAuthenticated, login } = useAuth()
@@ -43,7 +44,7 @@ export function LoginPage() {
     <div className="grid min-h-screen place-items-center bg-neutral-50 dark:bg-neutral-950">
       <Card padding="lg" className="w-full max-w-md">
         <div className="flex justify-center mb-6">
-          <div className="h-10 w-10 rounded-lg bg-brand-500 grid place-items-center text-white font-bold">GF</div>
+          <Logo variant="lockup" size={36} />
         </div>
         <h1 className="text-center text-2xl font-bold">Bienvenido de vuelta</h1>
         <p className="text-center text-sm text-neutral-500 mt-1">Ingresá a tu portafolio</p>
