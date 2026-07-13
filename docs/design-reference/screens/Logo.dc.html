@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="design_doc_mode" content="canvas">
+<style>
+  body { margin: 0; background: #EEF1F5; font-family: 'Inter', system-ui, sans-serif; }
+  a { color: #EA580C; }
+  a:hover { color: #C2410C; }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:56px; padding:64px; align-items:flex-start;">
+
+  <!-- ===== HEADER ===== -->
+  <div style="max-width:760px;">
+    <div style="font-size:13px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:#F97316; margin-bottom:12px;">GrootFolio · Identidad de marca</div>
+    <h1 style="margin:0 0 10px; font-size:40px; font-weight:800; letter-spacing:-0.02em; color:#0F172A;">Logo — gatito redondeado</h1>
+    <p style="margin:0; font-size:16px; line-height:1.6; color:#475569;">Cabeza de gato <strong>redondeada y amigable</strong> que reemplaza el "GF". Cara con rasgos en el tamaño grande (app icon, splash) y <strong>silueta sólida</strong> en tamaños chicos (favicon, sidebar) para máxima legibilidad. Naranja de marca <code style="font-family:monospace; background:#fff; padding:2px 6px; border-radius:6px; border:1px solid #E2E8F0;">#F97316</code>, tipografía Inter.</p>
+  </div>
+
+  <!-- ===== PRIMARY MARK ===== -->
+  <section style="display:flex; flex-wrap:wrap; gap:32px; align-items:stretch; width:100%;">
+
+    <!-- App icon tile (with face) -->
+    <div style="background:#fff; border:1px solid #E2E8F0; border-radius:20px; padding:40px; display:flex; flex-direction:column; align-items:center; gap:24px; box-shadow:0 10px 25px rgba(15,23,42,0.06);">
+      <div style="width:180px; height:180px; border-radius:44px; background:linear-gradient(150deg,#FB923C 0%,#F97316 55%,#EA580C 100%); display:flex; align-items:center; justify-content:center; box-shadow:0 14px 30px rgba(234,88,12,0.35);">
+        <svg width="116" height="116" viewBox="0 0 100 100" fill="none" aria-label="GrootFolio cat mark">
+          <path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/>
+          <path d="M46 60 L54 60 L50 65 Z" fill="#F97316"/><path d="M50 65 L50 68 M50 68 Q46 71 43 68.5 M50 68 Q54 71 57 68.5" stroke="#F97316" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <div style="font-size:13px; font-weight:600; color:#64748B; font-family:monospace;">app icon · con cara · 44px radius</div>
+    </div>
+
+    <!-- Horizontal lockup -->
+    <div style="flex:1; min-width:340px; background:#fff; border:1px solid #E2E8F0; border-radius:20px; padding:40px; display:flex; flex-direction:column; justify-content:center; gap:36px; box-shadow:0 10px 25px rgba(15,23,42,0.06);">
+      <div style="font-size:13px; font-weight:600; color:#64748B; font-family:monospace;">imagotipo horizontal (silueta sólida)</div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div style="width:56px; height:56px; border-radius:16px; background:#F97316; display:flex; align-items:center; justify-content:center;">
+          <svg width="38" height="38" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/></svg>
+        </div>
+        <span style="font-size:32px; font-weight:700; letter-spacing:-0.01em;"><span style="color:#0F172A;">Groot</span><span style="color:#F97316;">Folio</span></span>
+      </div>
+      <div style="height:1px; background:#F1F5F9;"></div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:40px; height:40px; border-radius:11px; background:#F97316; display:flex; align-items:center; justify-content:center;">
+          <svg width="28" height="28" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/></svg>
+        </div>
+        <span style="font-size:22px; font-weight:700; letter-spacing:-0.01em;"><span style="color:#0F172A;">Groot</span><span style="color:#F97316;">Folio</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== APP ICONS (refined set) ===== -->
+  <section style="width:100%;">
+    <h2 style="margin:0 0 20px; font-size:15px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#94A3B8;">Íconos de la app</h2>
+    <div style="display:flex; flex-wrap:wrap; gap:24px;">
+      <!-- iOS squircle -->
+      <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+        <div style="width:150px; height:150px; border-radius:34px; background:linear-gradient(150deg,#FB923C,#EA580C); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 22px rgba(234,88,12,0.28);"><svg width="94" height="94" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/><path d="M46 60 L54 60 L50 65 Z" fill="#F97316"/><path d="M50 65 L50 68 M50 68 Q46 71 43 68.5 M50 68 Q54 71 57 68.5" stroke="#F97316" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg></div>
+        <span style="font-size:12px; font-family:monospace; color:#64748B;">iOS · squircle</span>
+      </div>
+      <!-- Android adaptive (circle) -->
+      <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+        <div style="width:150px; height:150px; border-radius:50%; background:#F97316; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 22px rgba(234,88,12,0.28);"><svg width="90" height="90" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/><path d="M46 60 L54 60 L50 65 Z" fill="#F97316"/><path d="M50 65 L50 68 M50 68 Q46 71 43 68.5 M50 68 Q54 71 57 68.5" stroke="#F97316" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg></div>
+        <span style="font-size:12px; font-family:monospace; color:#64748B;">Android · adaptive</span>
+      </div>
+      <!-- Splash -->
+      <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+        <div style="width:230px; height:150px; border-radius:20px; background:#0A0A0A; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;"><svg width="52" height="52" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#F97316"/></svg><span style="font-size:18px; font-weight:700;"><span style="color:#F8FAFC;">Groot</span><span style="color:#F97316;">Folio</span></span></div>
+        <span style="font-size:12px; font-family:monospace; color:#64748B;">splash (dark)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== VARIANTS ===== -->
+  <section style="width:100%;">
+    <h2 style="margin:0 0 20px; font-size:15px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#94A3B8;">Variantes</h2>
+    <div style="display:flex; flex-wrap:wrap; gap:20px;">
+      <div style="width:150px; height:150px; border-radius:18px; background:#F97316; display:flex; align-items:center; justify-content:center; border:1px solid #EA580C;"><svg width="86" height="86" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/></svg></div>
+      <div style="width:150px; height:150px; border-radius:18px; background:#0A0A0A; display:flex; align-items:center; justify-content:center; border:1px solid #2A2B30;"><svg width="86" height="86" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#F97316"/></svg></div>
+      <div style="width:150px; height:150px; border-radius:18px; background:#fff; display:flex; align-items:center; justify-content:center; border:1px solid #E2E8F0;"><svg width="86" height="86" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#0F172A"/></svg></div>
+      <div style="width:150px; height:150px; border-radius:18px; background:#FFF7ED; display:flex; align-items:center; justify-content:center; border:1px solid #FED7AA;"><svg width="86" height="86" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="none" stroke="#F97316" stroke-width="4.5" stroke-linejoin="round"/></svg></div>
+    </div>
+  </section>
+
+  <!-- ===== SCALE / FAVICON ===== -->
+  <section style="width:100%;">
+    <h2 style="margin:0 0 20px; font-size:15px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#94A3B8;">Escala &amp; favicon (silueta sólida)</h2>
+    <div style="display:flex; align-items:flex-end; gap:28px; background:#fff; border:1px solid #E2E8F0; border-radius:20px; padding:36px 40px; box-shadow:0 10px 25px rgba(15,23,42,0.06);">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:10px;"><div style="width:96px; height:96px; border-radius:24px; background:#F97316; display:flex; align-items:center; justify-content:center;"><svg width="56" height="56" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/></svg></div><span style="font-size:12px; color:#94A3B8; font-family:monospace;">96</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:10px;"><div style="width:64px; height:64px; border-radius:16px; background:#F97316; display:flex; align-items:center; justify-content:center;"><svg width="38" height="38" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/></svg></div><span style="font-size:12px; color:#94A3B8; font-family:monospace;">64</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:10px;"><div style="width:40px; height:40px; border-radius:10px; background:#F97316; display:flex; align-items:center; justify-content:center;"><svg width="24" height="24" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/></svg></div><span style="font-size:12px; color:#94A3B8; font-family:monospace;">40</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:10px;"><div style="width:24px; height:24px; border-radius:6px; background:#F97316; display:flex; align-items:center; justify-content:center;"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/></svg></div><span style="font-size:12px; color:#94A3B8; font-family:monospace;">24</span></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:10px;"><div style="width:16px; height:16px; border-radius:4px; background:#F97316; display:flex; align-items:center; justify-content:center;"><svg width="10" height="10" viewBox="0 0 100 100" fill="none"><path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#fff"/></svg></div><span style="font-size:12px; color:#94A3B8; font-family:monospace;">16</span></div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

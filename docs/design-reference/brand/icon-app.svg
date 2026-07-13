@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="GrootFolio">
+  <rect width="1024" height="1024" rx="228" fill="#F97316"></rect>
+  <g transform="translate(42,14) scale(9.4)">
+    <path d="M25 50 Q21 30 21 14 Q22 11 25 13 L41 34 Q50 30 59 34 L75 13 Q78 11 79 14 Q79 30 75 50 Q81 65 68 79 Q59 89 50 89 Q41 89 32 79 Q19 65 25 50 Z" fill="#FFFFFF"></path>
+    <path d="M46 60 L54 60 L50 65 Z" fill="#F97316"></path>
+    <path d="M50 65 L50 68 M50 68 Q46 71 43 68.5 M50 68 Q54 71 57 68.5" stroke="#F97316" stroke-width="1.7" stroke-linecap="round" fill="none"></path>
+  </g>
+</svg>
