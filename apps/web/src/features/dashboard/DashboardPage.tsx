@@ -91,26 +91,26 @@ export function DashboardPage() {
               />
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="text-left text-neutral-500">
+                <table className="w-full table-auto text-sm">
+                  <thead className="text-neutral-500">
                     <tr>
-                      <th className="py-2">Activo</th>
-                      <th>Tipo</th>
-                      <th>Cantidad</th>
-                      <th>Valor</th>
-                      <th>Variación</th>
-                      <th>Rentabilidad</th>
+                      <th className="w-full px-3 py-2 text-left font-medium">Activo</th>
+                      <th className="px-3 py-2 text-left font-medium">Tipo</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Cantidad</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Valor</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Variación</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Rentabilidad</th>
                     </tr>
                   </thead>
                   <tbody>
                     {p.holdings.map((h) => (
                       <tr key={h.assetId} className="border-t border-neutral-200 dark:border-neutral-800">
-                        <td className="py-2 font-medium">{h.asset.name}</td>
-                        <td className="text-neutral-500">{assetTypeLabel[h.asset.type as AssetType] ?? h.asset.type}</td>
-                        <td>{h.quantity}</td>
-                        <td>{formatCurrency(h.value)}</td>
-                        <td className={h.pnlPercent >= 0 ? 'text-success-500' : 'text-danger-500'}>{formatPercent(h.pnlPercent)}</td>
-                        <td className={h.pnl >= 0 ? 'text-success-500' : 'text-danger-500'}>{formatCurrency(h.pnl)}</td>
+                        <td className="px-3 py-2 font-medium">{h.asset.name}</td>
+                        <td className="px-3 py-2 text-neutral-500">{assetTypeLabel[h.asset.type as AssetType] ?? h.asset.type}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{h.quantity}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{formatCurrency(h.value)}</td>
+                        <td className={`whitespace-nowrap px-3 py-2 text-right tabular-nums ${h.pnlPercent >= 0 ? 'text-success-500' : 'text-danger-500'}`}>{formatPercent(h.pnlPercent)}</td>
+                        <td className={`whitespace-nowrap px-3 py-2 text-right tabular-nums ${h.pnl >= 0 ? 'text-success-500' : 'text-danger-500'}`}>{formatCurrency(h.pnl)}</td>
                       </tr>
                     ))}
                   </tbody>
