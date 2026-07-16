@@ -1,0 +1,25 @@
+# Flujo E2E mobile (Fase B): login -> Config -> togglear tema -> cerrar sesión.
+# Se corre con Maestro sobre la app en un simulador/emulador (ver README.md).
+appId: com.grootfolio.app
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: 'login-email'
+- inputText: 'dev@grootfolio.test'
+- tapOn:
+    id: 'login-password'
+- inputText: 'DevPass123!'
+- tapOn:
+    id: 'login-submit'
+- assertVisible: 'Dashboard'
+# Ir a Configuración
+- tapOn: 'Config'
+- assertVisible: 'Configuración'
+- assertVisible: 'Apariencia'
+- assertVisible: 'Cuenta'
+# Togglear el tema (accessibilityLabel del botón)
+- tapOn: 'Cambiar tema'
+# Cerrar sesión -> el RootNavigator conmuta al login
+- tapOn: 'Cerrar sesión'
+- assertVisible: 'Bienvenido de vuelta'
