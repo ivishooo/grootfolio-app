@@ -17,6 +17,7 @@ export const createTransactionValidator = vine.compile(
     quantity: vine.number().positive(),
     unitPrice: vine.number().min(0),
     fee: vine.number().min(0).optional(),
+    priceCurrency: vine.string().trim().fixedLength(3).optional(),
     purchasedAt: vine.string().trim(),
     notes: vine.string().trim().maxLength(500).optional(),
   })

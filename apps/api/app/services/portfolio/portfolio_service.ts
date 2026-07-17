@@ -29,26 +29,22 @@ import type { PriceResult } from '#services/prices/price_service'
 
 export function aggregatePortfolio(
   rawHoldings: Holding[],
-  prices: Record<string, PriceResult>,
-  fxRates: Record<string, number> = {}
+  prices: Record<string, PriceResult>
 ): PortfolioSummary {
   const holdings: Holding[] = rawHoldings.map((h) => {
     const priceInfo = prices[h.asset.symbol.toUpperCase()]
     const currentPrice = priceInfo?.price ?? 0
-    // El avgPrice viene en la moneda nativa del activo (ej. ARS en los .BA),
-    // mientras que currentPrice ya esta en USD base. Convertimos el costo a USD
-    // con el FX actual (rateToUsd) para que el PnL no mezcle monedas. Si no hay
-    // tasa para una moneda no-USD, el holding no se puede valuar -> unsupported.
-    const rate = h.asset.currency === 'USD' ? 1 : (fxRates[h.asset.currency] ?? null)
-    const avgPrice = rate !== null ? h.avgPrice * rate : h.avgPrice
-    if (currentPrice <= 0 || rate === null) {
-      return { ...h, avgPrice, currentPrice: 0, value: 0, pnl: 0, pnlPercent: 0 }
+    // avgPrice ya viene en USD base: la normalización por priceCurrency se hace
+    // en aggregateHoldings. currentPrice también está en USD (price_service).
+    // Solo comparamos ambos en USD, sin re-convertir por moneda del activo.
+    if (currentPrice <= 0) {
+      return { ...h, currentPrice: 0, value: 0, pnl: 0, pnlPercent: 0 }
     }
-    const invested = avgPrice * h.quantity
+    const invested = h.avgPrice * h.quantity
     const value = currentPrice * h.quantity
     const pnl = value - invested
     const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0
-    return { ...h, avgPrice, currentPrice, value, pnl, pnlPercent }
+    return { ...h, currentPrice, value, pnl, pnlPercent }
   })
 
   const priced = holdings.filter((h) => h.currentPrice > 0)

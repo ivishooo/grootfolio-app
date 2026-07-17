@@ -11,6 +11,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Transaction from '#models/transaction'
 import { aggregateHoldings } from '#services/portfolio/holdings_service'
+import { getRateToUsd } from '#services/prices/fx/fx_service'
 
 export default class HoldingsController {
   async index({ currentUser, response }: HttpContext) {
@@ -20,7 +21,15 @@ export default class HoldingsController {
       .preload('asset')
       .orderBy('purchased_at', 'asc')
 
-    const holdings = aggregateHoldings(transactions)
+    // FX de las monedas de precio para normalizar el costo (avgPrice) a USD.
+    const fxRates: Record<string, number> = {}
+    for (const currency of new Set(transactions.map((t) => t.priceCurrency))) {
+      if (currency === 'USD' || fxRates[currency] !== undefined) continue
+      const rate = await getRateToUsd(currency)
+      if (rate !== null) fxRates[currency] = rate
+    }
+
+    const holdings = aggregateHoldings(transactions, fxRates)
     return response.status(200).send({ holdings })
   }
 }

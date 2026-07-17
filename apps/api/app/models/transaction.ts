@@ -39,6 +39,9 @@ export default class Transaction extends BaseModel {
   @column({ consume: toNumber })
   declare fee: number
 
+  @column({ columnName: 'price_currency' })
+  declare priceCurrency: string
+
   @column.dateTime({ columnName: 'purchased_at' })
   declare purchasedAt: DateTime
 

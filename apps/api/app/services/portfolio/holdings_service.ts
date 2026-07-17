@@ -19,7 +19,15 @@ interface AssetBucket {
   txs: Transaction[]
 }
 
-export function aggregateHoldings(transactions: Transaction[]): Holding[] {
+/**
+ * @param fxRates mapa `{ MONEDA: rateToUsd }` para normalizar el costo a USD.
+ *   unitPrice y fee vienen en `tx.priceCurrency`; se multiplican por su tasa
+ *   antes de acumular. Sin tasa (o priceCurrency='USD') se asume factor 1.
+ */
+export function aggregateHoldings(
+  transactions: Transaction[],
+  fxRates: Record<string, number> = {}
+): Holding[] {
   const byAsset = new Map<string, AssetBucket>()
   for (const tx of transactions) {
     if (!tx.asset) {
@@ -37,9 +45,11 @@ export function aggregateHoldings(transactions: Transaction[]): Holding[] {
     let qty = 0
     let totalCost = 0
     for (const tx of txs) {
+      // Normalización a USD: unitPrice y fee están en tx.priceCurrency.
+      const rate = tx.priceCurrency === 'USD' ? 1 : (fxRates[tx.priceCurrency] ?? 1)
       if (tx.kind === 'buy') {
         qty += tx.quantity
-        totalCost += tx.quantity * tx.unitPrice + tx.fee
+        totalCost += tx.quantity * tx.unitPrice * rate + tx.fee * rate
         continue
       }
       // sell: reduce qty y costo proporcional; el fee del sell no afecta avgPrice.

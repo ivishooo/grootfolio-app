@@ -25,6 +25,10 @@ export const createTransactionInputSchema = z.object({
   quantity: z.number().positive('La cantidad debe ser mayor a 0'),
   unitPrice: z.number().nonnegative('El precio no puede ser negativo'),
   fee: z.number().nonnegative().default(0),
+  // Moneda en la que están expresados unitPrice y fee. Para crypto/stock/bond en
+  // USD queda 'USD'; para divisas es la moneda con la que se pagó (ej. ARS). El
+  // costo se normaliza a USD en la API usando el FX de esta moneda.
+  priceCurrency: z.string().length(3).default('USD'),
   purchasedAt: z.string().datetime({ offset: true }),
   notes: z.string().max(500).optional(),
 })

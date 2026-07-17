@@ -25,7 +25,16 @@ export default class PortfolioController {
       .preload('asset')
       .orderBy('purchased_at', 'asc')
 
-    const holdings = aggregateHoldings(transactions)
+    // FX de las monedas de precio (priceCurrency) para normalizar el costo a USD
+    // base en la agregación. Mismo rateToUsd (cacheado) que usa getPrices.
+    const fxRates: Record<string, number> = {}
+    for (const currency of new Set(transactions.map((t) => t.priceCurrency))) {
+      if (currency === 'USD' || fxRates[currency] !== undefined) continue
+      const rate = await getRateToUsd(currency)
+      if (rate !== null) fxRates[currency] = rate
+    }
+
+    const holdings = aggregateHoldings(transactions, fxRates)
     const assetRefs = holdings.map((h) => ({
       id: h.assetId,
       symbol: h.asset.symbol,
@@ -33,16 +42,7 @@ export default class PortfolioController {
     }))
     const prices = assetRefs.length > 0 ? await getPrices(assetRefs) : {}
 
-    // FX de las monedas nativas (no-USD) para valuar el costo historico en USD
-    // base. Mismo rateToUsd (cacheado) que uso getPrices para el currentPrice.
-    const fxRates: Record<string, number> = {}
-    for (const currency of new Set(holdings.map((h) => h.asset.currency))) {
-      if (currency === 'USD' || fxRates[currency] !== undefined) continue
-      const rate = await getRateToUsd(currency)
-      if (rate !== null) fxRates[currency] = rate
-    }
-
-    const portfolio = aggregatePortfolio(holdings, prices, fxRates)
+    const portfolio = aggregatePortfolio(holdings, prices)
     // Valor del portfolio mes a mes (GF-246; solo crypto en esta version).
     portfolio.monthlyReturn = await computeMonthlyReturn(transactions, prices)
 

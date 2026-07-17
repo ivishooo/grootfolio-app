@@ -74,6 +74,7 @@ export default class TransactionsController {
       quantity: payload.quantity,
       unitPrice: payload.unitPrice,
       fee: payload.fee ?? 0,
+      priceCurrency: (payload.priceCurrency ?? 'USD').toUpperCase(),
       purchasedAt,
       notes: payload.notes ?? null,
     })
