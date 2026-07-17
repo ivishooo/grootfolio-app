@@ -31,6 +31,7 @@ export interface Transaction {
   quantity: number
   unitPrice: number
   fee: number
+  priceCurrency: string
   purchasedAt: string
   notes?: string
 }
