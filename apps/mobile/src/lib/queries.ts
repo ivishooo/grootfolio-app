@@ -5,6 +5,8 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  AssetSearchResult,
+  AssetType,
   CreateTransactionInput,
   PortfolioSummary,
   QuizQuestion,
@@ -19,6 +21,7 @@ export const queryKeys = {
   transactions: ['transactions'] as const,
   quiz: ['quiz'] as const,
   quizResult: ['quiz-result'] as const,
+  assetSearch: (q: string, type?: AssetType) => ['assets', 'search', type ?? 'all', q] as const,
 }
 
 interface QuizAnswer {
@@ -49,6 +52,26 @@ export function useSubmitQuiz() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.quizResult })
     },
+  })
+}
+
+/**
+ * Autocomplete de activos (GF-248). Espejo del hook de web: el debounce lo hace
+ * el componente; `q` de menos de 2 caracteres no dispara la request.
+ */
+export function useAssetSearch(q: string, type?: AssetType) {
+  const term = q.trim()
+  return useQuery({
+    queryKey: queryKeys.assetSearch(term, type),
+    queryFn: () => {
+      const params = new URLSearchParams({ q: term })
+      if (type) params.set('type', type)
+      return api
+        .get<{ results: AssetSearchResult[] }>(`/assets/search?${params.toString()}`)
+        .then((r) => r.results)
+    },
+    enabled: term.length >= 2,
+    staleTime: 60_000,
   })
 }
 

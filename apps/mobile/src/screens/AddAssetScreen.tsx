@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { ScrollView, View, Text, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native'
 import { useTheme } from '@/theme/ThemeProvider'
-import { createTransactionInputSchema, assetTypeLabels, type CreateTransactionInput } from '@grootfolio/shared'
+import { createTransactionInputSchema, assetTypeLabels, type AssetSearchResult, type CreateTransactionInput } from '@grootfolio/shared'
 import { useCreateTransaction } from '@/lib/queries'
 import { Screen } from '@/components/ui/Screen'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { FormField } from '@/components/ui/FormField'
+import { AssetAutocomplete } from '@/components/ui/AssetAutocomplete'
 import { Tabs } from '@/components/ui/Tabs'
 
 const ASSET_TYPES = [
@@ -65,6 +66,21 @@ export function AddAssetScreen() {
   const updateField = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }))
     setErrors((p) => ({ ...p, [field]: '' }))
+  }
+
+  // Al elegir del autocomplete: fija el symbol, bloquea el tipo al del activo y,
+  // para tipos con moneda de precio, propone la del catalogo si es soportada
+  // (ej. ARS para acciones .BA).
+  const handleSelectAsset = (r: AssetSearchResult) => {
+    setActiveType(r.type)
+    setForm((p) => ({
+      ...p,
+      symbol: r.symbol,
+      priceCurrency: TYPE_FORM[r.type].showCurrency && (PRICE_CURRENCIES as readonly string[]).includes(r.currency)
+        ? r.currency
+        : p.priceCurrency,
+    }))
+    setErrors((p) => ({ ...p, symbol: '' }))
   }
 
   const handleSubmit = () => {
@@ -134,7 +150,7 @@ export function AddAssetScreen() {
 
           <Card>
             <View style={{ gap: 12 }}>
-              <FormField label={cfg.symbolLabel} placeholder="Ej: Bitcoin, Apple Inc..." value={form.symbol} error={errors.symbol} onChange={(v) => updateField('symbol', v)} />
+              <AssetAutocomplete label={cfg.symbolLabel} placeholder="Ej: Bitcoin, Apple Inc..." value={form.symbol} error={errors.symbol} type={activeType} onChange={(v) => updateField('symbol', v)} onSelect={handleSelectAsset} />
               <FormField label={cfg.qtyLabel} placeholder="0.5" value={form.quantity} error={errors.quantity} onChange={(v) => updateField('quantity', v)} keyboard="numeric" />
               <FormField label={cfg.priceLabel} placeholder="50000" value={form.unitPrice} error={errors.unitPrice} onChange={(v) => updateField('unitPrice', v)} keyboard="numeric" />
               {cfg.showCurrency && (
