@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { createTransactionInputSchema, assetTypeLabels, type CreateTransactionInput } from '@grootfolio/shared'
 import type { AssetSearchResult } from '@grootfolio/shared'
 import { useCreateTransaction } from '@/lib/queries'
+import { useToast } from '@/components/ui/ToastProvider'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -45,14 +46,13 @@ export function AddAssetPage() {
   const [kind, setKind] = useState<'buy' | 'sell'>('buy')
   const [form, setForm] = useState({ ...emptyForm })
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [success, setSuccess] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const createTx = useCreateTransaction()
+  const { toast } = useToast()
 
   const updateField = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }))
     setErrors((p) => ({ ...p, [field]: '' }))
-    setSuccess(false)
     setSubmitError(null)
   }
 
@@ -83,8 +83,9 @@ export function AddAssetPage() {
     setSubmitError(null)
     createTx.mutate(result.data, {
       onSuccess: () => {
-        setSuccess(true)
         setForm({ ...emptyForm })
+        toast('Activo cargado correctamente')
+        navigate('/dashboard')
       },
       onError: (err) => {
         setSubmitError(err instanceof Error ? err.message : 'No se pudo guardar la transacción.')
@@ -105,7 +106,6 @@ export function AddAssetPage() {
         : p.priceCurrency,
     }))
     setErrors((p) => ({ ...p, symbol: '' }))
-    setSuccess(false)
     setSubmitError(null)
   }
 
@@ -169,7 +169,6 @@ export function AddAssetPage() {
           </div>
           <Input label="Notas (opcional)" placeholder="Observaciones..." value={form.notes} error={errors.notes} onChange={(v) => updateField('notes', v)} multiline />
 
-          {success && <p className="text-success-500 text-sm font-medium">Transacción guardada correctamente</p>}
           {submitError && <p className="text-danger-500 text-sm font-medium">{submitError}</p>}
 
           <div className="flex gap-3 pt-2">

@@ -14,6 +14,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { AuthProvider } from './src/auth/AuthProvider'
 import { RootNavigator } from './src/navigation/RootNavigator'
 import { ThemeProvider } from './src/theme/ThemeProvider'
+import { ToastProvider } from './src/components/ui/ToastProvider'
 
 SplashScreen.preventAutoHideAsync().catch(() => {})
 
@@ -42,7 +43,9 @@ export default function App() {
           <AuthProvider>
           <NavigationContainer>
             <StatusBar style="auto" />
-            <RootNavigator />
+            <ToastProvider>
+              <RootNavigator />
+            </ToastProvider>
           </NavigationContainer>
           </AuthProvider>
         </ThemeProvider>

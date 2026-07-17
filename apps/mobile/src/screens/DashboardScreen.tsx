@@ -1,16 +1,21 @@
 import { ScrollView, View, Text, StyleSheet } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useTheme } from '@/theme/ThemeProvider'
 import { usePortfolio } from '@/lib/queries'
 import { formatCurrency, formatPercent, assetTypeLabels, assetTypeLabel } from '@grootfolio/shared'
 import type { AssetType } from '@grootfolio/shared'
+import type { RootStackParamList } from '@/navigation/RootNavigator'
 import { Screen } from '@/components/ui/Screen'
 import { Card } from '@/components/ui/Card'
 import { StatCard } from '@/components/ui/StatCard'
+import { Button } from '@/components/ui/Button'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { DashboardSkeleton } from './DashboardSkeleton'
 
 export function DashboardScreen() {
   const { theme } = useTheme()
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const { data: p, isLoading, isError, error, refetch } = usePortfolio()
   const chartColors = [theme.chart.series1, theme.chart.series2, theme.chart.series3, theme.chart.series4]
 
@@ -80,22 +85,33 @@ export function DashboardScreen() {
 
             <Card title="Mis Activos">
               {p.holdings.length === 0 ? (
-                <EmptyState title="Todavía no tenés activos" description="Cargá tu primera transacción desde la pestaña Cargar." />
+                <View style={{ gap: 12 }}>
+                  <EmptyState
+                    title="Todavía no tenés activos"
+                    description="Cargá tu primera transacción para empezar a ver tu portafolio."
+                  />
+                  <Button fullWidth onPress={() => navigation.navigate('AddAsset')}>Cargar activo</Button>
+                </View>
               ) : (
-                p.holdings.map((h) => (
-                  <View key={h.assetId} style={[s.holdingRow, { borderColor: theme.border.default }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{h.asset.name}</Text>
-                      <Text style={{ color: theme.text.muted, fontSize: 12 }}>{assetTypeLabel[h.asset.type as AssetType] ?? h.asset.type}</Text>
+                <>
+                  {p.holdings.map((h) => (
+                    <View key={h.assetId} style={[s.holdingRow, { borderColor: theme.border.default }]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{h.asset.name}</Text>
+                        <Text style={{ color: theme.text.muted, fontSize: 12 }}>{assetTypeLabel[h.asset.type as AssetType] ?? h.asset.type}</Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{formatCurrency(h.value)}</Text>
+                        <Text style={{ color: h.pnl >= 0 ? theme.chart.positive : theme.chart.negative, fontSize: 12 }}>
+                          {formatPercent(h.pnlPercent)} ({formatCurrency(h.pnl)})
+                        </Text>
+                      </View>
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{formatCurrency(h.value)}</Text>
-                      <Text style={{ color: h.pnl >= 0 ? theme.chart.positive : theme.chart.negative, fontSize: 12 }}>
-                        {formatPercent(h.pnlPercent)} ({formatCurrency(h.pnl)})
-                      </Text>
-                    </View>
+                  ))}
+                  <View style={{ marginTop: 12 }}>
+                    <Button fullWidth variant="secondary" onPress={() => navigation.navigate('AddAsset')}>Cargar activo</Button>
                   </View>
-                ))
+                </>
               )}
             </Card>
           </>

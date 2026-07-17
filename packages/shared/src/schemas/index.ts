@@ -33,6 +33,19 @@ export const createTransactionInputSchema = z.object({
   notes: z.string().max(500).optional(),
 })
 
+// Edicion de una transaccion (GF-249, PATCH /transactions/:id). Todos los campos
+// son opcionales (edicion parcial); symbol y type NO se editan porque cambiarian
+// la identidad del activo (para eso se borra y se crea otra).
+export const updateTransactionInputSchema = z.object({
+  kind: z.enum(['buy', 'sell']).optional(),
+  quantity: z.number().positive('La cantidad debe ser mayor a 0').optional(),
+  unitPrice: z.number().nonnegative('El precio no puede ser negativo').optional(),
+  fee: z.number().nonnegative().optional(),
+  priceCurrency: z.string().length(3).optional(),
+  purchasedAt: z.string().datetime({ offset: true }).optional(),
+  notes: z.string().max(500).nullable().optional(),
+})
+
 export const quizAnswerInputSchema = z.object({
   questionId: z.string().uuid(),
   optionId: z.string().uuid(),
@@ -46,4 +59,5 @@ export type LoginInput = z.infer<typeof loginInputSchema>
 export type RegisterInput = z.infer<typeof registerInputSchema>
 export type RefreshInput = z.infer<typeof refreshInputSchema>
 export type CreateTransactionInput = z.infer<typeof createTransactionInputSchema>
+export type UpdateTransactionInput = z.infer<typeof updateTransactionInputSchema>
 export type SubmitQuizInput = z.infer<typeof submitQuizInputSchema>

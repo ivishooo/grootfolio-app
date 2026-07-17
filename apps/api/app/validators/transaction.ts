@@ -22,3 +22,20 @@ export const createTransactionValidator = vine.compile(
     notes: vine.string().trim().maxLength(500).optional(),
   })
 )
+
+/**
+ * Validator de edicion (GF-249, PATCH /transactions/:id). Espeja
+ * `updateTransactionInputSchema`: todos los campos opcionales; `symbol`/`type`
+ * no se editan. El controller parsea `purchasedAt` a DateTime.
+ */
+export const updateTransactionValidator = vine.compile(
+  vine.object({
+    kind: vine.enum(['buy', 'sell']).optional(),
+    quantity: vine.number().positive().optional(),
+    unitPrice: vine.number().min(0).optional(),
+    fee: vine.number().min(0).optional(),
+    priceCurrency: vine.string().trim().fixedLength(3).optional(),
+    purchasedAt: vine.string().trim().optional(),
+    notes: vine.string().trim().maxLength(500).nullable().optional(),
+  })
+)

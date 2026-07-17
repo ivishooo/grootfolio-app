@@ -5,7 +5,10 @@
  * - GET    /transactions      lista las propias (no borradas)
  * - POST   /transactions      crea; resuelve el asset por symbol+type
  *                             (firstOrCreate en asset_catalog)
+ * - PATCH  /transactions/:id  edita campos de una propia (GF-249)
  * - DELETE /transactions/:id  soft delete (setea deleted_at)
+ * - DELETE /assets/:assetId/transactions  soft-deletea toda la posicion
+ *                             del usuario sobre ese activo (GF-249)
  *
  * Owner-scope: toda query filtra por `user_id = currentUser.id`, asi un user
  * nunca ve ni toca transacciones de otro.
@@ -15,7 +18,7 @@ import { DateTime } from 'luxon'
 import type { AssetType } from '@grootfolio/shared/types'
 import Asset from '#models/asset'
 import Transaction from '#models/transaction'
-import { createTransactionValidator } from '#validators/transaction'
+import { createTransactionValidator, updateTransactionValidator } from '#validators/transaction'
 
 const PROVIDER_BY_TYPE: Record<AssetType, string> = {
   crypto: 'coingecko',
@@ -84,6 +87,50 @@ export default class TransactionsController {
   }
 
   /**
+   * PATCH /transactions/:id — edita una transaccion propia. Solo campos del
+   * `updateTransactionValidator` (no symbol/type). 404 si no es del usuario.
+   */
+  async update({ params, request, response, currentUser }: HttpContext) {
+    if (!UUID_RE.test(params.id)) {
+      return response.status(404).send({ code: 'TX_NOT_FOUND', message: 'Transaccion no encontrada.' })
+    }
+
+    const transaction = await Transaction.query()
+      .where('id', params.id)
+      .where('user_id', currentUser.id)
+      .whereNull('deleted_at')
+      .first()
+
+    if (!transaction) {
+      return response.status(404).send({ code: 'TX_NOT_FOUND', message: 'Transaccion no encontrada.' })
+    }
+
+    const payload = await request.validateUsing(updateTransactionValidator)
+
+    if (payload.purchasedAt !== undefined) {
+      const purchasedAt = DateTime.fromISO(payload.purchasedAt)
+      if (!purchasedAt.isValid) {
+        return response.status(422).send({
+          code: 'TX_INVALID_DATE',
+          message: 'purchasedAt debe ser una fecha ISO 8601 valida.',
+        })
+      }
+      transaction.purchasedAt = purchasedAt
+    }
+
+    if (payload.kind !== undefined) transaction.kind = payload.kind
+    if (payload.quantity !== undefined) transaction.quantity = payload.quantity
+    if (payload.unitPrice !== undefined) transaction.unitPrice = payload.unitPrice
+    if (payload.fee !== undefined) transaction.fee = payload.fee
+    if (payload.priceCurrency !== undefined) transaction.priceCurrency = payload.priceCurrency.toUpperCase()
+    if (payload.notes !== undefined) transaction.notes = payload.notes
+
+    await transaction.save()
+    await transaction.load('asset')
+    return response.status(200).send({ transaction: transaction.serialize() })
+  }
+
+  /**
    * DELETE /transactions/:id — soft delete de una transaccion propia.
    * 404 si no existe, no es del usuario, o ya estaba borrada.
    */
@@ -104,6 +151,31 @@ export default class TransactionsController {
 
     transaction.deletedAt = DateTime.now()
     await transaction.save()
+
+    return response.status(204).send(null)
+  }
+
+  /**
+   * DELETE /assets/:assetId/transactions — soft-deletea toda la posicion del
+   * usuario sobre un activo (todas sus transacciones no borradas). 404 si el
+   * usuario no tiene ninguna. Owner-scope via user_id.
+   */
+  async destroyByAsset({ params, response, currentUser }: HttpContext) {
+    if (!UUID_RE.test(params.assetId)) {
+      return response.status(404).send({ code: 'ASSET_NOT_FOUND', message: 'Activo no encontrado.' })
+    }
+
+    const affected = await Transaction.query()
+      .where('user_id', currentUser.id)
+      .where('asset_id', params.assetId)
+      .whereNull('deleted_at')
+      .update({ deleted_at: DateTime.now().toSQL() })
+
+    // `update` devuelve el numero de filas afectadas (o [n] segun el driver).
+    const count = Array.isArray(affected) ? Number(affected[0] ?? 0) : Number(affected)
+    if (!count) {
+      return response.status(404).send({ code: 'ASSET_NOT_FOUND', message: 'Activo no encontrado.' })
+    }
 
     return response.status(204).send(null)
   }

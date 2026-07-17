@@ -31,7 +31,9 @@ router
     router.get('/me', '#controllers/auth_controller.me') // GF-209
     router.get('/transactions', '#controllers/transactions_controller.index') // GF-212
     router.post('/transactions', '#controllers/transactions_controller.store') // GF-212
+    router.patch('/transactions/:id', '#controllers/transactions_controller.update') // GF-249
     router.delete('/transactions/:id', '#controllers/transactions_controller.destroy') // GF-212
+    router.delete('/assets/:assetId/transactions', '#controllers/transactions_controller.destroyByAsset') // GF-249
     router.get('/holdings', '#controllers/holdings_controller.index') // GF-213
     router.get('/portfolio', '#controllers/portfolio_controller.summary') // GF-214
     router.get('/assets/search', '#controllers/assets_controller.search') // GF-248 (autocomplete)

@@ -3,6 +3,7 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { AddAssetPage } from '@/features/assets/AddAssetPage'
+import { AssetsPage } from '@/features/assets/AssetsPage'
 import { ProfileTestPage } from '@/features/profile-test/ProfileTestPage'
 import { ProfileResultPage } from '@/features/profile-test/ProfileResultPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
@@ -18,6 +19,7 @@ export function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/assets" element={<AssetsPage />} />
           <Route path="/assets/new" element={<AddAssetPage />} />
           <Route path="/profile-test" element={<ProfileTestPage />} />
           <Route path="/profile-test/result" element={<ProfileResultPage />} />

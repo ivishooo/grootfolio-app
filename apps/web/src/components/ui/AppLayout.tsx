@@ -7,7 +7,7 @@ import { Logo } from './Logo'
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '▦' },
-  { to: '/assets/new', label: 'Cargar Activo', icon: '+' },
+  { to: '/assets', label: 'Activos', icon: '≡' },
   { to: '/profile-test', label: 'Test de Perfil', icon: '☑' },
   { to: '/settings', label: 'Configuración', icon: '⚙' },
 ] as const
