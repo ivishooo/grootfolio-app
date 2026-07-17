@@ -4,6 +4,7 @@ import { useTheme } from '../theme/ThemeProvider'
 import { brand } from '@grootfolio/tokens'
 import { DashboardScreen } from '../screens/DashboardScreen'
 import { AssetsScreen } from '../screens/AssetsScreen'
+import { ReportsScreen } from '../screens/ReportsScreen'
 import { ProfileTestScreen } from '../screens/ProfileTestScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
 import { AppHeader } from './AppHeader'
@@ -11,6 +12,7 @@ import { AppHeader } from './AppHeader'
 export type TabParamList = {
   Dashboard: undefined
   Assets: undefined
+  Reports: undefined
   ProfileTest: undefined
   Settings: undefined
 }
@@ -47,6 +49,14 @@ export function TabNavigator() {
         options={{
           tabBarLabel: 'Activos',
           tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>≡</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Reports"
+        component={ReportsScreen}
+        options={{
+          tabBarLabel: 'Reportes',
+          tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>▤</Text>,
         }}
       />
       <Tab.Screen

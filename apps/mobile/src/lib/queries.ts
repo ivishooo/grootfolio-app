@@ -8,8 +8,10 @@ import type {
   AssetSearchResult,
   AssetType,
   CreateTransactionInput,
+  LedgerEntry,
   PortfolioSummary,
   QuizQuestion,
+  ReportSummary,
   RiskProfileResult,
   Transaction,
   UpdateTransactionInput,
@@ -22,6 +24,8 @@ export const queryKeys = {
   transactions: ['transactions'] as const,
   quiz: ['quiz'] as const,
   quizResult: ['quiz-result'] as const,
+  reportSummary: ['reports', 'summary'] as const,
+  reportLedger: ['reports', 'transactions'] as const,
   assetSearch: (q: string, type?: AssetType) => ['assets', 'search', type ?? 'all', q] as const,
 }
 
@@ -73,6 +77,23 @@ export function useAssetSearch(q: string, type?: AssetType) {
     },
     enabled: term.length >= 2,
     staleTime: 60_000,
+  })
+}
+
+/** Resumen de reportes (P&L realizado + balance historico). GF-250. */
+export function useReportSummary() {
+  return useQuery({
+    queryKey: queryKeys.reportSummary,
+    queryFn: () => api.get<{ summary: ReportSummary }>('/reports/summary').then((r) => r.summary),
+  })
+}
+
+/** Ledger completo valuado en USD. GF-250. */
+export function useReportLedger() {
+  return useQuery({
+    queryKey: queryKeys.reportLedger,
+    queryFn: () =>
+      api.get<{ transactions: LedgerEntry[] }>('/reports/transactions').then((r) => r.transactions),
   })
 }
 
