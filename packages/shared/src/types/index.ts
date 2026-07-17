@@ -69,6 +69,67 @@ export interface PortfolioSummary {
   holdings: Holding[]
 }
 
+// ---- Reportes (GF-250, Fase F) ----
+
+/**
+ * Entrada del ledger (GET /reports/transactions): una transaccion con su
+ * valuacion en USD. `amountUsd` es el costo (compra) o el ingreso bruto (venta),
+ * neto de fee. `usdApprox` marca que el FX usado no es exactamente el de la
+ * fecha (degradado a la tasa disponible mas cercana).
+ */
+export interface LedgerEntry {
+  id: string
+  assetId: string
+  symbol: string
+  name: string
+  type: AssetType
+  kind: 'buy' | 'sell'
+  quantity: number
+  unitPrice: number
+  priceCurrency: string
+  fee: number
+  unitPriceUsd: number
+  feeUsd: number
+  amountUsd: number
+  purchasedAt: string
+  usdApprox: boolean
+}
+
+/** P&L realizado acumulado por activo (incluye posiciones ya cerradas). */
+export interface RealizedPnl {
+  assetId: string
+  symbol: string
+  name: string
+  type: AssetType
+  realized: number
+  proceeds: number
+  costBasis: number
+  quantitySold: number
+}
+
+/** Punto de la serie de P&L realizado acumulado (uno por venta). */
+export interface RealizedPoint {
+  date: string
+  cumulative: number
+}
+
+/**
+ * Punto del balance historico mark-to-market. `estimated` indica que faltaron
+ * snapshots historicos para algun activo del mes y el valor puede ser parcial.
+ */
+export interface HistoricalBalancePoint {
+  month: string
+  value: number
+  estimated: boolean
+}
+
+export interface ReportSummary {
+  realizedTotal: number
+  realizedByAsset: RealizedPnl[]
+  realizedSeries: RealizedPoint[]
+  historicalBalance: HistoricalBalancePoint[]
+}
+
 export interface QuizOption {
   id: string
   label: string

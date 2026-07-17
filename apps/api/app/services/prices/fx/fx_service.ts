@@ -18,7 +18,12 @@
  */
 import logger from '@adonisjs/core/services/logger'
 import env from '#start/env'
-import { fetchCclRateToUsd, fetchFrankfurterRates, fetchOficialRateToUsd } from './fx_client.js'
+import {
+  fetchCclRateToUsd,
+  fetchFrankfurterRates,
+  fetchFrankfurterRatesAt,
+  fetchOficialRateToUsd,
+} from './fx_client.js'
 
 /**
  * Divisas soportadas por Frankfurter que nos interesan en el catalogo. Acotar
@@ -90,7 +95,53 @@ export async function getRateToUsd(currency: string): Promise<number | null> {
   }
 }
 
+// Cache de tasas historicas por (moneda, fecha). Una tasa historica no cambia,
+// asi que no tiene TTL: se guarda para siempre en el proceso.
+const historicalCache = new Map<string, number>()
+
+/**
+ * `rateToUsd` de `currency` en una fecha `isoDate` (yyyy-MM-dd), para reportes
+ * historicos (GF-250). Devuelve `{ rate, approx }`:
+ *  - Frankfurter soporta fecha exacta -> approx=false.
+ *  - ARS / desconocidas no tienen historico confiable aca -> se degrada a la
+ *    tasa ACTUAL (`getRateToUsd`) y approx=true.
+ *  - Sin ninguna tasa disponible -> null.
+ * USD siempre 1 (approx=false).
+ */
+export async function getRateToUsdAt(
+  currency: string,
+  isoDate: string
+): Promise<{ rate: number; approx: boolean } | null> {
+  const cur = currency.toUpperCase()
+  if (cur === 'USD') return { rate: 1, approx: false }
+
+  const date = isoDate.slice(0, 10)
+  const key = `${cur}@${date}`
+  const hit = historicalCache.get(key)
+  if (hit !== undefined) return { rate: hit, approx: !FRANKFURTER_KNOWN.has(cur) }
+
+  if (FRANKFURTER_KNOWN.has(cur)) {
+    try {
+      const rates = await fetchFrankfurterRatesAt(date, [cur])
+      const rate = rates[cur]
+      if (rate !== undefined && rate > 0) {
+        historicalCache.set(key, rate)
+        return { rate, approx: false }
+      }
+    } catch (err) {
+      logger.warn({ err, currency: cur, date }, 'FX historico fallo; degrado a tasa actual')
+    }
+  }
+
+  // ARS, desconocidas, o fallo de Frankfurter: degradamos a la tasa actual.
+  const current = await getRateToUsd(cur)
+  if (current === null) return null
+  historicalCache.set(key, current)
+  return { rate: current, approx: true }
+}
+
 /** Limpia el cache in-memory de tasas. Pensado para tests; no usar en runtime. */
 export function _resetFxCache(): void {
   cache.clear()
+  historicalCache.clear()
 }

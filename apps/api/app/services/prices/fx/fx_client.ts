@@ -59,6 +59,36 @@ export async function fetchFrankfurterRates(
   return out
 }
 
+/**
+ * Igual que `fetchFrankfurterRates` pero para una fecha historica (GF-250).
+ * Frankfurter expone `/{date}?base=USD&symbols=...` (yyyy-MM-dd); si la fecha
+ * es fin de semana/feriado devuelve el ultimo dia habil, lo cual nos sirve.
+ */
+export async function fetchFrankfurterRatesAt(
+  date: string,
+  symbols: string[]
+): Promise<Record<string, number>> {
+  if (symbols.length === 0) return {}
+
+  const url = new URL(`${FRANKFURTER_BASE}/${date}`)
+  url.searchParams.set('base', 'USD')
+  url.searchParams.set('symbols', symbols.map((s) => s.toUpperCase()).join(','))
+
+  const res = await fetch(url, { headers: JSON_HEADERS })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`Frankfurter HTTP ${res.status} (${date}): ${body.slice(0, 200)}`)
+  }
+
+  const payload = (await res.json()) as FrankfurterPayload
+  const out: Record<string, number> = {}
+  for (const symbol of symbols) {
+    const rate = frankfurterRateToUsd(payload, symbol)
+    if (rate !== null) out[symbol.toUpperCase()] = rate
+  }
+  return out
+}
+
 /** Dolar CCL via dolarapi.com. Devuelve `rateToUsd` para ARS (USD por 1 ARS). */
 export async function fetchCclRateToUsd(): Promise<number | null> {
   const res = await fetch(`${DOLARAPI_BASE}/dolares/contadoconliqui`, { headers: JSON_HEADERS })
