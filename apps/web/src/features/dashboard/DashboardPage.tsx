@@ -115,6 +115,11 @@ export function DashboardPage() {
                     ))}
                   </tbody>
                 </table>
+                <div className="mt-4 flex justify-end">
+                  <Link to="/assets/new">
+                    <Button>Cargar activo</Button>
+                  </Link>
+                </div>
               </div>
             )}
           </Card>

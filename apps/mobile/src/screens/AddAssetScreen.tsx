@@ -1,14 +1,18 @@
 import { useState } from 'react'
 import { ScrollView, View, Text, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useTheme } from '@/theme/ThemeProvider'
 import { createTransactionInputSchema, assetTypeLabels, type AssetSearchResult, type CreateTransactionInput } from '@grootfolio/shared'
 import { useCreateTransaction } from '@/lib/queries'
+import type { RootStackParamList } from '@/navigation/RootNavigator'
 import { Screen } from '@/components/ui/Screen'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { FormField } from '@/components/ui/FormField'
 import { AssetAutocomplete } from '@/components/ui/AssetAutocomplete'
 import { Tabs } from '@/components/ui/Tabs'
+import { useToast } from '@/components/ui/ToastProvider'
 
 const ASSET_TYPES = [
   { value: 'crypto', label: assetTypeLabels.crypto },
@@ -56,6 +60,8 @@ const emptyForm = { symbol: '', quantity: '', unitPrice: '', fee: '', priceCurre
 
 export function AddAssetScreen() {
   const { theme } = useTheme()
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
+  const { toast } = useToast()
   const [activeType, setActiveType] = useState<AssetType>('crypto')
   const [kind, setKind] = useState<'buy' | 'sell'>('buy')
   const [form, setForm] = useState({ ...emptyForm })
@@ -114,8 +120,9 @@ export function AddAssetScreen() {
     setErrors({})
     createTx.mutate(result.data, {
       onSuccess: () => {
-        Alert.alert('Éxito', 'Transacción guardada correctamente')
         setForm({ ...emptyForm })
+        toast('Activo cargado correctamente')
+        navigation.navigate('Main')
       },
       onError: (err) => {
         Alert.alert('Error', err instanceof Error ? err.message : 'No se pudo guardar la transacción.')
@@ -181,6 +188,9 @@ export function AddAssetScreen() {
               <FormField label="Notas" placeholder="Observaciones..." value={form.notes} error={errors.notes} onChange={(v) => updateField('notes', v)} multiline />
               <Button fullWidth onPress={handleSubmit} disabled={createTx.isPending}>
                 {createTx.isPending ? 'Guardando…' : 'Guardar Activo'}
+              </Button>
+              <Button fullWidth variant="secondary" onPress={() => navigation.goBack()} disabled={createTx.isPending}>
+                Cancelar
               </Button>
             </View>
           </Card>

@@ -3,14 +3,14 @@ import { Text } from 'react-native'
 import { useTheme } from '../theme/ThemeProvider'
 import { brand } from '@grootfolio/tokens'
 import { DashboardScreen } from '../screens/DashboardScreen'
-import { AddAssetScreen } from '../screens/AddAssetScreen'
+import { AssetsScreen } from '../screens/AssetsScreen'
 import { ProfileTestScreen } from '../screens/ProfileTestScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
 import { AppHeader } from './AppHeader'
 
 export type TabParamList = {
   Dashboard: undefined
-  AddAsset: undefined
+  Assets: undefined
   ProfileTest: undefined
   Settings: undefined
 }
@@ -42,11 +42,11 @@ export function TabNavigator() {
         }}
       />
       <Tab.Screen
-        name="AddAsset"
-        component={AddAssetScreen}
+        name="Assets"
+        component={AssetsScreen}
         options={{
-          tabBarLabel: 'Cargar Activo',
-          tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>+</Text>,
+          tabBarLabel: 'Activos',
+          tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>≡</Text>,
         }}
       />
       <Tab.Screen

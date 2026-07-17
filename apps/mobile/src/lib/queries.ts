@@ -12,6 +12,7 @@ import type {
   QuizQuestion,
   RiskProfileResult,
   Transaction,
+  UpdateTransactionInput,
 } from '@grootfolio/shared'
 import { api } from './api'
 
@@ -83,15 +84,58 @@ export function usePortfolio() {
   })
 }
 
+export function useTransactions() {
+  return useQuery({
+    queryKey: queryKeys.transactions,
+    queryFn: () =>
+      api.get<{ transactions: Transaction[] }>('/transactions').then((r) => r.transactions),
+  })
+}
+
+// Invalida las tres queries que dependen de las transacciones: el resumen del
+// portfolio, los holdings y el listado de transacciones.
+function invalidatePortfolioData(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: queryKeys.portfolio })
+  void qc.invalidateQueries({ queryKey: queryKeys.holdings })
+  void qc.invalidateQueries({ queryKey: queryKeys.transactions })
+}
+
 export function useCreateTransaction() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: CreateTransactionInput) =>
       api.post<{ transaction: Transaction }>('/transactions', input).then((r) => r.transaction),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: queryKeys.portfolio })
-      void qc.invalidateQueries({ queryKey: queryKeys.holdings })
-      void qc.invalidateQueries({ queryKey: queryKeys.transactions })
-    },
+    onSuccess: () => invalidatePortfolioData(qc),
+  })
+}
+
+export function useUpdateTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    // El ApiClient de shared no expone `patch`, asi que usamos `request` directo.
+    mutationFn: ({ id, input }: { id: string; input: UpdateTransactionInput }) =>
+      api
+        .request<{ transaction: Transaction }>(`/transactions/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(input),
+        })
+        .then((r) => r.transaction),
+    onSuccess: () => invalidatePortfolioData(qc),
+  })
+}
+
+export function useDeleteTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/transactions/${id}`),
+    onSuccess: () => invalidatePortfolioData(qc),
+  })
+}
+
+export function useDeleteAssetPosition() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (assetId: string) => api.delete<void>(`/assets/${assetId}/transactions`),
+    onSuccess: () => invalidatePortfolioData(qc),
   })
 }

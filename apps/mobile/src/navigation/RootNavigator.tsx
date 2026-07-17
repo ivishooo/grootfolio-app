@@ -4,12 +4,14 @@ import { useAuth } from '@/auth/AuthProvider'
 import { useTheme } from '@/theme/ThemeProvider'
 import { LoginScreen } from '@/screens/LoginScreen'
 import { ProfileResultScreen } from '@/screens/ProfileResultScreen'
+import { AddAssetScreen } from '@/screens/AddAssetScreen'
 import { TabNavigator } from './TabNavigator'
 
 export type RootStackParamList = {
   Login: undefined
   Main: undefined
   ProfileResult: undefined
+  AddAsset: undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -33,6 +35,7 @@ export function RootNavigator() {
         <>
           <Stack.Screen name="Main" component={TabNavigator} />
           <Stack.Screen name="ProfileResult" component={ProfileResultScreen} />
+          <Stack.Screen name="AddAsset" component={AddAssetScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />
