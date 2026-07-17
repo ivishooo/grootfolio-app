@@ -82,3 +82,38 @@ export async function fetchMarketChart(
   const data = (await res.json()) as { prices?: Array<[number, number]> }
   return (data.prices ?? []).map(([timestamp, price]) => ({ timestamp, price }))
 }
+
+export interface CoinSearchHit {
+  symbol: string
+  name: string
+}
+
+/**
+ * Busqueda de criptos via `/search?query=` (GF-248 D.2). Devuelve coins
+ * ordenadas por market cap; nos quedamos con symbol+name para el autocomplete.
+ * 429 levanta CoinGeckoRateLimitError; otros no-ok, Error generico.
+ */
+export async function searchCoins(query: string): Promise<CoinSearchHit[]> {
+  const url = new URL(`${BASE_URL}/search`)
+  url.searchParams.set('query', query)
+
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  const apiKey = env.get('COINGECKO_API_KEY')
+  if (apiKey) headers['x-cg-demo-api-key'] = apiKey
+
+  const res = await fetch(url, { headers })
+  if (res.status === 429) {
+    throw new CoinGeckoRateLimitError()
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`CoinGecko search HTTP ${res.status}: ${body.slice(0, 200)}`)
+  }
+
+  const data = (await res.json()) as {
+    coins?: Array<{ symbol?: string; name?: string }>
+  }
+  return (data.coins ?? [])
+    .filter((c): c is { symbol: string; name: string } => Boolean(c.symbol && c.name))
+    .map((c) => ({ symbol: c.symbol.toUpperCase(), name: c.name }))
+}

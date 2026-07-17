@@ -32,9 +32,42 @@ interface YahooQuoteShape {
  * solo lo que consumimos (`quote`) y construimos por ese contrato, sin depender
  * de esa resolucion. En runtime el default ES la clase.
  */
-type YahooClient = { quote(symbols: string[]): Promise<unknown> }
+type YahooClient = {
+  quote(symbols: string[]): Promise<unknown>
+  search(query: string): Promise<unknown>
+}
 const YahooFinanceCtor = YahooFinance as unknown as new () => YahooClient
 const yahooFinance = new YahooFinanceCtor()
+
+export interface StockSearchHit {
+  symbol: string
+  name: string
+  currency: string
+}
+
+/**
+ * Busqueda de acciones/ETFs via Yahoo `search` (GF-248 D.2). Filtra a
+ * EQUITY/ETF y arma symbol+name+currency. Yahoo no siempre devuelve `currency`
+ * en la busqueda: para tickers `.BA` asumimos ARS (convencion del catalogo),
+ * el resto default USD. Ante cualquier error devolvemos lista vacia (el caller
+ * degrada a lo local).
+ */
+export async function searchStocks(query: string): Promise<StockSearchHit[]> {
+  const raw = await yahooFinance.search(query)
+  const quotes =
+    (raw as { quotes?: Array<{ symbol?: string; shortname?: string; longname?: string; quoteType?: string; currency?: string }> })
+      .quotes ?? []
+
+  const out: StockSearchHit[] = []
+  for (const q of quotes) {
+    const symbol = q.symbol?.toUpperCase()
+    if (!symbol) continue
+    if (q.quoteType !== 'EQUITY' && q.quoteType !== 'ETF') continue
+    const currency = q.currency?.toUpperCase() ?? (symbol.endsWith('.BA') ? 'ARS' : 'USD')
+    out.push({ symbol, name: q.longname ?? q.shortname ?? symbol, currency })
+  }
+  return out
+}
 
 export const yahooProvider: PriceProvider = {
   name: 'yahoo',
