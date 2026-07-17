@@ -23,6 +23,18 @@ export interface Asset {
   iconUrl?: string
 }
 
+/**
+ * Resultado del autocomplete de activos (GET /assets/search). No incluye `id`
+ * porque puede venir del catalogo o de un proveedor externo aun no persistido;
+ * el alta se sigue resolviendo por symbol+type.
+ */
+export interface AssetSearchResult {
+  symbol: string
+  name: string
+  type: AssetType
+  currency: string
+}
+
 export interface Transaction {
   id: string
   userId: string

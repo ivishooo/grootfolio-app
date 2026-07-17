@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createTransactionInputSchema, assetTypeLabels, type CreateTransactionInput } from '@grootfolio/shared'
+import type { AssetSearchResult } from '@grootfolio/shared'
 import { useCreateTransaction } from '@/lib/queries'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { AssetAutocomplete } from '@/components/ui/AssetAutocomplete'
 import { Tabs } from '@/components/ui/Tabs'
 
 const ASSET_TYPES = [
@@ -90,6 +92,23 @@ export function AddAssetPage() {
     })
   }
 
+  // Al elegir del autocomplete: fija el symbol, bloquea el tipo al del activo y,
+  // para tipos con moneda de precio, propone la moneda del catalogo si es una
+  // de las soportadas (ej. ARS para acciones .BA).
+  const handleSelectAsset = (r: AssetSearchResult) => {
+    setActiveType(r.type)
+    setForm((p) => ({
+      ...p,
+      symbol: r.symbol,
+      priceCurrency: TYPE_FORM[r.type].showCurrency && (PRICE_CURRENCIES as readonly string[]).includes(r.currency)
+        ? r.currency
+        : p.priceCurrency,
+    }))
+    setErrors((p) => ({ ...p, symbol: '' }))
+    setSuccess(false)
+    setSubmitError(null)
+  }
+
   const handleCancel = () => {
     setForm({ ...emptyForm })
     setErrors({})
@@ -111,7 +130,7 @@ export function AddAssetPage() {
 
       <Card padding="lg">
         <div className="space-y-4">
-          <Input label={cfg.symbolLabel} placeholder={cfg.symbolPlaceholder} value={form.symbol} error={errors.symbol} onChange={(v) => updateField('symbol', v)} />
+          <AssetAutocomplete label={cfg.symbolLabel} placeholder={cfg.symbolPlaceholder} value={form.symbol} error={errors.symbol} type={activeType} onChange={(v) => updateField('symbol', v)} onSelect={handleSelectAsset} />
           <div className="grid gap-4 md:grid-cols-2">
             <Input label={cfg.qtyLabel} placeholder={cfg.qtyPlaceholder} value={form.quantity} error={errors.quantity} onChange={(v) => updateField('quantity', v)} type="number" />
             {cfg.showCurrency ? (

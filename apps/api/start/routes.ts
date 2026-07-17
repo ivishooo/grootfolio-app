@@ -34,11 +34,9 @@ router
     router.delete('/transactions/:id', '#controllers/transactions_controller.destroy') // GF-212
     router.get('/holdings', '#controllers/holdings_controller.index') // GF-213
     router.get('/portfolio', '#controllers/portfolio_controller.summary') // GF-214
+    router.get('/assets/search', '#controllers/assets_controller.search') // GF-248 (autocomplete)
     router.get('/quiz', '#controllers/quiz_controller.questions') // GF-2 (perfil)
     router.post('/quiz/submit', '#controllers/quiz_controller.submit') // GF-2 (perfil)
     router.get('/quiz/result', '#controllers/quiz_controller.result') // GF-2 (perfil)
   })
   .use(middleware.auth())
-
-// Pendiente (sin controller aun): catalogo de assets.
-// router.get('/assets/catalog', '#controllers/assets_controller.catalog').use(middleware.auth())
