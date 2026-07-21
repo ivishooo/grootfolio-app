@@ -11,6 +11,8 @@ import { Card } from '@/components/ui/Card'
 import { StatCard } from '@/components/ui/StatCard'
 import { Button } from '@/components/ui/Button'
 import { EmptyState, ErrorState } from '@/components/ui/States'
+import { AssetAvatar } from '@/components/ui/AssetAvatar'
+import { assetColor } from '@/lib/asset-visual'
 import { DashboardSkeleton } from './DashboardSkeleton'
 
 export function DashboardScreen() {
@@ -83,7 +85,16 @@ export function DashboardScreen() {
               )}
             </Card>
 
-            <Card title="Mis Activos">
+            <Card>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <Text style={{ color: theme.text.primary, fontWeight: '700', fontSize: 16 }}>
+                  Mis Activos <Text style={{ color: theme.text.muted, fontWeight: '500' }}>· {p.holdings.length}</Text>
+                </Text>
+                {p.holdings.length > 0 ? (
+                  <Button size="sm" onPress={() => navigation.navigate('AddAsset')}>+ Cargar</Button>
+                ) : null}
+              </View>
+
               {p.holdings.length === 0 ? (
                 <View style={{ gap: 12 }}>
                   <EmptyState
@@ -93,25 +104,37 @@ export function DashboardScreen() {
                   <Button fullWidth onPress={() => navigation.navigate('AddAsset')}>Cargar activo</Button>
                 </View>
               ) : (
-                <>
-                  {p.holdings.map((h) => (
+                p.holdings.map((h) => {
+                  const c = assetColor(h.asset.type)
+                  const pct = p.totalValue > 0 ? (h.value / p.totalValue) * 100 : 0
+                  const up = h.pnl >= 0
+                  const pnlColor = up ? theme.chart.positive : theme.chart.negative
+                  return (
                     <View key={h.assetId} style={[s.holdingRow, { borderColor: theme.border.default }]}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{h.asset.name}</Text>
-                        <Text style={{ color: theme.text.muted, fontSize: 12 }}>{assetTypeLabel[h.asset.type as AssetType] ?? h.asset.type}</Text>
+                      <AssetAvatar asset={h.asset} size={34} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <Text style={{ color: theme.text.primary, fontWeight: '700', fontSize: 14 }} numberOfLines={1}>{h.asset.name}</Text>
+                          <Text style={[s.chip, { color: c.accent, backgroundColor: c.soft }]}>{h.asset.symbol}</Text>
+                        </View>
+                        <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 2 }}>
+                          {assetTypeLabel[h.asset.type as AssetType] ?? h.asset.type} · {formatCurrency(h.avgPrice)} → {formatCurrency(h.currentPrice)}
+                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                          <View style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: theme.background.muted, overflow: 'hidden' }}>
+                            <View style={{ height: '100%', width: `${Math.min(pct, 100)}%`, backgroundColor: c.accent, borderRadius: 3 }} />
+                          </View>
+                          <Text style={{ color: theme.text.muted, fontSize: 10 }}>{pct.toFixed(1)}%</Text>
+                        </View>
                       </View>
                       <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{formatCurrency(h.value)}</Text>
-                        <Text style={{ color: h.pnl >= 0 ? theme.chart.positive : theme.chart.negative, fontSize: 12 }}>
-                          {formatPercent(h.pnlPercent)} ({formatCurrency(h.pnl)})
-                        </Text>
+                        <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{formatCurrency(h.value)}</Text>
+                        <Text style={{ color: pnlColor, fontSize: 12, fontWeight: '600' }}>{formatCurrency(h.pnl)}</Text>
+                        <Text style={{ color: pnlColor, fontSize: 11 }}>{formatPercent(h.pnlPercent)}</Text>
                       </View>
                     </View>
-                  ))}
-                  <View style={{ marginTop: 12 }}>
-                    <Button fullWidth variant="secondary" onPress={() => navigation.navigate('AddAsset')}>Cargar activo</Button>
-                  </View>
-                </>
+                  )
+                })
               )}
             </Card>
           </>
@@ -129,5 +152,6 @@ const s = StyleSheet.create({
   barChart: { flexDirection: 'row', height: 160, gap: 6 },
   barCol: { flex: 1 },
   bar: { borderRadius: 4, minHeight: 4 },
-  holdingRow: { flexDirection: 'row', paddingVertical: 10, borderTopWidth: 1, alignItems: 'center' },
+  holdingRow: { flexDirection: 'row', gap: 10, paddingVertical: 12, borderTopWidth: 1, alignItems: 'center' },
+  chip: { fontSize: 10, fontWeight: '700', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, overflow: 'hidden' },
 })

@@ -1,5 +1,4 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import { Text } from 'react-native'
 import { useTheme } from '../theme/ThemeProvider'
 import { brand } from '@grootfolio/tokens'
 import { DashboardScreen } from '../screens/DashboardScreen'
@@ -7,6 +6,7 @@ import { AssetsScreen } from '../screens/AssetsScreen'
 import { ReportsScreen } from '../screens/ReportsScreen'
 import { ProfileTestScreen } from '../screens/ProfileTestScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
+import { DashboardIcon, AssetsIcon, ReportsIcon, QuizIcon, SettingsIcon } from '../components/ui/icons'
 import { AppHeader } from './AppHeader'
 
 export type TabParamList = {
@@ -40,7 +40,7 @@ export function TabNavigator() {
         component={DashboardScreen}
         options={{
           tabBarLabel: 'Dashboard',
-          tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>▦</Text>,
+          tabBarIcon: ({ color, size }) => <DashboardIcon color={color} size={size} />,
         }}
       />
       <Tab.Screen
@@ -48,7 +48,7 @@ export function TabNavigator() {
         component={AssetsScreen}
         options={{
           tabBarLabel: 'Activos',
-          tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>≡</Text>,
+          tabBarIcon: ({ color, size }) => <AssetsIcon color={color} size={size} />,
         }}
       />
       <Tab.Screen
@@ -56,7 +56,7 @@ export function TabNavigator() {
         component={ReportsScreen}
         options={{
           tabBarLabel: 'Reportes',
-          tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>▤</Text>,
+          tabBarIcon: ({ color, size }) => <ReportsIcon color={color} size={size} />,
         }}
       />
       <Tab.Screen
@@ -64,7 +64,7 @@ export function TabNavigator() {
         component={ProfileTestScreen}
         options={{
           tabBarLabel: 'Perfil',
-          tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>☑</Text>,
+          tabBarIcon: ({ color, size }) => <QuizIcon color={color} size={size} />,
         }}
       />
       <Tab.Screen
@@ -72,7 +72,7 @@ export function TabNavigator() {
         component={SettingsScreen}
         options={{
           tabBarLabel: 'Config',
-          tabBarIcon: ({ color, size }) => <Text style={{ fontSize: size, color }}>⚙</Text>,
+          tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
         }}
       />
     </Tab.Navigator>
