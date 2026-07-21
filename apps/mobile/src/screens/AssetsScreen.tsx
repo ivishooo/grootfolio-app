@@ -1,10 +1,11 @@
 /**
- * Gestion de activos mobile (GF-249): espejo del AssetsPage de web. Lista los
- * holdings del portfolio, permite expandir cada uno para ver sus transacciones,
- * editarlas/eliminarlas o borrar toda la posicion. Confirmaciones via Alert.
+ * Gestión de activos mobile (rediseño GF) — espejo del AssetsPage de web.
+ * Holdings con AssetAvatar, ticker (chip color), chip de tipo, avg→actual,
+ * barra de % de cartera y P&L ($ y %). Expand a transacciones con editar/
+ * eliminar. Confirmaciones con el ConfirmProvider (estado de carga) y toasts.
  */
 import { useState } from 'react'
-import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native'
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import {
@@ -24,10 +25,12 @@ import {
 import type { RootStackParamList } from '@/navigation/RootNavigator'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useToast } from '@/components/ui/ToastProvider'
+import { useConfirm } from '@/components/ui/ConfirmProvider'
 import { Screen } from '@/components/ui/Screen'
-import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { FormField } from '@/components/ui/FormField'
+import { AssetAvatar } from '@/components/ui/AssetAvatar'
+import { assetColor } from '@/lib/asset-visual'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 
 const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
@@ -61,31 +64,55 @@ export function AssetsScreen() {
   const { data: p, isLoading, isError, error, refetch } = usePortfolio()
   const { data: transactions } = useTransactions()
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [bannerOpen, setBannerOpen] = useState(true)
   const deletePosition = useDeleteAssetPosition()
   const { toast } = useToast()
+  const confirm = useConfirm()
+
+  const total = p?.totalValue ?? 0
 
   const handleDeletePosition = (holding: Holding) => {
-    Alert.alert('Eliminar posición', `¿Eliminar toda la posición de ${holding.asset.name}?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () =>
-          deletePosition.mutate(holding.assetId, {
-            onSuccess: () => toast('Posición eliminada'),
-            onError: (err) =>
-              toast(err instanceof Error ? err.message : 'No se pudo eliminar la posición.', 'error'),
-          }),
+    void confirm({
+      title: 'Eliminar posición',
+      message: `¿Eliminar toda la posición de ${holding.asset.name}? Se borran todas sus transacciones. Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar posición',
+      onConfirm: async () => {
+        try {
+          await deletePosition.mutateAsync(holding.assetId)
+          toast('Posición eliminada', 'info', { description: 'Se borraron todas sus transacciones.' })
+        } catch (err) {
+          toast(err instanceof Error ? err.message : 'No se pudo eliminar la posición.', 'error')
+          throw err
+        }
       },
-    ])
+    })
   }
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ color: theme.text.primary, fontSize: 20, fontWeight: '700' }}>Activos</Text>
-          <Button size="sm" onPress={() => navigation.navigate('AddAsset')}>Cargar activo</Button>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+        {bannerOpen && (
+          <View style={[st.banner, { backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.35)' }]}>
+            <Text style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
+              Los precios de mercado se actualizan cada 15 minutos.
+            </Text>
+            <TouchableOpacity onPress={() => setBannerOpen(false)} hitSlop={8}>
+              <Text style={{ color: theme.text.muted }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.text.primary, fontSize: 22, fontWeight: '800' }}>Activos</Text>
+            {p && p.holdings.length > 0 ? (
+              <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
+                {p.holdings.length} posiciones · Valor total{' '}
+                <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{formatCurrency(total)}</Text>
+              </Text>
+            ) : null}
+          </View>
+          <Button size="sm" onPress={() => navigation.navigate('AddAsset')}>+ Cargar activo</Button>
         </View>
 
         {isLoading ? (
@@ -96,7 +123,7 @@ export function AssetsScreen() {
             onRetry={() => void refetch()}
           />
         ) : !p || p.holdings.length === 0 ? (
-          <Card>
+          <View style={[st.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
             <View style={{ gap: 12 }}>
               <EmptyState
                 title="Todavía no tenés activos"
@@ -104,17 +131,17 @@ export function AssetsScreen() {
               />
               <Button fullWidth onPress={() => navigation.navigate('AddAsset')}>Cargar activo</Button>
             </View>
-          </Card>
+          </View>
         ) : (
           p.holdings.map((h) => (
             <HoldingCard
               key={h.assetId}
               holding={h}
+              total={total}
               transactions={(transactions ?? []).filter((tx) => tx.assetId === h.assetId)}
               expanded={expanded === h.assetId}
               onToggle={() => setExpanded((cur) => (cur === h.assetId ? null : h.assetId))}
               onDeletePosition={() => handleDeletePosition(h)}
-              deleting={deletePosition.isPending}
             />
           ))
         )}
@@ -125,70 +152,102 @@ export function AssetsScreen() {
 
 interface HoldingCardProps {
   holding: Holding
+  total: number
   transactions: Transaction[]
   expanded: boolean
   onToggle: () => void
   onDeletePosition: () => void
-  deleting: boolean
 }
 
-function HoldingCard({ holding, transactions, expanded, onToggle, onDeletePosition, deleting }: HoldingCardProps) {
+function HoldingCard({ holding, total, transactions, expanded, onToggle, onDeletePosition }: HoldingCardProps) {
   const { theme } = useTheme()
+  const c = assetColor(holding.asset.type)
+  const pct = total > 0 ? (holding.value / total) * 100 : 0
+  const up = holding.pnl >= 0
+  const pnlColor = up ? theme.chart.positive : theme.chart.negative
 
   return (
-    <Card>
-      <TouchableOpacity onPress={onToggle} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Text style={{ color: theme.text.muted }}>{expanded ? '▾' : '▸'}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{holding.asset.name}</Text>
-          <Text style={{ color: theme.text.muted, fontSize: 12 }}>
-            {assetTypeLabel[holding.asset.type as AssetType] ?? holding.asset.type} · {holding.quantity} unidades
+    <View style={[st.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default, padding: 0 }]}>
+      <View style={{ flexDirection: 'row', gap: 12, padding: 16 }}>
+        <TouchableOpacity onPress={onToggle} hitSlop={6} style={{ paddingTop: 6 }}>
+          <Text style={{ color: theme.text.muted, fontSize: 12 }}>{expanded ? '▾' : '▸'}</Text>
+        </TouchableOpacity>
+
+        <AssetAvatar asset={holding.asset} size={44} />
+
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+            <Text style={{ color: theme.text.primary, fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
+              {holding.asset.name}
+            </Text>
+            <Text style={[st.chip, { color: c.accent, backgroundColor: c.soft }]}>{holding.asset.symbol}</Text>
+            <Text style={[st.typeChip, { color: theme.text.muted, borderColor: theme.border.default }]}>
+              {assetTypeLabel[holding.asset.type as AssetType] ?? holding.asset.type}
+            </Text>
+          </View>
+          <Text style={{ color: theme.text.secondary, fontSize: 12, marginTop: 4 }}>
+            {holding.quantity} u · Compra{' '}
+            <Text style={{ color: theme.text.primary }}>{formatCurrency(holding.avgPrice)}</Text> → Actual{' '}
+            <Text style={{ color: theme.text.primary }}>{formatCurrency(holding.currentPrice)}</Text>
           </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: theme.background.muted, overflow: 'hidden' }}>
+              <View style={{ height: '100%', width: `${Math.min(pct, 100)}%`, backgroundColor: c.accent, borderRadius: 3 }} />
+            </View>
+            <Text style={{ color: theme.text.muted, fontSize: 11, fontWeight: '600' }}>{pct.toFixed(1)}%</Text>
+          </View>
         </View>
+
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{formatCurrency(holding.value)}</Text>
-          <Text style={{ color: holding.pnlPercent >= 0 ? theme.chart.positive : theme.chart.negative, fontSize: 12 }}>
-            {formatPercent(holding.pnlPercent)}
+          <Text style={{ color: theme.text.primary, fontSize: 16, fontWeight: '800' }}>{formatCurrency(holding.value)}</Text>
+          <Text style={{ color: pnlColor, fontSize: 12, fontWeight: '700' }}>
+            {up ? '▲' : '▼'} {formatPercent(holding.pnlPercent)}
           </Text>
+          <Text style={{ color: pnlColor, fontSize: 12 }}>{formatCurrency(holding.pnl)}</Text>
         </View>
-      </TouchableOpacity>
+      </View>
+
+      <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+        <Button variant="secondary" size="sm" onPress={onDeletePosition}>Eliminar posición</Button>
+      </View>
 
       {expanded && (
-        <View style={{ marginTop: 12, gap: 10, borderTopWidth: 1, borderTopColor: theme.border.default, paddingTop: 12 }}>
+        <View style={{ gap: 10, borderTopWidth: 1, borderTopColor: theme.border.default, backgroundColor: theme.background.muted, padding: 16 }}>
           {transactions.length === 0 ? (
             <Text style={{ color: theme.text.muted, fontSize: 13 }}>Sin transacciones para este activo.</Text>
           ) : (
             transactions.map((tx) => <TransactionItem key={tx.id} tx={tx} />)
           )}
-          <Button variant="destructive" size="sm" onPress={onDeletePosition} disabled={deleting}>
-            Eliminar posición
-          </Button>
         </View>
       )}
-    </Card>
+    </View>
   )
 }
 
 function TransactionItem({ tx }: { tx: Transaction }) {
   const { theme } = useTheme()
   const { toast } = useToast()
+  const confirm = useConfirm()
   const [editing, setEditing] = useState(false)
   const deleteTx = useDeleteTransaction()
+  const isBuy = tx.kind === 'buy'
+  const opColor = isBuy ? theme.chart.positive : theme.chart.negative
 
   const handleDelete = () => {
-    Alert.alert('Eliminar transacción', '¿Eliminar esta transacción?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () =>
-          deleteTx.mutate(tx.id, {
-            onSuccess: () => toast('Transacción eliminada'),
-            onError: (err) =>
-              toast(err instanceof Error ? err.message : 'No se pudo eliminar la transacción.', 'error'),
-          }),
+    void confirm({
+      title: 'Eliminar transacción',
+      message: '¿Eliminar esta transacción? Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      onConfirm: async () => {
+        try {
+          await deleteTx.mutateAsync(tx.id)
+          toast('Transacción eliminada')
+        } catch (err) {
+          toast(err instanceof Error ? err.message : 'No se pudo eliminar la transacción.', 'error')
+          throw err
+        }
       },
-    ])
+    })
   }
 
   if (editing) {
@@ -196,17 +255,17 @@ function TransactionItem({ tx }: { tx: Transaction }) {
   }
 
   return (
-    <View style={{ backgroundColor: theme.background.muted, borderRadius: 10, padding: 10, gap: 8 }}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <Text style={{ color: tx.kind === 'buy' ? theme.chart.positive : theme.chart.negative, fontWeight: '600' }}>
-          {tx.kind === 'buy' ? 'Compra' : 'Venta'}
+    <View style={[st.txRow, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+        <Text style={[st.opChip, { color: opColor, backgroundColor: isBuy ? 'rgba(22,163,74,0.13)' : 'rgba(220,38,38,0.13)' }]}>
+          {isBuy ? 'Compra' : 'Venta'}
         </Text>
-        <Text style={{ color: theme.text.primary }}>{tx.quantity} u.</Text>
-        <Text style={{ color: theme.text.primary }}>{tx.unitPrice} {tx.priceCurrency}</Text>
+        <Text style={{ color: theme.text.primary, fontSize: 13 }}>{tx.quantity} u</Text>
+        <Text style={{ color: theme.text.primary, fontSize: 13 }}>{tx.unitPrice} {tx.priceCurrency}</Text>
         <Text style={{ color: theme.text.muted, fontSize: 12 }}>Com: {tx.fee}</Text>
         <Text style={{ color: theme.text.muted, fontSize: 12 }}>{isoToDdmmyyyy(tx.purchasedAt)}</Text>
       </View>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
         <Button variant="secondary" size="sm" onPress={() => setEditing(true)} style={{ flex: 1 }}>Editar</Button>
         <Button variant="destructive" size="sm" onPress={handleDelete} disabled={deleteTx.isPending} style={{ flex: 1 }}>Eliminar</Button>
       </View>
@@ -263,7 +322,7 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
   }
 
   return (
-    <View style={{ backgroundColor: theme.background.muted, borderRadius: 10, padding: 12, gap: 10 }}>
+    <View style={[st.txRow, { backgroundColor: theme.background.surface, borderColor: theme.border.default, gap: 10 }]}>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button variant={kind === 'buy' ? 'primary' : 'secondary'} size="sm" onPress={() => setKind('buy')} style={{ flex: 1 }}>Compra</Button>
         <Button variant={kind === 'sell' ? 'primary' : 'secondary'} size="sm" onPress={() => setKind('sell')} style={{ flex: 1 }}>Venta</Button>
@@ -272,18 +331,16 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
       <FormField label="Precio unitario" value={unitPrice} onChange={setUnitPrice} keyboard="numeric" />
       <View style={{ gap: 6 }}>
         <Text style={{ color: theme.text.secondary, fontSize: 13, fontWeight: '600' }}>Moneda del precio</Text>
-        <View style={{ flexDirection: 'row', gap: 8, backgroundColor: theme.background.surface, borderRadius: 10, padding: 4 }}>
-          {PRICE_CURRENCIES.map((c) => {
-            const active = c === priceCurrency
+        <View style={{ flexDirection: 'row', gap: 8, backgroundColor: theme.background.muted, borderRadius: 10, padding: 4 }}>
+          {PRICE_CURRENCIES.map((cur) => {
+            const active = cur === priceCurrency
             return (
               <TouchableOpacity
-                key={c}
-                onPress={() => setPriceCurrency(c)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
+                key={cur}
+                onPress={() => setPriceCurrency(cur)}
                 style={{ flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center', backgroundColor: active ? theme.brand.solid : 'transparent' }}
               >
-                <Text style={{ color: active ? theme.text.onBrand : theme.text.secondary, fontWeight: '600', fontSize: 13 }}>{c}</Text>
+                <Text style={{ color: active ? theme.text.onBrand : theme.text.secondary, fontWeight: '600', fontSize: 13 }}>{cur}</Text>
               </TouchableOpacity>
             )
           })}
@@ -304,3 +361,12 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
     </View>
   )
 }
+
+const st = StyleSheet.create({
+  banner: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, padding: 12 },
+  card: { borderRadius: 18, borderWidth: 1, padding: 16 },
+  chip: { fontSize: 11, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
+  typeChip: { fontSize: 11, fontWeight: '600', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, overflow: 'hidden' },
+  txRow: { borderWidth: 1, borderRadius: 12, padding: 12 },
+  opChip: { fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
+})
