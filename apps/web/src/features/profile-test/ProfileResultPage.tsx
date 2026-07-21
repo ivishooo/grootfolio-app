@@ -1,7 +1,10 @@
+/**
+ * ProfileResultPage — detalle del perfil (rediseño). Badge con ícono y color por
+ * perfil, asignación sugerida con barras por clase de activo, y recomendaciones.
+ * Conserva los hooks reales; la asignación se deriva del perfil (presentación).
+ */
 import { useNavigate } from 'react-router-dom'
 import type { RiskProfileType } from '@grootfolio/shared'
-import { useTheme } from '@/theme/ThemeProvider'
-import { themes } from '@grootfolio/tokens'
 import { useQuizResult } from '@/lib/queries'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States'
 
@@ -11,8 +14,12 @@ const labels: Record<RiskProfileType, string> = {
   aggressive: 'Agresivo',
 }
 
-// Asignacion sugerida por perfil (presentacion: se deriva del perfil, el backend
-// devuelve perfil/score/descripcion/recomendaciones, no la distribucion).
+const PROFILE_COLOR: Record<RiskProfileType, { accent: string; soft: string }> = {
+  conservative: { accent: '#3B82F6', soft: 'rgba(59,130,246,0.14)' },
+  moderate: { accent: '#F97316', soft: 'rgba(249,115,22,0.14)' },
+  aggressive: { accent: '#8B5CF6', soft: 'rgba(139,92,246,0.14)' },
+}
+
 const ALLOCATION: Record<RiskProfileType, Array<{ label: string; pct: number }>> = {
   conservative: [
     { label: 'Renta fija', pct: 60 }, { label: 'Acciones', pct: 20 },
@@ -28,16 +35,27 @@ const ALLOCATION: Record<RiskProfileType, Array<{ label: string; pct: number }>>
   ],
 }
 
+const ALLOC_COLORS: Record<string, string> = {
+  'Renta fija': '#8B5CF6',
+  Acciones: '#3B82F6',
+  Criptomonedas: '#F97316',
+  Cash: '#14B8A6',
+}
+
+function ProfileIcon({ profile }: { profile: RiskProfileType }) {
+  const common = { width: 34, height: 34, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  if (profile === 'conservative') {
+    return <svg {...common}><path d="M12 3l7 3v5c0 4.5-3 7.2-7 8.5C8 18.2 5 15.5 5 11V6z" /><path d="M9 12l2 2 4-4.5" /></svg>
+  }
+  if (profile === 'moderate') {
+    return <svg {...common}><path d="M12 4v16" /><path d="M5 8h14" /><path d="M5 8l-2.5 5a3 3 0 006 0z" /><path d="M19 8l-2.5 5a3 3 0 006 0z" /></svg>
+  }
+  return <svg {...common}><path d="M4 15l6-6 4 4 6-7" /><path d="M20 6h-4M20 6v4" /></svg>
+}
+
 export function ProfileResultPage() {
   const navigate = useNavigate()
-  const { theme: themeName } = useTheme()
   const { data: result, isLoading, isError, error, refetch } = useQuizResult()
-  const chartColors = [
-    themes[themeName].chart.series1,
-    themes[themeName].chart.series2,
-    themes[themeName].chart.series3,
-    themes[themeName].chart.series4,
-  ]
 
   if (isLoading) return <LoadingState label="Cargando tu perfil…" />
   if (isError) {
@@ -55,7 +73,7 @@ export function ProfileResultPage() {
           title="Todavía no hiciste el test"
           description="Respondé el cuestionario para conocer tu perfil de inversor."
           action={
-            <button onClick={() => navigate('/profile-test')} className="rounded-lg bg-brand-500 px-5 py-2 font-medium text-white hover:bg-brand-600">
+            <button onClick={() => navigate('/profile-test')} className="rounded-xl bg-brand-500 px-5 py-2.5 font-semibold text-white hover:bg-brand-600">
               Hacer el test
             </button>
           }
@@ -64,32 +82,36 @@ export function ProfileResultPage() {
     )
   }
 
+  const pc = PROFILE_COLOR[result.profile]
   const allocation = ALLOCATION[result.profile]
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-5">
       <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mx-auto h-20 w-20 rounded-full bg-brand-100 dark:bg-brand-500/10 grid place-items-center">
-          <span className="text-3xl text-brand-500">🛡</span>
+        <div className="mx-auto grid h-[76px] w-[76px] place-items-center rounded-full" style={{ background: pc.soft, color: pc.accent }}>
+          <ProfileIcon profile={result.profile} />
         </div>
-        <h2 className="mt-4 text-xl font-bold">Tu perfil de inversor es...</h2>
-        <div className="mt-3 rounded-full bg-brand-100 dark:bg-brand-500/10 py-2 text-brand-500 font-semibold">
+        <p className="mt-4 text-sm text-neutral-500">Tu perfil de inversor es</p>
+        <div className="mx-auto mt-2.5 inline-block rounded-full px-6 py-2 text-lg font-bold" style={{ background: pc.soft, color: pc.accent }}>
           {labels[result.profile]}
         </div>
-        <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-300">{result.description}</p>
+        <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">{result.description}</p>
       </div>
 
       <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-        <h3 className="font-semibold mb-4">Asignación sugerida</h3>
-        <div className="space-y-3">
-          {allocation.map((a, i) => (
+        <h3 className="mb-4 font-semibold">Asignación sugerida</h3>
+        <div className="space-y-4">
+          {allocation.map((a) => (
             <div key={a.label}>
-              <div className="flex justify-between text-sm mb-1">
-                <span>{a.label}</span>
-                <span className="font-medium">{a.pct}%</span>
+              <div className="mb-1.5 flex justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-sm" style={{ background: ALLOC_COLORS[a.label] }} />
+                  {a.label}
+                </span>
+                <span className="font-semibold tabular-nums">{a.pct}%</span>
               </div>
-              <div className="h-3 rounded-full bg-neutral-100 dark:bg-neutral-800">
-                <div className="h-full rounded-full transition-all" style={{ width: `${a.pct}%`, backgroundColor: chartColors[i] }} />
+              <div className="h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                <div className="h-full rounded-full transition-all" style={{ width: `${a.pct}%`, background: ALLOC_COLORS[a.label] }} />
               </div>
             </div>
           ))}
@@ -97,17 +119,22 @@ export function ProfileResultPage() {
       </div>
 
       <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-        <h3 className="font-semibold mb-2">Recomendaciones para ti</h3>
-        <ul className="text-sm space-y-1 text-neutral-600 dark:text-neutral-300">
-          {result.recommendations.map((r) => (<li key={r}>- {r}</li>))}
-        </ul>
+        <h3 className="mb-3.5 font-semibold">Recomendaciones para vos</h3>
+        <div className="space-y-3">
+          {result.recommendations.map((r) => (
+            <div key={r} className="flex items-start gap-2.5">
+              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[12px] font-bold" style={{ background: pc.soft, color: pc.accent }}>✓</span>
+              <span className="text-[13.5px] leading-snug text-neutral-600 dark:text-neutral-300">{r}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="flex gap-3">
-        <button onClick={() => navigate('/profile-test')} className="flex-1 rounded-lg bg-brand-500 py-2.5 font-medium text-white hover:bg-brand-600">
+        <button onClick={() => navigate('/profile-test')} className="flex-1 rounded-xl bg-brand-500 py-3 font-semibold text-white hover:bg-brand-600">
           Hacer el test nuevamente
         </button>
-        <button onClick={() => navigate('/dashboard')} className="flex-1 rounded-lg border border-neutral-300 py-2.5 font-medium dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800">
+        <button onClick={() => navigate('/dashboard')} className="flex-1 rounded-xl border border-neutral-300 py-3 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
           Ir al Dashboard
         </button>
       </div>

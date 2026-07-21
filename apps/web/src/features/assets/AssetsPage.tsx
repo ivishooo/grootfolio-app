@@ -1,7 +1,8 @@
 /**
- * Gestion de activos (GF-249): lista los holdings del portfolio, permite
- * expandir cada uno para ver sus transacciones, y editar/eliminar transacciones
- * o borrar toda la posicion. Reusa las queries y toasts existentes.
+ * Gestión de activos (GF-249) — rediseño. Lista los holdings con avatar por
+ * tipo, ticker, % de cartera, precio prom→actual y P&L en $ y %. Cada holding
+ * se expande a sus transacciones (editar / eliminar). Reusa queries, toasts y
+ * el popup de confirmación (con estado de carga).
  */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -24,6 +25,9 @@ import { useConfirm } from '@/components/ui/ConfirmProvider'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { Banner } from '@/components/ui/Banner'
+import { AssetAvatar } from '@/components/ui/AssetAvatar'
+import { assetColor } from '@/lib/asset-visual'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 
 const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
@@ -33,7 +37,6 @@ function formatDate(iso: string): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString()
 }
 
-/** El input date espera YYYY-MM-DD; recortamos el ISO del back. */
 function isoToDateInput(iso: string): string {
   return iso.slice(0, 10)
 }
@@ -42,30 +45,55 @@ export function AssetsPage() {
   const { data: p, isLoading, isError, error, refetch } = usePortfolio()
   const { data: transactions } = useTransactions()
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [bannerOpen, setBannerOpen] = useState(true)
   const deletePosition = useDeleteAssetPosition()
   const { toast } = useToast()
   const confirm = useConfirm()
 
-  const handleDeletePosition = async (holding: Holding) => {
-    const ok = await confirm({
+  const handleDeletePosition = (holding: Holding) => {
+    void confirm({
       title: 'Eliminar posición',
-      message: `¿Eliminar toda la posición de ${holding.asset.name}? Se borran todas sus transacciones.`,
+      message: `¿Eliminar toda la posición de ${holding.asset.name}? Se borran todas sus transacciones. Esta acción no se puede deshacer.`,
       confirmLabel: 'Eliminar posición',
-    })
-    if (!ok) return
-    deletePosition.mutate(holding.assetId, {
-      onSuccess: () => toast('Posición eliminada'),
-      onError: (err) =>
-        toast(err instanceof Error ? err.message : 'No se pudo eliminar la posición.', 'error'),
+      onConfirm: async () => {
+        try {
+          await deletePosition.mutateAsync(holding.assetId)
+          toast('Posición eliminada', 'info', { description: 'Se borraron todas sus transacciones.' })
+        } catch (err) {
+          toast(err instanceof Error ? err.message : 'No se pudo eliminar la posición.', 'error')
+          throw err
+        }
+      },
     })
   }
 
+  const total = p?.totalValue ?? 0
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {bannerOpen && (
+        <Banner variant="info" onDismiss={() => setBannerOpen(false)}>
+          Los precios de mercado se actualizan cada 15 minutos.
+        </Banner>
+      )}
+
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Activos</h2>
+        <div>
+          <h2 className="text-2xl font-bold">Activos</h2>
+          {p && p.holdings.length > 0 && (
+            <p className="mt-1 text-sm text-neutral-500">
+              {p.holdings.length} posiciones · Valor total{' '}
+              <strong className="font-semibold text-neutral-900 dark:text-neutral-100">{formatCurrency(total)}</strong>
+            </p>
+          )}
+        </div>
         <Link to="/assets/new">
-          <Button>Cargar activo</Button>
+          <Button className="inline-flex items-center gap-1.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Cargar activo
+          </Button>
         </Link>
       </div>
 
@@ -94,11 +122,11 @@ export function AssetsPage() {
             <HoldingRow
               key={h.assetId}
               holding={h}
+              total={total}
               transactions={(transactions ?? []).filter((tx) => tx.assetId === h.assetId)}
               expanded={expanded === h.assetId}
               onToggle={() => setExpanded((cur) => (cur === h.assetId ? null : h.assetId))}
               onDeletePosition={() => handleDeletePosition(h)}
-              deleting={deletePosition.isPending}
             />
           ))}
         </div>
@@ -109,58 +137,71 @@ export function AssetsPage() {
 
 interface HoldingRowProps {
   holding: Holding
+  total: number
   transactions: Transaction[]
   expanded: boolean
   onToggle: () => void
   onDeletePosition: () => void
-  deleting: boolean
 }
 
-function HoldingRow({
-  holding,
-  transactions,
-  expanded,
-  onToggle,
-  onDeletePosition,
-  deleting,
-}: HoldingRowProps) {
+function HoldingRow({ holding, total, transactions, expanded, onToggle, onDeletePosition }: HoldingRowProps) {
+  const c = assetColor(holding.asset.type)
+  const pct = total > 0 ? (holding.value / total) * 100 : 0
+  const up = holding.pnl >= 0
+  const pnlColor = up ? 'text-success-500' : 'text-danger-500'
+
   return (
-    <Card padding="md">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="flex items-start gap-3.5 p-[18px]">
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={expanded}
-          className="flex flex-1 items-center gap-3 text-left"
+          aria-label="Expandir"
+          className="mt-1.5 text-xs text-neutral-400"
         >
-          <span className="text-neutral-400">{expanded ? '▾' : '▸'}</span>
-          <div>
-            <p className="font-medium">{holding.asset.name}</p>
-            <p className="text-xs text-neutral-500">
-              {assetTypeLabel[holding.asset.type as AssetType] ?? holding.asset.type} ·{' '}
-              {holding.quantity} unidades
-            </p>
-          </div>
+          {expanded ? '▾' : '▸'}
         </button>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="font-medium tabular-nums">{formatCurrency(holding.value)}</p>
-            <p
-              className={`text-xs tabular-nums ${
-                holding.pnlPercent >= 0 ? 'text-success-500' : 'text-danger-500'
-              }`}
-            >
-              {formatPercent(holding.pnlPercent)}
-            </p>
+
+        <AssetAvatar asset={holding.asset} size={46} />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-base font-bold">{holding.asset.name}</span>
+            <span className="rounded-md px-1.5 py-0.5 text-[11px] font-bold tracking-wide" style={{ color: c.accent, background: c.soft }}>
+              {holding.asset.symbol}
+            </span>
+            <span className="rounded-md border border-neutral-200 px-1.5 py-0.5 text-[11px] font-semibold text-neutral-400 dark:border-neutral-700">
+              {assetTypeLabel[holding.asset.type as AssetType] ?? holding.asset.type}
+            </span>
           </div>
-          <Button variant="destructive" size="sm" onClick={onDeletePosition} disabled={deleting}>
+          <p className="mt-1.5 text-xs text-neutral-500">
+            {holding.quantity} unidades · Compra{' '}
+            <span className="font-medium text-neutral-600 dark:text-neutral-300">{formatCurrency(holding.avgPrice)}</span> → Actual{' '}
+            <span className="font-medium text-neutral-600 dark:text-neutral-300">{formatCurrency(holding.currentPrice)}</span>
+          </p>
+          <div className="mt-2.5 flex max-w-[340px] items-center gap-2.5">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: c.accent }} />
+            </div>
+            <span className="whitespace-nowrap text-[11px] font-semibold text-neutral-400">{pct.toFixed(1)}% del portafolio</span>
+          </div>
+        </div>
+
+        <div className="flex min-w-[130px] flex-col items-end gap-0.5">
+          <span className="text-lg font-bold tabular-nums">{formatCurrency(holding.value)}</span>
+          <span className={`text-xs font-semibold tabular-nums ${pnlColor}`}>
+            {up ? '▲' : '▼'} {formatPercent(holding.pnlPercent)}
+          </span>
+          <span className={`text-xs font-medium tabular-nums ${pnlColor}`}>{formatCurrency(holding.pnl)}</span>
+          <Button variant="secondary" size="sm" className="mt-2" onClick={onDeletePosition}>
             Eliminar posición
           </Button>
         </div>
       </div>
 
       {expanded && (
-        <div className="mt-4 space-y-2 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+        <div className="space-y-2 border-t border-neutral-200 bg-neutral-50 p-[18px] dark:border-neutral-800 dark:bg-neutral-800/40">
           {transactions.length === 0 ? (
             <p className="text-sm text-neutral-500">Sin transacciones para este activo.</p>
           ) : (
@@ -168,7 +209,7 @@ function HoldingRow({
           )}
         </div>
       )}
-    </Card>
+    </div>
   )
 }
 
@@ -178,17 +219,20 @@ function TransactionItem({ tx }: { tx: Transaction }) {
   const { toast } = useToast()
   const confirm = useConfirm()
 
-  const handleDelete = async () => {
-    const ok = await confirm({
+  const handleDelete = () => {
+    void confirm({
       title: 'Eliminar transacción',
       message: '¿Eliminar esta transacción? Esta acción no se puede deshacer.',
       confirmLabel: 'Eliminar',
-    })
-    if (!ok) return
-    deleteTx.mutate(tx.id, {
-      onSuccess: () => toast('Transacción eliminada'),
-      onError: (err) =>
-        toast(err instanceof Error ? err.message : 'No se pudo eliminar la transacción.', 'error'),
+      onConfirm: async () => {
+        try {
+          await deleteTx.mutateAsync(tx.id)
+          toast('Transacción eliminada')
+        } catch (err) {
+          toast(err instanceof Error ? err.message : 'No se pudo eliminar la transacción.', 'error')
+          throw err
+        }
+      },
     })
   }
 
@@ -197,17 +241,13 @@ function TransactionItem({ tx }: { tx: Transaction }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-neutral-50 px-3 py-2 text-sm dark:bg-neutral-800/50">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span
-          className={`font-medium ${tx.kind === 'buy' ? 'text-success-500' : 'text-danger-500'}`}
-        >
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm dark:border-neutral-700 dark:bg-neutral-900">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 tabular-nums">
+        <span className={`font-semibold ${tx.kind === 'buy' ? 'text-success-500' : 'text-danger-500'}`}>
           {tx.kind === 'buy' ? 'Compra' : 'Venta'}
         </span>
-        <span className="tabular-nums">{tx.quantity} unidades</span>
-        <span className="tabular-nums">
-          {tx.unitPrice} {tx.priceCurrency}
-        </span>
+        <span>{tx.quantity} unidades</span>
+        <span>{tx.unitPrice} {tx.priceCurrency}</span>
         <span className="text-neutral-500">Comisión: {tx.fee}</span>
         <span className="text-neutral-500">{formatDate(tx.purchasedAt)}</span>
       </div>
@@ -215,12 +255,7 @@ function TransactionItem({ tx }: { tx: Transaction }) {
         <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
           Editar
         </Button>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={handleDelete}
-          disabled={deleteTx.isPending}
-        >
+        <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleteTx.isPending}>
           Eliminar
         </Button>
       </div>
@@ -241,7 +276,6 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
   const [formError, setFormError] = useState<string | null>(null)
 
   const handleSave = () => {
-    // Mandamos solo los campos con valor para respetar la edicion parcial.
     const input: UpdateTransactionInput = { kind }
     if (quantity.trim() !== '') input.quantity = parseFloat(quantity)
     if (unitPrice.trim() !== '') input.unitPrice = parseFloat(unitPrice)
@@ -270,22 +304,12 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-neutral-800/50">
+    <div className="space-y-3 rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-700 dark:bg-neutral-900">
       <div className="flex gap-2">
-        <Button
-          variant={kind === 'buy' ? 'primary' : 'secondary'}
-          size="sm"
-          fullWidth
-          onClick={() => setKind('buy')}
-        >
+        <Button variant={kind === 'buy' ? 'primary' : 'secondary'} size="sm" fullWidth onClick={() => setKind('buy')}>
           Compra
         </Button>
-        <Button
-          variant={kind === 'sell' ? 'primary' : 'secondary'}
-          size="sm"
-          fullWidth
-          onClick={() => setKind('sell')}
-        >
+        <Button variant={kind === 'sell' ? 'primary' : 'secondary'} size="sm" fullWidth onClick={() => setKind('sell')}>
           Venta
         </Button>
       </div>
@@ -310,9 +334,7 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
               className="rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
             >
               {PRICE_CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+                <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
