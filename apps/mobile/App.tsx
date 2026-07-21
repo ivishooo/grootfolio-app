@@ -15,6 +15,7 @@ import { AuthProvider } from './src/auth/AuthProvider'
 import { RootNavigator } from './src/navigation/RootNavigator'
 import { ThemeProvider } from './src/theme/ThemeProvider'
 import { ToastProvider } from './src/components/ui/ToastProvider'
+import { ConfirmProvider } from './src/components/ui/ConfirmProvider'
 
 SplashScreen.preventAutoHideAsync().catch(() => {})
 
@@ -44,7 +45,9 @@ export default function App() {
           <NavigationContainer>
             <StatusBar style="auto" />
             <ToastProvider>
-              <RootNavigator />
+              <ConfirmProvider>
+                <RootNavigator />
+              </ConfirmProvider>
             </ToastProvider>
           </NavigationContainer>
           </AuthProvider>
