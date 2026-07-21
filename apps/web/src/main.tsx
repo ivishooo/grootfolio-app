@@ -8,6 +8,7 @@ import { App } from './app/App'
 import { AuthProvider } from './auth/AuthProvider'
 import { ThemeProvider } from './theme/ThemeProvider'
 import { ToastProvider } from './components/ui/ToastProvider'
+import { ConfirmProvider } from './components/ui/ConfirmProvider'
 import './styles.css'
 
 // Observabilidad (GF-185). Se activa solo si VITE_SENTRY_DSN esta definida;
@@ -34,7 +35,9 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <BrowserRouter>
             <ToastProvider>
-              <App />
+              <ConfirmProvider>
+                <App />
+              </ConfirmProvider>
             </ToastProvider>
           </BrowserRouter>
         </AuthProvider>

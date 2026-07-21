@@ -20,6 +20,7 @@ import {
   useUpdateTransaction,
 } from '@/lib/queries'
 import { useToast } from '@/components/ui/ToastProvider'
+import { useConfirm } from '@/components/ui/ConfirmProvider'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -43,9 +44,15 @@ export function AssetsPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const deletePosition = useDeleteAssetPosition()
   const { toast } = useToast()
+  const confirm = useConfirm()
 
-  const handleDeletePosition = (holding: Holding) => {
-    if (!window.confirm(`¿Eliminar toda la posición de ${holding.asset.name}?`)) return
+  const handleDeletePosition = async (holding: Holding) => {
+    const ok = await confirm({
+      title: 'Eliminar posición',
+      message: `¿Eliminar toda la posición de ${holding.asset.name}? Se borran todas sus transacciones.`,
+      confirmLabel: 'Eliminar posición',
+    })
+    if (!ok) return
     deletePosition.mutate(holding.assetId, {
       onSuccess: () => toast('Posición eliminada'),
       onError: (err) =>
@@ -169,9 +176,15 @@ function TransactionItem({ tx }: { tx: Transaction }) {
   const [editing, setEditing] = useState(false)
   const deleteTx = useDeleteTransaction()
   const { toast } = useToast()
+  const confirm = useConfirm()
 
-  const handleDelete = () => {
-    if (!window.confirm('¿Eliminar esta transacción?')) return
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: 'Eliminar transacción',
+      message: '¿Eliminar esta transacción? Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+    })
+    if (!ok) return
     deleteTx.mutate(tx.id, {
       onSuccess: () => toast('Transacción eliminada'),
       onError: (err) =>
