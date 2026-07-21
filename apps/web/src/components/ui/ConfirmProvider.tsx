@@ -6,8 +6,14 @@ interface ConfirmOptions {
   message?: string
   confirmLabel?: string
   cancelLabel?: string
-  /** Estilo destructivo para el botón de confirmar (rojo). Default true. */
+  /** Estilo destructivo (rojo) para confirmar. Default true. */
   danger?: boolean
+  /**
+   * Acción async opcional. Si se pasa, el modal muestra spinner en el botón
+   * mientras corre y se cierra al terminar (el confirm() resuelve true luego).
+   * Si no se pasa, confirm() resuelve true/false como antes.
+   */
+  onConfirm?: () => Promise<void> | void
 }
 
 interface ConfirmContextValue {
@@ -17,16 +23,17 @@ interface ConfirmContextValue {
 const ConfirmContext = createContext<ConfirmContextValue | null>(null)
 
 /**
- * Reemplazo in-app de `window.confirm` (que muestra el diálogo nativo del
- * navegador, "vercel.app says…"). Expone `confirm(options): Promise<boolean>`,
- * que resuelve true/false según el botón elegido. Un solo modal a la vez.
+ * Reemplazo in-app de `window.confirm` (rediseño GF). Popup centrado con
+ * backdrop, botón destructivo y estado de carga opcional en el confirmar.
  */
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [options, setOptions] = useState<ConfirmOptions | null>(null)
+  const [loading, setLoading] = useState(false)
   const resolver = useRef<((value: boolean) => void) | null>(null)
 
   const confirm = useCallback((opts: ConfirmOptions) => {
     setOptions(opts)
+    setLoading(false)
     return new Promise<boolean>((resolve) => {
       resolver.current = resolve
     })
@@ -34,19 +41,35 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 
   const close = useCallback((result: boolean) => {
     setOptions(null)
+    setLoading(false)
     resolver.current?.(result)
     resolver.current = null
   }, [])
 
-  // Escape cancela; se engancha solo mientras hay un modal abierto.
+  const handleConfirm = useCallback(async () => {
+    if (!options?.onConfirm) {
+      close(true)
+      return
+    }
+    try {
+      setLoading(true)
+      await options.onConfirm()
+      close(true)
+    } catch {
+      // El caller maneja el error (toast); solo salimos del estado de carga.
+      setLoading(false)
+    }
+  }, [options, close])
+
+  // Escape cancela (bloqueado mientras carga).
   useEffect(() => {
     if (!options) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close(false)
+      if (e.key === 'Escape' && !loading) close(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [options, close])
+  }, [options, loading, close])
 
   const danger = options?.danger ?? true
 
@@ -55,34 +78,56 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       {children}
       {options && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="confirm-title"
-          onClick={() => close(false)}
+          onClick={() => !loading && close(false)}
+          style={{ animation: 'gf-fade .15s ease' }}
         >
           <div
-            className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-6 shadow-xl dark:border-neutral-700 dark:bg-neutral-800"
+            className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl dark:border-neutral-700 dark:bg-neutral-800"
             onClick={(e) => e.stopPropagation()}
+            style={{ animation: 'gf-modal-in .2s cubic-bezier(.2,.7,.3,1)' }}
           >
-            <h3 id="confirm-title" className="text-lg font-bold">{options.title}</h3>
+            <div className="flex items-center gap-3">
+              <span
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg font-bold"
+                style={{ background: danger ? 'rgba(239,68,68,0.12)' : 'rgba(249,115,22,0.12)', color: danger ? '#EF4444' : '#F97316' }}
+              >
+                !
+              </span>
+              <h3 id="confirm-title" className="text-lg font-bold">
+                {options.title}
+              </h3>
+            </div>
             {options.message && (
-              <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">{options.message}</p>
+              <p className="mt-3 text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">{options.message}</p>
             )}
             <div className="mt-6 flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => close(false)}>
+              <Button variant="secondary" onClick={() => close(false)} disabled={loading}>
                 {options.cancelLabel ?? 'Cancelar'}
               </Button>
               <Button
                 variant="primary"
                 className={danger ? '!border-0 !bg-danger-500 !text-white hover:!bg-danger-600' : ''}
-                onClick={() => close(true)}
+                onClick={handleConfirm}
+                disabled={loading}
                 autoFocus
               >
-                {options.confirmLabel ?? 'Eliminar'}
+                <span className="inline-flex items-center gap-2">
+                  {loading && (
+                    <span
+                      className="inline-block h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white"
+                      style={{ animation: 'gf-spin .6s linear infinite' }}
+                    />
+                  )}
+                  {options.confirmLabel ?? 'Eliminar'}
+                </span>
               </Button>
             </div>
           </div>
+          <style>{`@keyframes gf-fade{from{opacity:0}to{opacity:1}}@keyframes gf-modal-in{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}@keyframes gf-spin{to{transform:rotate(360deg)}}`}</style>
         </div>
       )}
     </ConfirmContext.Provider>
