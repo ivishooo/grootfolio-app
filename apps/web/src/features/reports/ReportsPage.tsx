@@ -47,10 +47,13 @@ export function ReportsPage() {
   const s = summaryQ.data
   const ledger = ledgerQ.data ?? []
 
-  const realizedSeries = (s?.realizedSeries ?? []).map((p) => ({
-    date: formatDate(p.date),
-    value: p.cumulative,
-  }))
+  // El realizado acumulado arranca en 0 antes de la primera venta: prependemos
+  // ese punto base para que incluso una sola venta se dibuje como una línea
+  // (0 → realizado) en vez de un punto suelto que parece vacío.
+  const sales = s?.realizedSeries ?? []
+  const realizedSeries = sales.length
+    ? [{ date: 'Inicio', value: 0 }, ...sales.map((p) => ({ date: formatDate(p.date), value: p.cumulative }))]
+    : []
 
   return (
     <div className="space-y-6">
@@ -101,7 +104,7 @@ export function ReportsPage() {
                     <XAxis dataKey="date" tick={{ fill: t.text.secondary, fontSize: 12 }} />
                     <YAxis tick={{ fill: t.text.secondary, fontSize: 12 }} tickFormatter={(v: number) => formatCurrency(v)} />
                     <Tooltip formatter={(v) => formatCurrency(v as number)} />
-                    <Line type="monotone" dataKey="value" stroke={t.chart.series1} strokeWidth={2.5} dot={false} />
+                    <Line type="monotone" dataKey="value" stroke={t.chart.series1} strokeWidth={2.5} dot={{ r: 3, fill: t.chart.series1 }} activeDot={{ r: 5 }} />
                   </LineChart>
                 </ResponsiveContainer>
               )}
