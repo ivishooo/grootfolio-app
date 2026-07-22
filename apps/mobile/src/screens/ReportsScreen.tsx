@@ -64,7 +64,7 @@ export function ReportsScreen() {
               {s.realizedSeries.length === 0 ? (
                 <EmptyState title="Sin ventas aún" description="El P&L realizado aparece cuando vendés (total o parcial)." />
               ) : (
-                <RealizedLine points={s.realizedSeries.map((p) => p.cumulative)} color={theme.chart.series1} />
+                <RealizedLine points={[0, ...s.realizedSeries.map((p) => p.cumulative)]} color={theme.chart.series1} />
               )}
             </Card>
 
