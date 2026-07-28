@@ -89,6 +89,29 @@ export function SettingsIcon({ color, size }: IconProps) {
   )
 }
 
+/** Ojo abierto (contraseña oculta → tocar para ver). */
+export function EyeIcon({ color, size = 20 }: IconProps) {
+  const s = line(color)
+  return (
+    <Base size={size}>
+      <Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" {...s} />
+      <Circle cx="12" cy="12" r="3" {...s} />
+    </Base>
+  )
+}
+
+/** Ojo tachado (contraseña visible → tocar para ocultar). */
+export function EyeOffIcon({ color, size = 20 }: IconProps) {
+  const s = line(color)
+  return (
+    <Base size={size}>
+      <Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" {...s} />
+      <Circle cx="12" cy="12" r="3" {...s} />
+      <Path d="M3 3l18 18" {...s} />
+    </Base>
+  )
+}
+
 /** Ícono por perfil de inversor: escudo (conservador), balanza (moderado), flecha (agresivo). */
 export function ProfileIcon({ profile, color, size = 40 }: IconProps & { profile: RiskProfileType }) {
   const s = line(color)

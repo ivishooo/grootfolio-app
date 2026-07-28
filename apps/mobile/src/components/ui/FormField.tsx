@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, type KeyboardTypeOptions } from 'react-native'
 import { useTheme } from '@/theme/ThemeProvider'
+import { EyeIcon, EyeOffIcon } from './icons'
 
 interface FormFieldProps {
   label: string
@@ -35,7 +36,7 @@ export function FormField({ label, value, onChange, error, placeholder, multilin
           multiline={multiline}
           style={{
             padding: 12,
-            paddingRight: secureTextEntry ? 72 : 12,
+            paddingRight: secureTextEntry ? 46 : 12,
             borderRadius: 10,
             backgroundColor: theme.background.muted,
             color: theme.text.primary,
@@ -51,11 +52,9 @@ export function FormField({ label, value, onChange, error, placeholder, multilin
             accessibilityRole="button"
             accessibilityLabel={revealed ? 'Ocultar contraseña' : 'Mostrar contraseña'}
             hitSlop={8}
-            style={{ position: 'absolute', right: 10, top: 0, bottom: 0, justifyContent: 'center', paddingHorizontal: 4 }}
+            style={{ position: 'absolute', right: 12, top: 0, bottom: 0, justifyContent: 'center', paddingHorizontal: 4 }}
           >
-            <Text style={{ color: theme.text.secondary, fontSize: 12, fontWeight: '700' }}>
-              {revealed ? 'Ocultar' : 'Ver'}
-            </Text>
+            {revealed ? <EyeOffIcon color={theme.text.secondary} size={20} /> : <EyeIcon color={theme.text.secondary} size={20} />}
           </TouchableOpacity>
         ) : null}
       </View>

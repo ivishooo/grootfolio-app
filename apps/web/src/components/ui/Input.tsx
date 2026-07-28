@@ -20,7 +20,7 @@ export function Input({ label, value, onChange, error, placeholder, type = 'text
   const isPassword = type === 'password'
   const [revealed, setRevealed] = useState(false)
   const effectiveType = isPassword && revealed ? 'text' : type
-  const cls = `w-full rounded-lg border bg-neutral-50 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none dark:bg-neutral-800 ${isPassword ? 'pr-16' : ''} ${error ? 'border-danger-500' : 'border-neutral-200 dark:border-neutral-700'}`
+  const cls = `w-full rounded-lg border bg-neutral-50 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none dark:bg-neutral-800 ${isPassword ? 'pr-10' : ''} ${error ? 'border-danger-500' : 'border-neutral-200 dark:border-neutral-700'}`
   const aria = {
     'aria-invalid': error ? true : undefined,
     'aria-describedby': error ? errorId : undefined,
@@ -38,9 +38,13 @@ export function Input({ label, value, onChange, error, placeholder, type = 'text
             type="button"
             onClick={() => setRevealed((r) => !r)}
             aria-label={revealed ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-semibold text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
           >
-            {revealed ? 'Ocultar' : 'Ver'}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+              <circle cx="12" cy="12" r="3" />
+              {revealed && <path d="M3 3l18 18" />}
+            </svg>
           </button>
         </div>
       ) : (
