@@ -7,7 +7,7 @@
  * en el `hash` service de Adonis (driver default: scrypt — ver
  * `config/hash.ts`).
  */
-import type { DateTime } from 'luxon'
+import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import { BaseModel, beforeSave, column } from '@adonisjs/lucid/orm'
 import type { RiskProfileType } from '@grootfolio/shared/types'
@@ -36,6 +36,29 @@ export default class User extends BaseModel {
   @column.dateTime({ columnName: 'risk_calculated_at' })
   declare riskCalculatedAt: DateTime | null
 
+  // --- Admin / moderación / suspensión (F1, Admin/Contenidos) ---
+
+  @column()
+  declare role: 'user' | 'admin'
+
+  @column({ columnName: 'avatar_url' })
+  declare avatarUrl: string | null
+
+  @column()
+  declare status: 'active' | 'suspended'
+
+  @column.dateTime({ columnName: 'suspended_until' })
+  declare suspendedUntil: DateTime | null
+
+  @column({ columnName: 'suspended_reason' })
+  declare suspendedReason: string | null
+
+  @column.dateTime({ columnName: 'suspended_at' })
+  declare suspendedAt: DateTime | null
+
+  @column({ columnName: 'suspended_by' })
+  declare suspendedBy: string | null
+
   @column.dateTime({ autoCreate: true, columnName: 'created_at' })
   declare createdAt: DateTime
 
@@ -59,5 +82,16 @@ export default class User extends BaseModel {
     } catch {
       return false
     }
+  }
+
+  /**
+   * `true` si la cuenta está suspendida y la suspensión NO venció. Una
+   * `suspended_until` en el pasado se considera vencida (el login la
+   * auto-reactiva). `suspended_until = null` con status suspended ⇒ indefinida.
+   */
+  get isSuspended(): boolean {
+    if (this.status !== 'suspended') return false
+    if (this.suspendedUntil === null) return true
+    return this.suspendedUntil > DateTime.now()
   }
 }
