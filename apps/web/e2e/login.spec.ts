@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test'
 
 test('login con el usuario dev lleva al dashboard', async ({ page }) => {
   await page.goto('/login')
-  await page.getByLabel('Email').fill('dev@grootfolio.test')
-  await page.getByLabel('Contraseña').fill('DevPass123!')
+  await page.getByLabel('Email', { exact: true }).fill('dev@grootfolio.test')
+  await page.locator('input[type="password"]').fill('DevPass123!')
   await page.getByRole('button', { name: 'Ingresar' }).click()
 
   await expect(page).toHaveURL(/\/dashboard/)
@@ -12,8 +12,8 @@ test('login con el usuario dev lleva al dashboard', async ({ page }) => {
 
 test('credenciales invalidas muestran un error', async ({ page }) => {
   await page.goto('/login')
-  await page.getByLabel('Email').fill('dev@grootfolio.test')
-  await page.getByLabel('Contraseña').fill('passwordincorrecto')
+  await page.getByLabel('Email', { exact: true }).fill('dev@grootfolio.test')
+  await page.locator('input[type="password"]').fill('passwordincorrecto')
   await page.getByRole('button', { name: 'Ingresar' }).click()
 
   await expect(page.getByText(/Email o password incorrectos/i)).toBeVisible()

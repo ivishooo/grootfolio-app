@@ -26,5 +26,5 @@ test('completar el quiz de perfil muestra el resultado', async ({ page }) => {
   }
 
   await expect(page).toHaveURL(/\/profile-test\/result/)
-  await expect(page.getByText('Tu perfil de inversor es...')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Tu perfil de inversor es')).toBeVisible({ timeout: 15_000 })
 })
