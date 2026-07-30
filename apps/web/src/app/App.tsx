@@ -8,8 +8,11 @@ import { ReportsPage } from '@/features/reports/ReportsPage'
 import { ProfileTestPage } from '@/features/profile-test/ProfileTestPage'
 import { ProfileResultPage } from '@/features/profile-test/ProfileResultPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
+import { AdminUsersPage } from '@/features/admin/AdminUsersPage'
+import { AdminContentPage } from '@/features/admin/AdminContentPage'
 import { AppLayout } from '@/components/ui/AppLayout'
 import { ProtectedRoute } from '@/auth/ProtectedRoute'
+import { RequireAdmin } from '@/auth/RequireAdmin'
 
 export function App() {
   return (
@@ -26,6 +29,10 @@ export function App() {
           <Route path="/profile-test" element={<ProfileTestPage />} />
           <Route path="/profile-test/result" element={<ProfileResultPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/content" element={<AdminContentPage />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

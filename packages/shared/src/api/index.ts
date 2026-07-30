@@ -25,7 +25,8 @@ export class ApiClient {
   async request<T>(path: string, init: RequestInit = {}, retryOn401 = true): Promise<T> {
     const token = await this.opts.getAccessToken?.()
     const headers = new Headers(init.headers)
-    headers.set('Content-Type', 'application/json')
+    // FormData define su propio Content-Type (con boundary): no lo pisamos.
+    if (!(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
     if (token) headers.set('Authorization', `Bearer ${token}`)
 
     const res = await fetch(`${this.opts.baseUrl}${path}`, { ...init, headers })
@@ -57,7 +58,16 @@ export class ApiClient {
     return this.request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined })
   }
 
-  delete<T>(path: string) {
-    return this.request<T>(path, { method: 'DELETE' })
+  patch<T>(path: string, body?: unknown) {
+    return this.request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined })
+  }
+
+  delete<T>(path: string, body?: unknown) {
+    return this.request<T>(path, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined })
+  }
+
+  /** Sube `FormData` (multipart). El navegador/RN setean el Content-Type. */
+  upload<T>(path: string, form: FormData, method: 'POST' | 'PATCH' = 'POST') {
+    return this.request<T>(path, { method, body: form })
   }
 }
