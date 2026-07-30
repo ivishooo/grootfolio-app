@@ -22,6 +22,9 @@ const bodyParserConfig = defineConfig({
     autoProcess: true,
     convertEmptyStringsToNull: true,
     processManually: [],
+    // Videos de contenidos pueden llegar a 200 MB (F3). El límite por tipo lo
+    // valida content_storage; este es el techo del request multipart.
+    limit: '250mb',
     types: ['multipart/form-data'],
   },
 
