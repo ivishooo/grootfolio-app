@@ -5,6 +5,11 @@ import { useTheme } from '@/theme/ThemeProvider'
 import { LoginScreen } from '@/screens/LoginScreen'
 import { ProfileResultScreen } from '@/screens/ProfileResultScreen'
 import { AddAssetScreen } from '@/screens/AddAssetScreen'
+import { AdminUsersScreen } from '@/screens/AdminUsersScreen'
+import { AdminUserDetailScreen } from '@/screens/AdminUserDetailScreen'
+import { AdminContentScreen } from '@/screens/AdminContentScreen'
+import { NotificationsScreen } from '@/screens/NotificationsScreen'
+import { AccountSuspendedScreen } from '@/screens/AccountSuspendedScreen'
 import { TabNavigator } from './TabNavigator'
 
 export type RootStackParamList = {
@@ -12,6 +17,11 @@ export type RootStackParamList = {
   Main: undefined
   ProfileResult: undefined
   AddAsset: undefined
+  AdminUsers: undefined
+  AdminUserDetail: { id: string }
+  AdminContent: undefined
+  Notifications: undefined
+  AccountSuspended: { reason: string | null; suspendedUntil: string | null }
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -36,9 +46,16 @@ export function RootNavigator() {
           <Stack.Screen name="Main" component={TabNavigator} />
           <Stack.Screen name="ProfileResult" component={ProfileResultScreen} />
           <Stack.Screen name="AddAsset" component={AddAssetScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: true, title: 'Notificaciones' }} />
+          <Stack.Screen name="AdminUsers" component={AdminUsersScreen} options={{ headerShown: true, title: 'Usuarios' }} />
+          <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} options={{ headerShown: true, title: 'Detalle' }} />
+          <Stack.Screen name="AdminContent" component={AdminContentScreen} options={{ headerShown: true, title: 'Gestión de contenidos' }} />
         </>
       ) : (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="AccountSuspended" component={AccountSuspendedScreen} />
+        </>
       )}
     </Stack.Navigator>
   )
