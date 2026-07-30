@@ -64,6 +64,22 @@ const SettingsIcon = () => (
   </Svg>
 )
 
+const UsersIcon = () => (
+  <Svg>
+    <circle cx="9" cy="8" r="3.2" />
+    <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+    <path d="M16 5.2a3 3 0 0 1 0 5.6" />
+    <path d="M17.5 20a5.5 5.5 0 0 0-3-4.9" />
+  </Svg>
+)
+const UploadIcon = () => (
+  <Svg>
+    <path d="M12 15V4" />
+    <path d="M8 8l4-4 4 4" />
+    <path d="M5 19h14" />
+  </Svg>
+)
+
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', Icon: DashboardIcon },
   { to: '/assets', label: 'Activos', Icon: AssetsIcon },
@@ -71,6 +87,18 @@ const NAV_ITEMS = [
   { to: '/profile-test', label: 'Test de Perfil', Icon: QuizIcon },
   { to: '/settings', label: 'Configuración', Icon: SettingsIcon },
 ] as const
+
+const ADMIN_ITEMS = [
+  { to: '/admin/users', label: 'Usuarios', Icon: UsersIcon },
+  { to: '/admin/content', label: 'Gestión de contenidos', Icon: UploadIcon },
+] as const
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+    isActive
+      ? 'bg-brand-500 font-medium text-white'
+      : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
+  }`
 
 export function AppLayout() {
   const { theme: themeName, toggleTheme } = useTheme()
@@ -108,26 +136,40 @@ export function AppLayout() {
         {/* Nav */}
         <nav className="mt-2 flex-1 space-y-1 overflow-y-auto px-3">
           {NAV_ITEMS.map(({ to, label, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={() => setDrawerOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                  isActive
-                    ? 'bg-brand-500 font-medium text-white'
-                    : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
-                }`
-              }
-            >
+            <NavLink key={to} to={to} onClick={() => setDrawerOpen(false)} className={navLinkClass}>
               <Icon />
               {label}
             </NavLink>
           ))}
+
+          {user?.role === 'admin' && (
+            <div className="pt-4">
+              <p
+                className="px-3 pb-1.5 font-semibold uppercase text-neutral-400"
+                style={{ fontSize: '10.5px', letterSpacing: '0.09em' }}
+              >
+                Administración
+              </p>
+              {ADMIN_ITEMS.map(({ to, label, Icon }) => (
+                <NavLink key={to} to={to} onClick={() => setDrawerOpen(false)} className={navLinkClass}>
+                  <Icon />
+                  {label}
+                </NavLink>
+              ))}
+            </div>
+          )}
         </nav>
 
         {/* User info at bottom with menu */}
         <div className="relative border-t border-neutral-200 px-4 py-3 dark:border-neutral-700">
+          {user?.role === 'admin' && (
+            <span
+              className="mb-2 inline-block rounded-md px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide"
+              style={{ color: '#8B5CF6', background: 'rgba(139,92,246,0.14)' }}
+            >
+              Admin
+            </span>
+          )}
           <UserMenu
             user={user}
             open={sidebarMenuOpen}
