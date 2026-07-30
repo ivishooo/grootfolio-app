@@ -3,6 +3,7 @@
  * `logout` (GF-208), y `me` (GF-209).
  */
 import type { HttpContext } from '@adonisjs/core/http'
+import { DateTime } from 'luxon'
 import User from '#models/user'
 import { loginValidator, refreshValidator, registerValidator } from '#validators/auth'
 import {
@@ -61,6 +62,28 @@ export default class AuthController {
         code: 'AUTH_INVALID_CREDENTIALS',
         message: 'Email o password incorrectos.',
       })
+    }
+
+    // Suspensión (F1). Si venció (suspended_until en el pasado) se auto-reactiva
+    // y se deja entrar; si sigue vigente, 403 con el payload para la pantalla
+    // "cuenta suspendida". No se emiten tokens en ese caso.
+    if (user.status === 'suspended') {
+      const until = user.suspendedUntil
+      if (until !== null && until <= DateTime.now()) {
+        user.status = 'active'
+        user.suspendedUntil = null
+        user.suspendedReason = null
+        user.suspendedAt = null
+        user.suspendedBy = null
+        await user.save()
+      } else {
+        return response.status(403).send({
+          code: 'ACCOUNT_SUSPENDED',
+          message: 'Tu cuenta está suspendida',
+          suspendedUntil: until ? until.toISO() : null,
+          reason: user.suspendedReason,
+        })
+      }
     }
 
     const { accessToken, refreshToken } = await issueTokenPair(user)
