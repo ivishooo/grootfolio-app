@@ -14,6 +14,10 @@ router.get('/health', async ({ response }) => {
   return { status: 'ok', uptime: process.uptime() }
 })
 
+// Archivos de contenidos/avatares (F3). Público por key opaca uuid, servido
+// inline para <img>/<video>.
+router.get('/uploads/*', '#controllers/uploads_controller.show')
+
 // Auth (GF-206/207/208/209). Habilitamos rutas a medida que aterrizan los
 // controllers; las que aun no tienen implementacion quedan comentadas con
 // el numero de story que las habilita.
@@ -42,6 +46,21 @@ router
     router.get('/quiz', '#controllers/quiz_controller.questions') // GF-2 (perfil)
     router.post('/quiz/submit', '#controllers/quiz_controller.submit') // GF-2 (perfil)
     router.get('/quiz/result', '#controllers/quiz_controller.result') // GF-2 (perfil)
+
+    // Perfil propio (F3)
+    router.patch('/me', '#controllers/me_controller.update')
+    router.post('/me/avatar', '#controllers/me_controller.uploadAvatar')
+    router.delete('/me/avatar', '#controllers/me_controller.deleteAvatar')
+
+    // Contenidos — usuario (F3)
+    router.get('/content/sections', '#controllers/content_controller.sections')
+    router.get('/content/items', '#controllers/content_controller.items')
+    router.post('/content/items/:id/view', '#controllers/content_controller.view')
+
+    // Notificaciones (F3)
+    router.get('/notifications', '#controllers/notifications_controller.index')
+    router.post('/notifications/read-all', '#controllers/notifications_controller.readAll')
+    router.post('/notifications/:id/read', '#controllers/notifications_controller.read')
   })
   .use(middleware.auth())
 
@@ -57,6 +76,17 @@ router
     router.delete('/users/:id/avatar', '#controllers/admin_users_controller.deleteAvatar')
     router.patch('/users/:id/name', '#controllers/admin_users_controller.rename')
     router.get('/audit-logs', '#controllers/admin_audit_controller.index')
+
+    // Contenidos — admin (F3)
+    router.post('/content/sections', '#controllers/admin_content_controller.createSection')
+    router.patch('/content/sections/:id', '#controllers/admin_content_controller.updateSection')
+    router.delete('/content/sections/:id', '#controllers/admin_content_controller.deleteSection')
+    router.get('/content/items', '#controllers/admin_content_controller.listItems')
+    router.post('/content/items', '#controllers/admin_content_controller.createItem')
+    router.patch('/content/items/:id', '#controllers/admin_content_controller.updateItem')
+    router.delete('/content/items/:id', '#controllers/admin_content_controller.deleteItem')
+    router.post('/content/items/:id/pin', '#controllers/admin_content_controller.pinItem')
+    router.post('/content/items/:id/publish', '#controllers/admin_content_controller.publishItem')
   })
   .prefix('/admin')
   .use([middleware.auth(), middleware.admin()])
