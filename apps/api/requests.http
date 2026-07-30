@@ -141,3 +141,205 @@ Content-Type: application/json
 ### Q3 · Ultimo perfil del usuario → 200 { result } | null
 GET {{base}}/quiz/result
 Authorization: Bearer {{login.response.body.accessToken}}
+
+# ─────────────────── PERFIL / AVATAR (Admin&Contenidos F3) ──────────────────
+#   El login de A5 usa dev@grootfolio.test, que el seeder marca como ADMIN.
+#   Por eso {{login.response...}} sirve también para las rutas /admin de abajo.
+
+### ME1 · Editar nombre visible → 200 { user }
+PATCH {{base}}/me
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "fullName": "Dev Actualizado" }
+
+### ME2 · Nombre corto → 422 VALIDATION_ERROR (min 2)
+PATCH {{base}}/me
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "fullName": "x" }
+
+### ME3 · Subir avatar → 200 { user con avatarUrl }
+#   REST Client sube el archivo con el bloque "< ./ruta". Cambiá la ruta a una
+#   imagen real (JPG/PNG, máx 2 MB). El name del form-field debe ser "file".
+POST {{base}}/me/avatar
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: multipart/form-data; boundary=----gf
+
+------gf
+Content-Disposition: form-data; name="file"; filename="avatar.jpg"
+Content-Type: image/jpeg
+
+< ./tmp/avatar.jpg
+------gf--
+
+### ME4 · Borrar avatar → 200 { user con avatarUrl null }
+DELETE {{base}}/me/avatar
+Authorization: Bearer {{login.response.body.accessToken}}
+
+# ──────────────────────── CONTENIDOS — usuario (F3) ─────────────────────────
+
+### C1 · Secciones visibles → 200 [ secciones ]
+GET {{base}}/content/sections
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### C2 · Items publicados (opcional ?sectionId= &type=) → 200 [ items ]
+# @name contentItems
+GET {{base}}/content/items
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### C3 · Marcar un item como visto → 204   (usa el 1er item de C2)
+POST {{base}}/content/items/{{contentItems.response.body.0.id}}/view
+Authorization: Bearer {{login.response.body.accessToken}}
+
+# ─────────────────────── NOTIFICACIONES — usuario (F3) ──────────────────────
+
+### N1 · Listar notificaciones → 200 { items, unread }
+# @name notifs
+GET {{base}}/notifications
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### N2 · Marcar una como leída → 204   (usa la 1ra de N1)
+POST {{base}}/notifications/{{notifs.response.body.items.0.id}}/read
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### N3 · Marcar todas como leídas → 204
+POST {{base}}/notifications/read-all
+Authorization: Bearer {{login.response.body.accessToken}}
+
+# ═══════════════════════ ADMIN — usuarios (F2) ══════════════════════════════
+#   Requiere rol admin. dev@grootfolio.test lo es por el seeder.
+
+### AD1 · Listar usuarios (opcional ?search= &status=) → 200 { users, ... }
+# @name adminUsers
+GET {{base}}/admin/users
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### AD2 · Detalle de un usuario → 200 { user, auditLogs }
+GET {{base}}/admin/users/{{adminUsers.response.body.users.0.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### AD3 · Suspender usuario (motivo min 5) → 200
+#   ⚠ Cambiá el :id por uno descartable (NO dev ni demo). El seeder crea varios.
+POST {{base}}/admin/users/REEMPLAZAR_ID/suspend
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "duration": "7d", "reason": "Prueba manual de suspensión", "notifyEmail": false }
+
+### AD4 · Suspensión custom sin until → 422 VALIDATION_ERROR
+POST {{base}}/admin/users/REEMPLAZAR_ID/suspend
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "duration": "custom", "reason": "Falta la fecha until" }
+
+### AD5 · Auto-suspensión (tu propio id) → 422 (guarda: no podés suspenderte)
+POST {{base}}/admin/users/{{login.response.body.user.id}}/suspend
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "duration": "7d", "reason": "Esto debería ser rechazado" }
+
+### AD6 · Reactivar usuario → 200
+POST {{base}}/admin/users/REEMPLAZAR_ID/unsuspend
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### AD7 · Renombrar usuario (moderación) → 200
+PATCH {{base}}/admin/users/REEMPLAZAR_ID/name
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "fullName": "Nombre moderado", "notifyUser": true }
+
+### AD8 · Borrar avatar de un usuario (moderación) → 200
+DELETE {{base}}/admin/users/REEMPLAZAR_ID/avatar
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "notifyUser": true }
+
+### AD9 · Suspensión masiva → 200
+POST {{base}}/admin/users/bulk-suspend
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "userIds": ["REEMPLAZAR_ID"], "duration": "24h", "reason": "Suspensión masiva de prueba" }
+
+### AD10 · Reactivación masiva → 200
+POST {{base}}/admin/users/bulk-unsuspend
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "userIds": ["REEMPLAZAR_ID"] }
+
+### AD11 · Audit log → 200 { logs, ... }
+GET {{base}}/admin/audit-logs
+Authorization: Bearer {{login.response.body.accessToken}}
+
+# ═══════════════════════ ADMIN — contenidos (F3) ════════════════════════════
+
+### AC1 · Crear sección → 201 { section }
+# @name adminSection
+POST {{base}}/admin/content/sections
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "name": "Guías de prueba", "icon": "book", "color": "#3B82F6" }
+
+### AC2 · Listar items (admin, incluye borradores) → 200 [ items ]
+GET {{base}}/admin/content/items
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### AC3 · Crear item tipo enlace y publicar → 201 { item }
+#   Enlace no lleva archivo. publish:true dispara notificación a los usuarios.
+# @name adminItem
+POST {{base}}/admin/content/items
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "type": "link",
+  "title": "Guía de primeros pasos",
+  "sectionId": "{{adminSection.response.body.section.id}}",
+  "externalUrl": "https://grootfolio.app",
+  "publish": true,
+  "notifyUsers": true
+}
+
+### AC4 · Crear item link sin externalUrl → 422 VALIDATION_ERROR
+POST {{base}}/admin/content/items
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "type": "link", "title": "Sin URL", "sectionId": "{{adminSection.response.body.section.id}}" }
+
+### AC5 · Editar item → 200 { item }
+PATCH {{base}}/admin/content/items/{{adminItem.response.body.item.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "Guía de primeros pasos (editada)" }
+
+### AC6 · Fijar/destacar item → 200
+POST {{base}}/admin/content/items/{{adminItem.response.body.item.id}}/pin
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "pinned": true }
+
+### AC7 · Publicar item (re-notificar) → 200
+POST {{base}}/admin/content/items/{{adminItem.response.body.item.id}}/publish
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "notifyUsers": false }
+
+### AC8 · Borrar item → 204
+DELETE {{base}}/admin/content/items/{{adminItem.response.body.item.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### AC9 · Borrar sección → 204
+DELETE {{base}}/admin/content/sections/{{adminSection.response.body.section.id}}
+Authorization: Bearer {{login.response.body.accessToken}}

@@ -9,7 +9,8 @@ test('cargar una transaccion muestra la confirmacion', async ({ page }) => {
   await page.getByLabel('Cantidad').fill('0.1')
   await page.getByLabel('Precio unitario (USD)').fill('50000')
   await page.getByLabel('Fecha de compra').fill('2026-01-15')
-  await page.getByRole('button', { name: 'Guardar Activo' }).click()
+  await page.getByRole('button', { name: 'Guardar activo' }).click()
 
-  await expect(page.getByText('Transacción guardada correctamente')).toBeVisible()
+  // El rediseño (GF-249) muestra un toast "Activo cargado" y redirige al dashboard.
+  await expect(page).toHaveURL(/\/dashboard/)
 })
