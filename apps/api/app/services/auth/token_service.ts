@@ -133,7 +133,7 @@ export async function issueTokenPair(user: User): Promise<IssuedTokenPair> {
  * Revoca todos los refresh tokens activos de un usuario. Se usa ante deteccion
  * de reuso (posible robo de token): cortamos todas las sesiones de golpe.
  */
-async function revokeAllForUser(userId: string): Promise<void> {
+export async function revokeAllForUser(userId: string): Promise<void> {
   await RefreshToken.query()
     .where('user_id', userId)
     .whereNull('revoked_at')
