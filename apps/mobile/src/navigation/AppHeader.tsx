@@ -1,15 +1,23 @@
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, Modal, Pressable, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, Modal, Pressable, StyleSheet, Image } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useTheme } from '../theme/ThemeProvider'
 import { useAuth } from '../auth/AuthProvider'
 import { brand } from '@grootfolio/tokens'
 import { Logo } from '@/components/ui/Logo'
+import { BellIcon } from '@/components/ui/icons'
+import { useNotifications } from '@/lib/queries'
+import type { RootStackParamList } from './RootNavigator'
 
 export function AppHeader() {
   const { theme, themeName, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
   const insets = useSafeAreaInsets()
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
+  const { data: notif } = useNotifications()
+  const unread = notif?.unreadCount ?? 0
   const [menuOpen, setMenuOpen] = useState(false)
 
   const displayName = user?.fullName ?? user?.email ?? 'Usuario'
@@ -29,11 +37,19 @@ export function AppHeader() {
         </View>
 
         <View style={styles.actions}>
+          <TouchableOpacity onPress={() => nav.navigate('Notifications')} style={[styles.iconBtn, { backgroundColor: theme.background.muted }]}>
+            <BellIcon color={theme.text.primary} size={20} />
+            {unread > 0 && <View style={{ position: 'absolute', top: 7, right: 7, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' }} />}
+          </TouchableOpacity>
           <TouchableOpacity onPress={toggleTheme} style={[styles.iconBtn, { backgroundColor: theme.background.muted }]}>
             <Text style={{ fontSize: 18 }}>{themeName === 'light' ? '☀️' : '🌙'}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setMenuOpen(true)} style={styles.avatarBtn}>
-            <Text style={styles.avatarText}>{initials}</Text>
+            {user?.avatarUrl ? (
+              <Image source={{ uri: user.avatarUrl }} style={{ width: 34, height: 34, borderRadius: 17 }} />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>

@@ -5,18 +5,44 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  AdminUserRow,
+  AdminUserStats,
+  AppNotification,
   AssetSearchResult,
   AssetType,
+  AuditLogEntry,
+  ContentItem,
+  ContentSection,
+  ContentType,
   CreateTransactionInput,
   LedgerEntry,
   PortfolioSummary,
   QuizQuestion,
   ReportSummary,
   RiskProfileResult,
+  SuspendUserInput,
   Transaction,
   UpdateTransactionInput,
+  User,
 } from '@grootfolio/shared'
 import { api } from './api'
+import { uploadWithProgress } from './upload'
+
+export interface AdminUsersFilters {
+  search?: string
+  status?: 'active' | 'suspended'
+  role?: 'user' | 'admin'
+  sort?: 'recent' | 'oldest' | 'name'
+  page?: number
+  perPage?: number
+}
+
+/** Archivo elegido en RN (image/document picker) para subir por multipart. */
+export interface PickedFile {
+  uri: string
+  name: string
+  type: string
+}
 
 export const queryKeys = {
   portfolio: ['portfolio'] as const,
@@ -27,6 +53,14 @@ export const queryKeys = {
   reportSummary: ['reports', 'summary'] as const,
   reportLedger: ['reports', 'transactions'] as const,
   assetSearch: (q: string, type?: AssetType) => ['assets', 'search', type ?? 'all', q] as const,
+  adminUsers: (f: AdminUsersFilters) => ['admin', 'users', f] as const,
+  adminUser: (id: string) => ['admin', 'user', id] as const,
+  auditLogs: ['admin', 'audit'] as const,
+  contentSections: ['content', 'sections'] as const,
+  adminContentItems: (f: { sectionId?: string; status?: string; search?: string }) =>
+    ['admin', 'content', 'items', f] as const,
+  contentItems: (f: { sectionId?: string; search?: string }) => ['content', 'items', f] as const,
+  notifications: ['notifications'] as const,
 }
 
 interface QuizAnswer {
@@ -158,5 +192,285 @@ export function useDeleteAssetPosition() {
   return useMutation({
     mutationFn: (assetId: string) => api.delete<void>(`/assets/${assetId}/transactions`),
     onSuccess: () => invalidatePortfolioData(qc),
+  })
+}
+
+// ================== Admin / Contenidos (F7) ==================
+
+function qs(params: Record<string, string | number | undefined>): string {
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== '') p.set(k, String(v))
+  }
+  const s = p.toString()
+  return s ? `?${s}` : ''
+}
+
+interface AdminUsersResponse {
+  data: AdminUserRow[]
+  meta: { total: number; perPage: number; currentPage: number; lastPage: number }
+  stats: AdminUserStats
+}
+
+export function useAdminUsers(filters: AdminUsersFilters) {
+  return useQuery({
+    queryKey: queryKeys.adminUsers(filters),
+    queryFn: () => api.get<AdminUsersResponse>(`/admin/users${qs({ ...filters })}`),
+  })
+}
+
+export interface AdminUserDetail {
+  user: AdminUserRow
+  portfolioValue: number
+  transactionsCount: number
+  lastLoginAt: string | null
+  recentActivity: Array<{ label: string; at: string | null }>
+}
+
+export function useAdminUser(id: string | null) {
+  return useQuery({
+    queryKey: queryKeys.adminUser(id ?? ''),
+    queryFn: () => api.get<AdminUserDetail>(`/admin/users/${id}`),
+    enabled: !!id,
+  })
+}
+
+function useAdminInvalidate() {
+  const qc = useQueryClient()
+  return () => {
+    void qc.invalidateQueries({ queryKey: ['admin', 'users'] })
+    void qc.invalidateQueries({ queryKey: queryKeys.auditLogs })
+  }
+}
+
+export function useSuspendUser() {
+  const invalidate = useAdminInvalidate()
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: SuspendUserInput }) =>
+      api.post<{ user: User }>(`/admin/users/${id}/suspend`, input),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUnsuspendUser() {
+  const invalidate = useAdminInvalidate()
+  return useMutation({
+    mutationFn: (id: string) => api.post<{ user: User }>(`/admin/users/${id}/unsuspend`),
+    onSuccess: invalidate,
+  })
+}
+
+export function useBulkSuspend() {
+  const invalidate = useAdminInvalidate()
+  return useMutation({
+    mutationFn: (input: { userIds: string[] } & SuspendUserInput) =>
+      api.post<{ affected: number }>('/admin/users/bulk-suspend', input),
+    onSuccess: invalidate,
+  })
+}
+
+export function useBulkUnsuspend() {
+  const invalidate = useAdminInvalidate()
+  return useMutation({
+    mutationFn: (userIds: string[]) =>
+      api.post<{ affected: number }>('/admin/users/bulk-unsuspend', { userIds }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteUserAvatar() {
+  const invalidate = useAdminInvalidate()
+  return useMutation({
+    mutationFn: ({ id, notifyUser }: { id: string; notifyUser?: boolean }) =>
+      api.delete<{ user: User }>(`/admin/users/${id}/avatar`, { notifyUser }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useRenameUser() {
+  const invalidate = useAdminInvalidate()
+  return useMutation({
+    mutationFn: ({ id, fullName, notifyUser }: { id: string; fullName: string; notifyUser?: boolean }) =>
+      api.patch<{ user: User }>(`/admin/users/${id}/name`, { fullName, notifyUser }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useAuditLogs() {
+  return useQuery({
+    queryKey: queryKeys.auditLogs,
+    queryFn: () => api.get<{ data: AuditLogEntry[] }>('/admin/audit-logs?perPage=30').then((r) => r.data),
+  })
+}
+
+export function useContentSections() {
+  return useQuery({
+    queryKey: queryKeys.contentSections,
+    queryFn: () => api.get<{ data: ContentSection[] }>('/content/sections').then((r) => r.data),
+  })
+}
+
+export function useAdminContentItems(filters: { sectionId?: string; status?: string; search?: string } = {}) {
+  return useQuery({
+    queryKey: queryKeys.adminContentItems(filters),
+    queryFn: () => api.get<{ data: ContentItem[] }>(`/admin/content/items${qs({ ...filters })}`).then((r) => r.data),
+  })
+}
+
+export function useContentItems(filters: { sectionId?: string; search?: string } = {}) {
+  return useQuery({
+    queryKey: queryKeys.contentItems(filters),
+    queryFn: () => api.get<{ data: ContentItem[] }>(`/content/items${qs({ ...filters })}`).then((r) => r.data),
+  })
+}
+
+function useContentInvalidate() {
+  const qc = useQueryClient()
+  return () => {
+    void qc.invalidateQueries({ queryKey: ['content'] })
+    void qc.invalidateQueries({ queryKey: ['admin', 'content'] })
+    void qc.invalidateQueries({ queryKey: queryKeys.notifications })
+  }
+}
+
+export function useCreateSection() {
+  const invalidate = useContentInvalidate()
+  return useMutation({
+    mutationFn: (input: { name: string; icon?: string; color?: string }) =>
+      api.post<{ section: ContentSection }>('/admin/content/sections', input),
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteSection() {
+  const invalidate = useContentInvalidate()
+  return useMutation({
+    mutationFn: ({ id, force }: { id: string; force?: boolean }) =>
+      api.delete<void>(`/admin/content/sections/${id}${force ? '?force=true' : ''}`),
+    onSuccess: invalidate,
+  })
+}
+
+export interface UploadContentVars {
+  type: ContentType
+  title: string
+  sectionId: string
+  description?: string
+  externalUrl?: string
+  file?: PickedFile | null
+  publish: boolean
+  notifyUsers: boolean
+  onProgress?: (percent: number) => void
+}
+
+export function useUploadContent() {
+  const invalidate = useContentInvalidate()
+  return useMutation({
+    mutationFn: (vars: UploadContentVars) => {
+      const form = new FormData()
+      form.append('type', vars.type)
+      form.append('title', vars.title)
+      form.append('sectionId', vars.sectionId)
+      if (vars.description) form.append('description', vars.description)
+      if (vars.externalUrl) form.append('externalUrl', vars.externalUrl)
+      form.append('publish', String(vars.publish))
+      form.append('notifyUsers', String(vars.notifyUsers))
+      if (vars.file) {
+        // RN: file object { uri, name, type }
+        form.append('file', { uri: vars.file.uri, name: vars.file.name, type: vars.file.type } as unknown as Blob)
+      }
+      return uploadWithProgress<{ item: ContentItem }>('/admin/content/items', form, vars.onProgress)
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function usePublishContent() {
+  const invalidate = useContentInvalidate()
+  return useMutation({
+    mutationFn: ({ id, notifyUsers }: { id: string; notifyUsers?: boolean }) =>
+      api.post<{ item: ContentItem }>(`/admin/content/items/${id}/publish`, { notifyUsers }),
+    onSuccess: invalidate,
+  })
+}
+
+export function usePinContent() {
+  const invalidate = useContentInvalidate()
+  return useMutation({
+    mutationFn: ({ id, pinned }: { id: string; pinned: boolean }) =>
+      api.post<{ item: ContentItem }>(`/admin/content/items/${id}/pin`, { pinned }),
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteContent() {
+  const invalidate = useContentInvalidate()
+  return useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/admin/content/items/${id}`),
+    onSuccess: invalidate,
+  })
+}
+
+export function useMarkContentViewed() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.post<void>(`/content/items/${id}/view`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['content', 'items'] }),
+  })
+}
+
+interface NotificationsResponse {
+  data: AppNotification[]
+  unreadCount: number
+}
+
+export function useNotifications() {
+  return useQuery({
+    queryKey: queryKeys.notifications,
+    queryFn: () => api.get<NotificationsResponse>('/notifications?perPage=20'),
+  })
+}
+
+export function useMarkAllRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<void>('/notifications/read-all'),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+  })
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.post<void>(`/notifications/${id}/read`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.notifications }),
+  })
+}
+
+export function useUpdateProfile() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (fullName: string) => api.patch<{ user: User }>('/me', { fullName }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['me'] }),
+  })
+}
+
+export function useUploadAvatar() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: PickedFile) => {
+      const form = new FormData()
+      form.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob)
+      return uploadWithProgress<{ avatarUrl: string; user: User }>('/me/avatar', form)
+    },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['me'] }),
+  })
+}
+
+export function useDeleteAvatar() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete<{ user: User }>('/me/avatar'),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['me'] }),
   })
 }

@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
 import { loginInputSchema } from '@grootfolio/shared'
+import type { RootStackParamList } from '@/navigation/RootNavigator'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { FormField } from '@/components/ui/FormField'
@@ -12,6 +15,7 @@ import { Logo } from '@/components/ui/Logo'
 export function LoginScreen() {
   const { theme } = useTheme()
   const { login } = useAuth()
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -31,6 +35,11 @@ export function LoginScreen() {
     try {
       await login(email, password)
     } catch (err) {
+      const e = err as { code?: string; reason?: string | null; suspendedUntil?: string | null }
+      if (e.code === 'ACCOUNT_SUSPENDED') {
+        nav.navigate('AccountSuspended', { reason: e.reason ?? null, suspendedUntil: e.suspendedUntil ?? null })
+        return
+      }
       setFormError(err instanceof Error ? err.message : 'No se pudo iniciar sesión')
     } finally {
       setSubmitting(false)

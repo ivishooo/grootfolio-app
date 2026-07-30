@@ -89,6 +89,25 @@ export function SettingsIcon({ color, size }: IconProps) {
   )
 }
 
+export function ContentIcon({ color, size }: IconProps) {
+  const s = line(color)
+  return (
+    <Base size={size}>
+      <Path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" {...s} />
+    </Base>
+  )
+}
+
+export function BellIcon({ color, size }: IconProps) {
+  const s = line(color)
+  return (
+    <Base size={size}>
+      <Path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" {...s} />
+      <Path d="M10.5 20a2 2 0 0 0 3 0" {...s} />
+    </Base>
+  )
+}
+
 /** Ojo abierto (contraseña oculta → tocar para ver). */
 export function EyeIcon({ color, size = 20 }: IconProps) {
   const s = line(color)
