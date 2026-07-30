@@ -44,3 +44,19 @@ router
     router.get('/quiz/result', '#controllers/quiz_controller.result') // GF-2 (perfil)
   })
   .use(middleware.auth())
+
+// Administración (F2, Admin/Contenidos). Requiere auth + rol admin.
+router
+  .group(() => {
+    router.get('/users', '#controllers/admin_users_controller.index')
+    router.get('/users/:id', '#controllers/admin_users_controller.show')
+    router.post('/users/bulk-suspend', '#controllers/admin_users_controller.bulkSuspend')
+    router.post('/users/bulk-unsuspend', '#controllers/admin_users_controller.bulkUnsuspend')
+    router.post('/users/:id/suspend', '#controllers/admin_users_controller.suspend')
+    router.post('/users/:id/unsuspend', '#controllers/admin_users_controller.unsuspend')
+    router.delete('/users/:id/avatar', '#controllers/admin_users_controller.deleteAvatar')
+    router.patch('/users/:id/name', '#controllers/admin_users_controller.rename')
+    router.get('/audit-logs', '#controllers/admin_audit_controller.index')
+  })
+  .prefix('/admin')
+  .use([middleware.auth(), middleware.admin()])
