@@ -10,6 +10,8 @@ import { ProfileResultPage } from '@/features/profile-test/ProfileResultPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { AdminUsersPage } from '@/features/admin/AdminUsersPage'
 import { AdminContentPage } from '@/features/admin/AdminContentPage'
+import { ContentLibraryPage } from '@/features/content/ContentLibraryPage'
+import { AccountSuspendedPage } from '@/features/auth/AccountSuspendedPage'
 import { AppLayout } from '@/components/ui/AppLayout'
 import { ProtectedRoute } from '@/auth/ProtectedRoute'
 import { RequireAdmin } from '@/auth/RequireAdmin'
@@ -19,6 +21,7 @@ export function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/account/suspended" element={<AccountSuspendedPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -26,6 +29,7 @@ export function App() {
           <Route path="/assets" element={<AssetsPage />} />
           <Route path="/assets/new" element={<AddAssetPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/content" element={<ContentLibraryPage />} />
           <Route path="/profile-test" element={<ProfileTestPage />} />
           <Route path="/profile-test/result" element={<ProfileResultPage />} />
           <Route path="/settings" element={<SettingsPage />} />

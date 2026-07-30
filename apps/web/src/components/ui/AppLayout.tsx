@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
+import { useNotifications } from '@/lib/queries'
 import { UserMenu } from './UserMenu'
 import { Logo } from './Logo'
+import { NotificationBell } from './NotificationBell'
 
 /* Iconos de línea del sidebar (rediseño GF). Heredan currentColor. */
 function Svg({ children }: { children: React.ReactNode }) {
@@ -80,10 +82,17 @@ const UploadIcon = () => (
   </Svg>
 )
 
+const ContentIcon = () => (
+  <Svg>
+    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+  </Svg>
+)
+
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', Icon: DashboardIcon },
   { to: '/assets', label: 'Activos', Icon: AssetsIcon },
   { to: '/reports', label: 'Reportes', Icon: ReportsIcon },
+  { to: '/content', label: 'Contenidos', Icon: ContentIcon },
   { to: '/profile-test', label: 'Test de Perfil', Icon: QuizIcon },
   { to: '/settings', label: 'Configuración', Icon: SettingsIcon },
 ] as const
@@ -104,6 +113,8 @@ export function AppLayout() {
   const { theme: themeName, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { data: notif } = useNotifications()
+  const unread = notif?.unreadCount ?? 0
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [sidebarMenuOpen, setSidebarMenuOpen] = useState(false)
 
@@ -138,7 +149,12 @@ export function AppLayout() {
           {NAV_ITEMS.map(({ to, label, Icon }) => (
             <NavLink key={to} to={to} onClick={() => setDrawerOpen(false)} className={navLinkClass}>
               <Icon />
-              {label}
+              <span className="flex-1">{label}</span>
+              {to === '/content' && unread > 0 && (
+                <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white" style={{ background: '#F97316' }}>
+                  {unread}
+                </span>
+              )}
             </NavLink>
           ))}
 
@@ -195,14 +211,17 @@ export function AppLayout() {
             <h1 className="text-lg font-bold">GrootFolio</h1>
           </div>
 
-          <button
-            onClick={toggleTheme}
-            className="grid h-8 w-8 place-items-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            aria-label="Cambiar tema"
-            aria-pressed={themeName === 'dark'}
-          >
-            {themeName === 'light' ? '☀' : '☾'}
-          </button>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <button
+              onClick={toggleTheme}
+              className="grid h-8 w-8 place-items-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              aria-label="Cambiar tema"
+              aria-pressed={themeName === 'dark'}
+            >
+              {themeName === 'light' ? '☀' : '☾'}
+            </button>
+          </div>
         </header>
 
         {/* Content */}

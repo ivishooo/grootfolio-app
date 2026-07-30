@@ -34,6 +34,11 @@ export function LoginPage() {
       await login(email, password)
       navigate('/dashboard')
     } catch (err) {
+      const e = err as { code?: string; reason?: string | null; suspendedUntil?: string | null }
+      if (e.code === 'ACCOUNT_SUSPENDED') {
+        navigate('/account/suspended', { state: { reason: e.reason ?? null, suspendedUntil: e.suspendedUntil ?? null } })
+        return
+      }
       setFormError(err instanceof Error ? err.message : 'No se pudo iniciar sesión')
     } finally {
       setSubmitting(false)
