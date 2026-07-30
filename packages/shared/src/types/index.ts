@@ -6,11 +6,80 @@ export type AssetType = 'crypto' | 'stock' | 'bond' | 'currency'
 
 export type RiskProfileType = 'conservative' | 'moderate' | 'aggressive'
 
+// ---- Admin / Contenidos (F4) ----
+export type UserRole = 'user' | 'admin'
+export type UserStatus = 'active' | 'suspended'
+export type ContentType = 'doc' | 'video' | 'image' | 'link'
+export type ContentStatus = 'draft' | 'published'
+export type NotificationType = 'content.published' | 'profile.moderated' | 'account.suspended'
+
 export interface User {
   id: string
   email: string
   fullName: string | null
   riskProfile: RiskProfileType | null
+  role: UserRole
+  avatarUrl: string | null
+  status: UserStatus
+  suspendedUntil?: string | null
+  suspendedReason?: string | null
+  createdAt: string
+}
+
+/** Fila de la tabla de admin: usuario + métricas de su cartera. */
+export interface AdminUserRow extends User {
+  portfolioValue: number
+  transactionsCount: number
+}
+
+export interface AdminUserStats {
+  total: number
+  active: number
+  suspended: number
+  newLast30d: number
+}
+
+export interface AuditLogEntry {
+  id: string
+  actorName: string
+  action: string
+  targetLabel: string
+  reason: string | null
+  createdAt: string
+}
+
+export interface ContentSection {
+  id: string
+  name: string
+  slug: string
+  icon: string | null
+  color: string | null
+  itemsCount: number
+}
+
+export interface ContentItem {
+  id: string
+  sectionId: string
+  sectionName: string
+  type: ContentType
+  title: string
+  description: string | null
+  url: string | null
+  sizeBytes: number | null
+  durationSeconds: number | null
+  status: ContentStatus
+  pinned: boolean
+  viewsCount: number
+  publishedAt: string | null
+  isNew: boolean
+}
+
+export interface AppNotification {
+  id: string
+  type: NotificationType
+  title: string
+  body: string | null
+  readAt: string | null
   createdAt: string
 }
 
