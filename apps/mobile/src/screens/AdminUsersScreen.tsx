@@ -9,16 +9,18 @@ import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { formatCurrency } from '@grootfolio/shared'
-import type { AdminUserRow, SuspendUserInput } from '@grootfolio/shared'
+import type { AdminUserRow, SuspendUserInput, UpdateUserInput, UserRole } from '@grootfolio/shared'
 import {
   useAdminUsers,
   useAuditLogs,
   useBulkSuspend,
   useBulkUnsuspend,
+  useCreateUser,
   useDeleteUserAvatar,
   useRenameUser,
   useSuspendUser,
   useUnsuspendUser,
+  useUpdateUser,
   type AdminUsersFilters,
 } from '@/lib/queries'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
@@ -52,6 +54,8 @@ export function AdminUsersScreen() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [suspendTarget, setSuspendTarget] = useState<AdminUserRow | 'bulk' | null>(null)
   const [moderateTarget, setModerateTarget] = useState<AdminUserRow | null>(null)
+  const [editTarget, setEditTarget] = useState<AdminUserRow | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 300)
@@ -71,6 +75,7 @@ export function AdminUsersScreen() {
   const openActions = (u: AdminUserRow) => {
     Alert.alert(u.fullName || u.email, undefined, [
       { text: 'Ver detalle', onPress: () => nav.navigate('AdminUserDetail', { id: u.id }) },
+      { text: 'Editar', onPress: () => setEditTarget(u) },
       { text: 'Moderar perfil', onPress: () => setModerateTarget(u) },
       u.status === 'suspended'
         ? { text: 'Reactivar', onPress: () => unsuspend.mutate(u.id, { onSuccess: () => toast('Suspensión levantada', 'success') }) }
@@ -90,6 +95,9 @@ export function AdminUsersScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={{ color: theme.text.primary, fontSize: 24, fontWeight: '800' }}>Usuarios</Text>
               <Text style={{ color: VIOLET, backgroundColor: 'rgba(139,92,246,0.14)', fontSize: 10, fontWeight: '800', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' }}>SOLO ADMIN</Text>
+              <TouchableOpacity onPress={() => setCreateOpen(true)} style={{ marginLeft: 'auto', backgroundColor: theme.brand.solid, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 }}>
+                <Text style={{ color: theme.text.onBrand, fontWeight: '700', fontSize: 13 }}>+ Crear</Text>
+              </TouchableOpacity>
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               <Metric label="Total" value={stats?.total} color="#64748B" />
@@ -162,7 +170,139 @@ export function AdminUsersScreen() {
       />
       {suspendTarget && <SuspendSheet target={suspendTarget} selectedIds={[...selected]} onClose={() => setSuspendTarget(null)} onDone={() => { setSuspendTarget(null); setSelected(new Set()); setSelectMode(false) }} />}
       {moderateTarget && <ModerateSheet user={moderateTarget} onClose={() => setModerateTarget(null)} />}
+      {createOpen && <CreateSheet onClose={() => setCreateOpen(false)} />}
+      {editTarget && <EditSheet user={editTarget} onClose={() => setEditTarget(null)} />}
     </Screen>
+  )
+}
+
+const ROLE_OPTIONS: Array<{ value: UserRole; label: string; hint: string }> = [
+  { value: 'user', label: 'Usuario', hint: 'Acceso estándar' },
+  { value: 'admin', label: 'Admin', hint: 'Acceso total al panel' },
+]
+
+function RolePicker({ value, onChange }: { value: UserRole; onChange: (r: UserRole) => void }) {
+  const { theme } = useTheme()
+  return (
+    <View style={{ flexDirection: 'row', gap: 8 }}>
+      {ROLE_OPTIONS.map((r) => {
+        const on = value === r.value
+        return (
+          <TouchableOpacity key={r.value} onPress={() => onChange(r.value)} style={{ flex: 1, borderWidth: 1.5, borderRadius: 10, padding: 12, borderColor: on ? VIOLET : theme.border.default, backgroundColor: on ? 'rgba(139,92,246,0.08)' : 'transparent' }}>
+            <Text style={{ color: on ? VIOLET : theme.text.primary, fontWeight: '700', fontSize: 13 }}>{r.label}</Text>
+            <Text style={{ color: theme.text.muted, fontSize: 11 }}>{r.hint}</Text>
+          </TouchableOpacity>
+        )
+      })}
+    </View>
+  )
+}
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+
+function CreateSheet({ onClose }: { onClose: () => void }) {
+  const { theme } = useTheme()
+  const { toast } = useToast()
+  const createUser = useCreateUser()
+  const [email, setEmail] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [password, setPassword] = useState('')
+  const [role, setRole] = useState<UserRole>('user')
+  const [error, setError] = useState<string | null>(null)
+
+  const submit = () => {
+    if (!EMAIL_RE.test(email.trim())) { setError('Ingresá un email válido.'); return }
+    if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
+    if (fullName.trim() && fullName.trim().length < 2) { setError('El nombre debe tener al menos 2 caracteres.'); return }
+    setError(null)
+    createUser.mutate(
+      { email: email.trim(), password, fullName: fullName.trim() || undefined, role },
+      { onSuccess: () => { toast('Usuario creado', 'success'); onClose() }, onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo crear.') }
+    )
+  }
+  const field = { borderWidth: 1, borderColor: theme.border.default, borderRadius: 10, padding: 12, color: theme.text.primary } as const
+
+  return (
+    <BottomSheet visible onClose={onClose} title="Crear usuario">
+      <Text style={{ color: theme.text.secondary, fontWeight: '600', fontSize: 13 }}>Email <Text style={{ color: RED }}>*</Text></Text>
+      <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="persona@ejemplo.com" placeholderTextColor={theme.text.placeholder} style={field} />
+      <Text style={{ color: theme.text.secondary, fontWeight: '600', fontSize: 13 }}>Nombre visible</Text>
+      <TextInput value={fullName} onChangeText={setFullName} maxLength={80} placeholder="Opcional" placeholderTextColor={theme.text.placeholder} style={field} />
+      <Text style={{ color: theme.text.secondary, fontWeight: '600', fontSize: 13 }}>Contraseña inicial <Text style={{ color: RED }}>*</Text></Text>
+      <TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="Mínimo 8 caracteres" placeholderTextColor={theme.text.placeholder} style={field} />
+      <Text style={{ color: theme.text.secondary, fontWeight: '600', fontSize: 13 }}>Rol</Text>
+      <RolePicker value={role} onChange={setRole} />
+      {error && <Text style={{ color: RED, fontSize: 13 }}>{error}</Text>}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <TouchableOpacity onPress={onClose} disabled={createUser.isPending} style={{ flex: 1, borderWidth: 1, borderColor: theme.border.default, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}><Text style={{ color: theme.text.primary, fontWeight: '600' }}>Cancelar</Text></TouchableOpacity>
+        <TouchableOpacity onPress={submit} disabled={createUser.isPending} style={{ flex: 1, backgroundColor: theme.brand.solid, borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+          {createUser.isPending && <ActivityIndicator size="small" color={theme.text.onBrand} />}<Text style={{ color: theme.text.onBrand, fontWeight: '700' }}>Crear usuario</Text>
+        </TouchableOpacity>
+      </View>
+    </BottomSheet>
+  )
+}
+
+function EditSheet({ user, onClose }: { user: AdminUserRow; onClose: () => void }) {
+  const { theme } = useTheme()
+  const { toast } = useToast()
+  const updateUser = useUpdateUser()
+  const [email, setEmail] = useState(user.email)
+  const [fullName, setFullName] = useState(user.fullName ?? '')
+  const [role, setRole] = useState<UserRole>(user.role)
+  const [password, setPassword] = useState('')
+  const [notifyUser, setNotifyUser] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const submit = () => {
+    if (!EMAIL_RE.test(email.trim())) { setError('Ingresá un email válido.'); return }
+    if (fullName.trim().length < 2) { setError('El nombre debe tener al menos 2 caracteres.'); return }
+    if (password && password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
+    const input: UpdateUserInput = { notifyUser }
+    if (email.trim() !== user.email) input.email = email.trim()
+    if (fullName.trim() !== (user.fullName ?? '')) input.fullName = fullName.trim()
+    if (role !== user.role) input.role = role
+    if (password) input.password = password
+    if (!(input.email || input.fullName || input.role || input.password)) { setError('No hay cambios para aplicar.'); return }
+    setError(null)
+    updateUser.mutate(
+      { id: user.id, input },
+      { onSuccess: () => { toast('Cambios guardados', 'success'); onClose() }, onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo guardar.') }
+    )
+  }
+  const field = { borderWidth: 1, borderColor: theme.border.default, borderRadius: 10, padding: 12, color: theme.text.primary } as const
+
+  return (
+    <BottomSheet visible onClose={onClose} title="Editar usuario">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <UserAvatar user={user} size={40} />
+        <View><Text style={{ color: theme.text.primary, fontWeight: '700' }}>{user.fullName || 'Sin nombre'}</Text><Text style={{ color: theme.text.muted, fontSize: 12 }}>{user.email}</Text></View>
+      </View>
+      <Text style={{ color: theme.text.secondary, fontWeight: '600', fontSize: 13 }}>Email</Text>
+      <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" style={field} />
+      <Text style={{ color: theme.text.secondary, fontWeight: '600', fontSize: 13 }}>Nombre visible</Text>
+      <TextInput value={fullName} onChangeText={setFullName} maxLength={80} style={field} />
+      <Text style={{ color: theme.text.secondary, fontWeight: '600', fontSize: 13 }}>Rol</Text>
+      <RolePicker value={role} onChange={setRole} />
+      <Text style={{ color: theme.text.secondary, fontWeight: '600', fontSize: 13 }}>Restablecer contraseña</Text>
+      <TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="Dejar vacío para no cambiarla" placeholderTextColor={theme.text.placeholder} style={field} />
+      <TouchableOpacity onPress={() => setNotifyUser((v) => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: notifyUser ? '#F97316' : theme.border.strong, backgroundColor: notifyUser ? '#F97316' : 'transparent', alignItems: 'center', justifyContent: 'center' }}>{notifyUser && <Text style={{ color: '#fff', fontSize: 12 }}>✓</Text>}</View>
+        <Text style={{ color: theme.text.primary, fontSize: 14 }}>Notificar al usuario del cambio</Text>
+      </TouchableOpacity>
+      {(password || email !== user.email) && (
+        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', borderRadius: 10, backgroundColor: 'rgba(217,119,6,0.1)', padding: 12 }}>
+          <Text>⚠</Text><Text style={{ color: '#92400e', fontSize: 12.5, flex: 1 }}>Cambiar el email o la contraseña cierra las sesiones activas del usuario.</Text>
+        </View>
+      )}
+      {error && <Text style={{ color: RED, fontSize: 13 }}>{error}</Text>}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <TouchableOpacity onPress={onClose} disabled={updateUser.isPending} style={{ flex: 1, borderWidth: 1, borderColor: theme.border.default, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}><Text style={{ color: theme.text.primary, fontWeight: '600' }}>Cancelar</Text></TouchableOpacity>
+        <TouchableOpacity onPress={submit} disabled={updateUser.isPending} style={{ flex: 1, backgroundColor: theme.brand.solid, borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+          {updateUser.isPending && <ActivityIndicator size="small" color={theme.text.onBrand} />}<Text style={{ color: theme.text.onBrand, fontWeight: '700' }}>Guardar cambios</Text>
+        </TouchableOpacity>
+      </View>
+    </BottomSheet>
   )
 }
 
@@ -183,6 +323,7 @@ function AuditFooter() {
   const { theme } = useTheme()
   const { data: logs = [] } = useAuditLogs()
   const actionLabel: Record<string, string> = {
+    'user.create': 'creó a', 'user.update': 'editó a',
     'user.suspend': 'suspendió a', 'user.unsuspend': 'reactivó a', 'user.rename': 'renombró a',
     'user.avatar_delete': 'eliminó la foto de', 'content.publish': 'publicó', 'content.delete': 'eliminó', 'content.section_create': 'creó la sección',
   }
