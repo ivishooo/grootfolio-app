@@ -68,7 +68,9 @@ router
 router
   .group(() => {
     router.get('/users', '#controllers/admin_users_controller.index')
+    router.post('/users', '#controllers/admin_users_controller.store')
     router.get('/users/:id', '#controllers/admin_users_controller.show')
+    router.patch('/users/:id', '#controllers/admin_users_controller.update')
     router.post('/users/bulk-suspend', '#controllers/admin_users_controller.bulkSuspend')
     router.post('/users/bulk-unsuspend', '#controllers/admin_users_controller.bulkUnsuspend')
     router.post('/users/:id/suspend', '#controllers/admin_users_controller.suspend')

@@ -5,17 +5,19 @@
  */
 import { useEffect, useState } from 'react'
 import { formatCurrency } from '@grootfolio/shared'
-import type { AdminUserRow, SuspendUserInput } from '@grootfolio/shared'
+import type { AdminUserRow, SuspendUserInput, UpdateUserInput, UserRole } from '@grootfolio/shared'
 import {
   useAdminUsers,
   useAdminUser,
   useAuditLogs,
   useBulkSuspend,
   useBulkUnsuspend,
+  useCreateUser,
   useDeleteUserAvatar,
   useRenameUser,
   useSuspendUser,
   useUnsuspendUser,
+  useUpdateUser,
   type AdminUsersFilters,
 } from '@/lib/queries'
 import { useToast } from '@/components/ui/ToastProvider'
@@ -82,6 +84,8 @@ export function AdminUsersPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [suspendTarget, setSuspendTarget] = useState<AdminUserRow | 'bulk' | null>(null)
   const [moderateTarget, setModerateTarget] = useState<AdminUserRow | null>(null)
+  const [editTarget, setEditTarget] = useState<AdminUserRow | null>(null)
+  const [creating, setCreating] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
 
   // Debounce del buscador (300ms).
@@ -132,6 +136,7 @@ export function AdminUsersPage() {
         <span className="rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: VIOLET, background: 'rgba(139,92,246,0.14)' }}>
           Solo admin
         </span>
+        <Button className="ml-auto" onClick={() => setCreating(true)}>+ Crear usuario</Button>
       </div>
       <p className="-mt-3 text-sm text-neutral-500">Gestioná cuentas, suspensiones y moderación de perfiles.</p>
 
@@ -228,6 +233,7 @@ export function AdminUsersPage() {
                   <td className="px-3 py-3">
                     <div className="flex justify-end gap-1.5">
                       <button className="rounded-md px-2 py-1 text-xs font-medium text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => setDetailId(u.id)}>Detalle</button>
+                      <button className="rounded-md px-2 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800" style={{ color: VIOLET }} onClick={() => setEditTarget(u)}>Editar</button>
                       <button className="rounded-md px-2 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800" style={{ color: AMBER }} onClick={() => setModerateTarget(u)}>Moderar</button>
                       {u.status === 'suspended' ? (
                         <button className="rounded-md px-2 py-1 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800" style={{ color: GREEN }} onClick={() => handleReactivate(u)}>Reactivar</button>
@@ -262,8 +268,139 @@ export function AdminUsersPage() {
         />
       )}
       {moderateTarget && <ModerateModal user={moderateTarget} onClose={() => setModerateTarget(null)} />}
+      {creating && <CreateUserModal onClose={() => setCreating(false)} />}
+      {editTarget && <EditUserModal user={editTarget} onClose={() => setEditTarget(null)} />}
       {detailId && <DetailModal id={detailId} onClose={() => setDetailId(null)} />}
     </div>
+  )
+}
+
+const ROLE_OPTIONS: Array<{ value: UserRole; label: string; hint: string }> = [
+  { value: 'user', label: 'Usuario', hint: 'Acceso estándar a la app.' },
+  { value: 'admin', label: 'Admin', hint: 'Acceso total al panel de administración.' },
+]
+
+function RolePicker({ value, onChange }: { value: UserRole; onChange: (r: UserRole) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {ROLE_OPTIONS.map((r) => (
+        <button
+          key={r.value}
+          type="button"
+          onClick={() => onChange(r.value)}
+          className="rounded-lg border-[1.5px] px-3 py-2 text-left transition-colors"
+          style={value === r.value ? { borderColor: VIOLET, background: 'rgba(139,92,246,0.08)' } : { borderColor: 'rgb(212 212 216 / 1)' }}
+        >
+          <div className="text-sm font-semibold" style={value === r.value ? { color: VIOLET } : undefined}>{r.label}</div>
+          <div className="text-[11px] text-neutral-500">{r.hint}</div>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function CreateUserModal({ onClose }: { onClose: () => void }) {
+  const { toast } = useToast()
+  const createUser = useCreateUser()
+  const [email, setEmail] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [password, setPassword] = useState('')
+  const [role, setRole] = useState<UserRole>('user')
+  const [error, setError] = useState<string | null>(null)
+
+  const submit = () => {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError('Ingresá un email válido.'); return }
+    if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
+    if (fullName.trim() && fullName.trim().length < 2) { setError('El nombre debe tener al menos 2 caracteres.'); return }
+    setError(null)
+    createUser.mutate(
+      { email: email.trim(), password, fullName: fullName.trim() || undefined, role },
+      {
+        onSuccess: () => { toast('Usuario creado', 'success'); onClose() },
+        onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo crear el usuario.'),
+      }
+    )
+  }
+
+  return (
+    <ModalShell title="Crear usuario" icon="＋" iconColor={VIOLET} onClose={onClose}>
+      <p className="mb-1.5 text-sm font-medium">Email <span style={{ color: RED }}>*</span></p>
+      <input type="email" className={`${inputCls} w-full`} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="persona@ejemplo.com" />
+      <p className="mb-1.5 mt-4 text-sm font-medium">Nombre visible</p>
+      <input className={`${inputCls} w-full`} maxLength={80} value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Opcional" />
+      <p className="mb-1.5 mt-4 text-sm font-medium">Contraseña inicial <span style={{ color: RED }}>*</span></p>
+      <input type="password" className={`${inputCls} w-full`} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
+      <p className="mb-1.5 mt-4 text-sm font-medium">Rol</p>
+      <RolePicker value={role} onChange={setRole} />
+      {error && <p className="mt-3 text-sm font-medium text-danger-500">{error}</p>}
+      <div className="mt-5 flex justify-end gap-3">
+        <Button variant="secondary" onClick={onClose} disabled={createUser.isPending}>Cancelar</Button>
+        <Button onClick={submit} disabled={createUser.isPending}>{createUser.isPending ? 'Creando…' : 'Crear usuario'}</Button>
+      </div>
+    </ModalShell>
+  )
+}
+
+function EditUserModal({ user, onClose }: { user: AdminUserRow; onClose: () => void }) {
+  const { toast } = useToast()
+  const updateUser = useUpdateUser()
+  const [email, setEmail] = useState(user.email)
+  const [fullName, setFullName] = useState(user.fullName ?? '')
+  const [role, setRole] = useState<UserRole>(user.role)
+  const [password, setPassword] = useState('')
+  const [notifyUser, setNotifyUser] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const submit = () => {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError('Ingresá un email válido.'); return }
+    if (fullName.trim().length < 2) { setError('El nombre debe tener al menos 2 caracteres.'); return }
+    if (password && password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
+    const input: UpdateUserInput = { notifyUser }
+    if (email.trim() !== user.email) input.email = email.trim()
+    if (fullName.trim() !== (user.fullName ?? '')) input.fullName = fullName.trim()
+    if (role !== user.role) input.role = role
+    if (password) input.password = password
+    const hasChanges = input.email || input.fullName || input.role || input.password
+    if (!hasChanges) { setError('No hay cambios para aplicar.'); return }
+    setError(null)
+    updateUser.mutate(
+      { id: user.id, input },
+      {
+        onSuccess: () => { toast('Cambios guardados', 'success'); onClose() },
+        onError: (e) => setError(e instanceof Error ? e.message : 'No se pudo guardar.'),
+      }
+    )
+  }
+
+  return (
+    <ModalShell title="Editar usuario" icon="✎" iconColor={VIOLET} onClose={onClose}>
+      <div className="mb-4 flex items-center gap-2.5">
+        <UserAvatar user={user} size={40} />
+        <div><div className="font-semibold">{user.fullName || 'Sin nombre'}</div><div className="text-xs text-neutral-500">{user.email}</div></div>
+      </div>
+      <p className="mb-1.5 text-sm font-medium">Email</p>
+      <input type="email" className={`${inputCls} w-full`} value={email} onChange={(e) => setEmail(e.target.value)} />
+      <p className="mb-1.5 mt-4 text-sm font-medium">Nombre visible</p>
+      <input className={`${inputCls} w-full`} maxLength={80} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+      <p className="mb-1.5 mt-4 text-sm font-medium">Rol</p>
+      <RolePicker value={role} onChange={setRole} />
+      <p className="mb-1.5 mt-4 text-sm font-medium">Restablecer contraseña</p>
+      <input type="password" className={`${inputCls} w-full`} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar vacío para no cambiarla" />
+      <label className="mt-4 flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={notifyUser} onChange={(e) => setNotifyUser(e.target.checked)} />
+        Notificar al usuario del cambio
+      </label>
+      {(password || email !== user.email) && (
+        <div className="mt-3 flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-[12.5px]" style={{ background: 'rgba(217,119,6,0.1)', color: '#92400e' }}>
+          <span>⚠</span> Cambiar el email o la contraseña cierra las sesiones activas del usuario.
+        </div>
+      )}
+      {error && <p className="mt-3 text-sm font-medium text-danger-500">{error}</p>}
+      <div className="mt-5 flex justify-end gap-3">
+        <Button variant="secondary" onClick={onClose} disabled={updateUser.isPending}>Cancelar</Button>
+        <Button onClick={submit} disabled={updateUser.isPending}>{updateUser.isPending ? 'Guardando…' : 'Guardar cambios'}</Button>
+      </div>
+    </ModalShell>
   )
 }
 
@@ -465,6 +602,7 @@ function AuditCard() {
   const { data: logs } = useAuditLogs()
   const items = logs ?? []
   const actionLabel: Record<string, string> = {
+    'user.create': 'creó a', 'user.update': 'editó a',
     'user.suspend': 'suspendió a', 'user.unsuspend': 'reactivó a', 'user.rename': 'renombró a',
     'user.avatar_delete': 'eliminó la foto de', 'content.publish': 'publicó', 'content.delete': 'eliminó', 'content.section_create': 'creó la sección',
   }

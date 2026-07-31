@@ -33,6 +33,8 @@ export function computeSuspendedUntil(
 }
 
 export type AuditAction =
+  | 'user.create'
+  | 'user.update'
   | 'user.suspend'
   | 'user.unsuspend'
   | 'user.avatar_delete'

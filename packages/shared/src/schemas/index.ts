@@ -79,6 +79,36 @@ export const updateProfileInputSchema = z.object({
   fullName: z.string().trim().min(2, 'Mínimo 2 caracteres.').max(40, 'Máximo 40 caracteres.'),
 })
 
+export const userRoleSchema = z.enum(['user', 'admin'])
+
+/**
+ * Alta de usuario desde el panel de admin. `email` y `password` obligatorios;
+ * `role` por defecto 'user'. El nombre es opcional.
+ */
+export const createUserInputSchema = z.object({
+  email: z.string().trim().email('Email inválido.'),
+  password: z.string().min(8, 'Mínimo 8 caracteres.'),
+  fullName: z.string().trim().min(2, 'Mínimo 2 caracteres.').max(80).optional(),
+  role: userRoleSchema.optional(),
+})
+
+/**
+ * Edición de un usuario desde admin (parcial). Cualquier subconjunto de campos.
+ * `password`, cuando viene, resetea la contraseña (mín. 8). El backend impide
+ * que un admin se cambie su propio rol (evita quedarse sin acceso).
+ */
+export const updateUserInputSchema = z
+  .object({
+    email: z.string().trim().email('Email inválido.').optional(),
+    fullName: z.string().trim().min(2, 'Mínimo 2 caracteres.').max(80).optional(),
+    role: userRoleSchema.optional(),
+    password: z.string().min(8, 'Mínimo 8 caracteres.').optional(),
+    notifyUser: z.boolean().optional(),
+  })
+  .refine((v) => Object.keys(v).some((k) => k !== 'notifyUser' && v[k as keyof typeof v] !== undefined), {
+    message: 'No hay cambios para aplicar.',
+  })
+
 export const createSectionInputSchema = z.object({
   name: z.string().trim().min(2).max(60),
   icon: z.string().trim().max(40).optional(),
@@ -114,5 +144,7 @@ export type UpdateTransactionInput = z.infer<typeof updateTransactionInputSchema
 export type SubmitQuizInput = z.infer<typeof submitQuizInputSchema>
 export type SuspendUserInput = z.infer<typeof suspendUserInputSchema>
 export type UpdateProfileInput = z.infer<typeof updateProfileInputSchema>
+export type CreateUserInput = z.infer<typeof createUserInputSchema>
+export type UpdateUserInput = z.infer<typeof updateUserInputSchema>
 export type CreateSectionInput = z.infer<typeof createSectionInputSchema>
 export type CreateContentItemInput = z.infer<typeof createContentItemInputSchema>
