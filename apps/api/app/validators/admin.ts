@@ -44,3 +44,24 @@ export const deleteAvatarValidator = vine.compile(
     notifyUser: vine.boolean().optional(),
   })
 )
+
+const ROLES = ['user', 'admin'] as const
+
+export const createUserValidator = vine.compile(
+  vine.object({
+    email: vine.string().trim().email().normalizeEmail(),
+    password: vine.string().minLength(8),
+    fullName: vine.string().trim().minLength(2).maxLength(80).optional(),
+    role: vine.enum(ROLES).optional(),
+  })
+)
+
+export const updateUserValidator = vine.compile(
+  vine.object({
+    email: vine.string().trim().email().normalizeEmail().optional(),
+    fullName: vine.string().trim().minLength(2).maxLength(80).optional(),
+    role: vine.enum(ROLES).optional(),
+    password: vine.string().minLength(8).optional(),
+    notifyUser: vine.boolean().optional(),
+  })
+)

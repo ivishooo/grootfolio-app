@@ -25,9 +25,11 @@ import { sendSuspensionEmail } from '#services/mail_service'
 import {
   bulkSuspendValidator,
   bulkUnsuspendValidator,
+  createUserValidator,
   deleteAvatarValidator,
   renameUserValidator,
   suspendUserValidator,
+  updateUserValidator,
 } from '#validators/admin'
 
 const label = (u: User) => u.fullName?.trim() || u.email
@@ -102,6 +104,103 @@ export default class AdminUsersController {
         newLast30d: Number(statsRow?.new_last_30d ?? 0),
       },
     })
+  }
+
+  /** POST /admin/users — crea una cuenta desde el panel. Email único (409). */
+  async store({ request, response, currentUser }: HttpContext) {
+    const payload = await request.validateUsing(createUserValidator)
+
+    const existing = await User.findBy('email', payload.email)
+    if (existing) {
+      return response.status(409).send({ code: 'AUTH_EMAIL_TAKEN', message: 'Ese email ya está registrado.' })
+    }
+
+    const created = await User.create({
+      email: payload.email,
+      password: payload.password,
+      fullName: payload.fullName ?? null,
+      role: payload.role ?? 'user',
+    })
+
+    await writeAudit({
+      actorId: currentUser.id,
+      action: 'user.create',
+      targetType: 'user',
+      targetId: created.id,
+      targetLabel: label(created),
+      metadata: { role: created.role },
+    })
+
+    return response.status(201).send({ user: created.serialize() })
+  }
+
+  /** PATCH /admin/users/:id — edición parcial (nombre, email, rol, password). */
+  async update({ params, request, response, currentUser }: HttpContext) {
+    const target = await User.find(params.id)
+    if (!target) {
+      return response.status(404).send({ code: 'USER_NOT_FOUND', message: 'Usuario no encontrado.' })
+    }
+
+    const payload = await request.validateUsing(updateUserValidator)
+
+    // Un admin no puede cambiar su propio rol (evita quedarse sin acceso).
+    if (payload.role && payload.role !== target.role && target.id === currentUser.id) {
+      return response
+        .status(422)
+        .send({ code: 'CANNOT_CHANGE_OWN_ROLE', message: 'No podés cambiar tu propio rol.' })
+    }
+
+    // Email único si cambia.
+    if (payload.email && payload.email !== target.email) {
+      const clash = await User.findBy('email', payload.email)
+      if (clash && clash.id !== target.id) {
+        return response.status(409).send({ code: 'AUTH_EMAIL_TAKEN', message: 'Ese email ya está registrado.' })
+      }
+    }
+
+    const changed: string[] = []
+    if (payload.fullName !== undefined && payload.fullName !== target.fullName) {
+      target.fullName = payload.fullName
+      changed.push('fullName')
+    }
+    if (payload.email !== undefined && payload.email !== target.email) {
+      target.email = payload.email
+      changed.push('email')
+    }
+    if (payload.role !== undefined && payload.role !== target.role) {
+      target.role = payload.role
+      changed.push('role')
+    }
+    if (payload.password !== undefined) {
+      target.password = payload.password // el modelo lo hashea en beforeSave
+      changed.push('password')
+    }
+    await target.save()
+
+    // Si cambió password o email, revocamos sus sesiones activas.
+    if (changed.includes('password') || changed.includes('email')) {
+      await revokeAllForUser(target.id)
+    }
+
+    await writeAudit({
+      actorId: currentUser.id,
+      action: 'user.update',
+      targetType: 'user',
+      targetId: target.id,
+      targetLabel: label(target),
+      metadata: { changed, role: target.role },
+    })
+
+    if (payload.notifyUser && changed.length > 0) {
+      await createNotification(
+        target.id,
+        'profile.moderated',
+        'Un administrador actualizó tu cuenta',
+        'Revisá tus datos de perfil. Si cambió tu contraseña, volvé a iniciar sesión.'
+      )
+    }
+
+    return response.status(200).send({ user: target.serialize() })
   }
 
   /** GET /admin/users/:id — detalle con valor real de portafolio y actividad. */

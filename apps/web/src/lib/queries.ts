@@ -15,6 +15,7 @@ import type {
   ContentSection,
   ContentType,
   CreateTransactionInput,
+  CreateUserInput,
   LedgerEntry,
   PortfolioSummary,
   QuizQuestion,
@@ -23,6 +24,7 @@ import type {
   SuspendUserInput,
   Transaction,
   UpdateTransactionInput,
+  UpdateUserInput,
   User,
 } from '@grootfolio/shared'
 import { api } from './api'
@@ -236,6 +238,23 @@ function useAdminInvalidate() {
     void qc.invalidateQueries({ queryKey: ['admin', 'users'] })
     void qc.invalidateQueries({ queryKey: queryKeys.auditLogs })
   }
+}
+
+export function useCreateUser() {
+  const invalidate = useAdminInvalidate()
+  return useMutation({
+    mutationFn: (input: CreateUserInput) => api.post<{ user: User }>('/admin/users', input),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateUser() {
+  const invalidate = useAdminInvalidate()
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateUserInput }) =>
+      api.patch<{ user: User }>(`/admin/users/${id}`, input),
+    onSuccess: invalidate,
+  })
 }
 
 export function useSuspendUser() {
