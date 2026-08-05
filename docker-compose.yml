@@ -7,7 +7,9 @@
 #   docker compose down -v      # apagar y borrar datos
 services:
   db:
-    image: postgres:16-alpine
+    # PostgreSQL 16 + pgvector (ADR-0004, chatbot RAG). Compatible con el data
+    # dir de postgres:16 previo. Railway provee pgvector en su Postgres managed.
+    image: pgvector/pgvector:pg16
     container_name: grootfolio-db
     restart: unless-stopped
     environment:
