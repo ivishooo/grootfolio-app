@@ -1,6 +1,6 @@
 # ADR-0004: Chatbot de dominio acotado con RAG sobre Gemini
 
-- **Estado:** Propuesto — 2026-08-05
+- **Estado:** Aceptado — 2026-08-05
 - **Autores:** Ivan Otero, Franco Davicino
 - **Reemplaza a:** -
 - **Relacionado:** [ADR-0001](0001-arquitectura.md) (stack base), feature
