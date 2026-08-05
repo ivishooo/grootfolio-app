@@ -54,4 +54,13 @@ export default await Env.create(new URL('../', import.meta.url), {
   // presente (sin DSN es un no-op). TRACES_SAMPLE_RATE default 0 (sin tracing).
   SENTRY_DSN: Env.schema.string.optional(),
   SENTRY_TRACES_SAMPLE_RATE: Env.schema.number.optional(),
+
+  // Chatbot RAG (ADR-0004). La API key es opcional: si falta, el endpoint de
+  // chat responde "no disponible" en vez de romper el arranque. Los modelos y
+  // parametros tienen defaults en el codigo; se leen aca para poder overridear.
+  GEMINI_API_KEY: Env.schema.string.optional(),
+  GEMINI_CHAT_MODEL: Env.schema.string.optional(),
+  GEMINI_EMBED_MODEL: Env.schema.string.optional(),
+  RAG_TOP_K: Env.schema.number.optional(),
+  RAG_MIN_SCORE: Env.schema.number.optional(),
 })
