@@ -343,3 +343,85 @@ Authorization: Bearer {{login.response.body.accessToken}}
 ### AC9 · Borrar sección → 204
 DELETE {{base}}/admin/content/sections/{{adminSection.response.body.section.id}}
 Authorization: Bearer {{login.response.body.accessToken}}
+
+# ══════════ ADMIN — base de conocimiento del chatbot (F2, ADR-0004) ══════════
+#   CRUD de los artículos markdown que alimentan al bot. Todavía sin embeddings:
+#   publicar sólo cambia el estado (la ingesta llega en F3).
+
+### KB1 · Crear artículo (borrador) → 201 { article }
+# @name kbArticle
+POST {{base}}/admin/kb/articles
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Cómo cargar una transacción",
+  "body": "## Cargar una transacción\n\nDesde **Movimientos** tocá *Agregar*, elegí el activo, la cantidad y el precio unitario. GrootFolio calcula el costo en USD usando el tipo de cambio de la fecha."
+}
+
+### KB2 · Crear artículo con slug explícito ya usado → 409 KB_SLUG_TAKEN
+POST {{base}}/admin/kb/articles
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Duplicado",
+  "slug": "{{kbArticle.response.body.article.slug}}",
+  "body": "Este cuerpo tiene más de veinte caracteres para pasar la validación."
+}
+
+### KB3 · Cuerpo demasiado corto → 422 VALIDATION_ERROR
+POST {{base}}/admin/kb/articles
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "Muy corto", "body": "nada" }
+
+### KB3b · Slug con mayúsculas/espacios → 422 VALIDATION_ERROR
+POST {{base}}/admin/kb/articles
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "Slug feo", "slug": "Slug Con Espacios", "body": "Cuerpo suficientemente largo para pasar la validación." }
+
+### KB4 · Listar artículos → 200 { data, stats }
+GET {{base}}/admin/kb/articles
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### KB5 · Listar filtrando por estado y búsqueda → 200 { data, stats }
+GET {{base}}/admin/kb/articles?status=draft&search=transacci
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### KB6 · Detalle (markdown completo) → 200 { article }
+GET {{base}}/admin/kb/articles/{{kbArticle.response.body.article.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### KB7 · Editar artículo → 200 { article }
+PATCH {{base}}/admin/kb/articles/{{kbArticle.response.body.article.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "title": "Cómo cargar una transacción (actualizado)" }
+
+### KB8 · PATCH sin campos → 422 KB_NO_CHANGES
+PATCH {{base}}/admin/kb/articles/{{kbArticle.response.body.article.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{}
+
+### KB9 · Publicar → 200 { article } (status: published)
+POST {{base}}/admin/kb/articles/{{kbArticle.response.body.article.id}}/publish
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### KB10 · Despublicar → 200 { article } (status: draft)
+POST {{base}}/admin/kb/articles/{{kbArticle.response.body.article.id}}/unpublish
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### KB11 · Artículo inexistente → 404 KB_ARTICLE_NOT_FOUND
+GET {{base}}/admin/kb/articles/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### KB12 · Borrar artículo → 204
+DELETE {{base}}/admin/kb/articles/{{kbArticle.response.body.article.id}}
+Authorization: Bearer {{login.response.body.accessToken}}

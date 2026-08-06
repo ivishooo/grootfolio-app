@@ -74,6 +74,44 @@ export interface ContentItem {
   isNew: boolean
 }
 
+// ---- Chatbot RAG — base de conocimiento (F2) ----
+
+export type KbArticleStatus = 'draft' | 'published'
+
+/**
+ * Artículo de la base de conocimiento que alimenta al chatbot. `body` es
+ * markdown. `chunksCount`/`indexed` reflejan el estado de la vectorización
+ * (siempre 0/false hasta que aterrice la ingesta en F3).
+ */
+export interface KbArticle {
+  id: string
+  title: string
+  slug: string
+  body: string
+  status: KbArticleStatus
+  publishedAt: string | null
+  createdAt: string
+  updatedAt: string
+  chunksCount: number
+  indexed: boolean
+}
+
+/**
+ * Fila del listado de artículos: igual que `KbArticle` pero sin el markdown
+ * completo (el detalle lo trae). Evita mandar cuerpos largos en la lista.
+ */
+export interface KbArticleListItem extends Omit<KbArticle, 'body'> {
+  excerpt: string
+  bodyLength: number
+}
+
+/** Totales de la KB. Son globales: no dependen de los filtros del listado. */
+export interface KbStats {
+  total: number
+  published: number
+  draft: number
+}
+
 export interface AppNotification {
   id: string
   type: NotificationType

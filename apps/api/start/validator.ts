@@ -18,10 +18,12 @@ vine.messagesProvider = new SimpleMessagesProvider({
   min: 'El valor de {{ field }} es demasiado bajo.',
   max: 'El valor de {{ field }} es demasiado alto.',
   positive: 'El campo {{ field }} debe ser mayor a cero.',
+  regex: 'El campo {{ field }} tiene un formato invalido.',
 
   // overrides por campo
   'password.minLength': 'La contrasena debe tener al menos {{ min }} caracteres.',
   'quantity.positive': 'La cantidad debe ser mayor a cero.',
   'unitPrice.min': 'El precio unitario no puede ser negativo.',
   'fee.min': 'La comision no puede ser negativa.',
+  'slug.regex': 'El slug solo admite minusculas, numeros y guiones.',
 })

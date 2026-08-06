@@ -136,6 +136,43 @@ export const createContentItemInputSchema = z
     path: ['externalUrl'],
   })
 
+// ---- Chatbot RAG — base de conocimiento (F2) ----
+
+export const kbArticleStatusSchema = z.enum(['draft', 'published'])
+
+/** Slug de URL: minúsculas, números y guiones. Se autogenera del título si no viene. */
+const kbSlugSchema = z
+  .string()
+  .trim()
+  .min(3, 'Mínimo 3 caracteres.')
+  .max(220)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Sólo minúsculas, números y guiones.')
+
+/**
+ * Alta de un artículo de la KB. `slug` es opcional (se deriva del título).
+ * `publish: true` lo publica de una; si no, nace como borrador.
+ */
+export const createKbArticleInputSchema = z.object({
+  title: z.string().trim().min(3, 'Mínimo 3 caracteres.').max(200),
+  slug: kbSlugSchema.optional(),
+  body: z.string().trim().min(20, 'El artículo necesita al menos 20 caracteres.'),
+  publish: z.boolean().optional(),
+})
+
+/**
+ * Edición parcial. El estado NO se cambia acá: publicar/despublicar tienen sus
+ * propios endpoints (disparan la reindexación en F3).
+ */
+export const updateKbArticleInputSchema = z
+  .object({
+    title: z.string().trim().min(3, 'Mínimo 3 caracteres.').max(200).optional(),
+    slug: kbSlugSchema.optional(),
+    body: z.string().trim().min(20, 'El artículo necesita al menos 20 caracteres.').optional(),
+  })
+  .refine((v) => Object.values(v).some((field) => field !== undefined), {
+    message: 'No hay cambios para aplicar.',
+  })
+
 export type LoginInput = z.infer<typeof loginInputSchema>
 export type RegisterInput = z.infer<typeof registerInputSchema>
 export type RefreshInput = z.infer<typeof refreshInputSchema>
@@ -148,3 +185,5 @@ export type CreateUserInput = z.infer<typeof createUserInputSchema>
 export type UpdateUserInput = z.infer<typeof updateUserInputSchema>
 export type CreateSectionInput = z.infer<typeof createSectionInputSchema>
 export type CreateContentItemInput = z.infer<typeof createContentItemInputSchema>
+export type CreateKbArticleInput = z.infer<typeof createKbArticleInputSchema>
+export type UpdateKbArticleInput = z.infer<typeof updateKbArticleInputSchema>
