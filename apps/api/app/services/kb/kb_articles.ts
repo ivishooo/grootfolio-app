@@ -98,6 +98,8 @@ export function serializeKbArticle(article: KbArticle, chunksCount = 0): KbArtic
     updatedAt: article.updatedAt.toISO()!,
     chunksCount,
     indexed: chunksCount > 0,
+    indexedAt: article.indexedAt?.toISO() ?? null,
+    indexingError: article.indexingError,
   }
 }
 

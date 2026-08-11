@@ -25,6 +25,10 @@ export default class KbChunk extends BaseModel {
   @column()
   declare content: string
 
+  /** Sección del artículo de la que salió el fragmento (para las citas). */
+  @column()
+  declare heading: string | null
+
   @column({
     columnName: 'embedding',
     prepare: (value: number[] | null) => (value ? `[${value.join(',')}]` : null),

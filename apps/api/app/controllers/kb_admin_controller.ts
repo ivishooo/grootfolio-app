@@ -3,8 +3,11 @@
  * base de conocimiento que alimenta al chatbot. Todo bajo `/admin/kb` con
  * `auth` + `admin` middleware. Cada acción escribe en `admin_audit_logs`.
  *
- * Todavía sin embeddings: publicar sólo marca `status='published'`. La ingesta
- * (chunking + vectorización) engancha en F3 sobre publish/update/delete.
+ * Desde F3 la publicación dispara además la **indexación** (chunking +
+ * embeddings). La indexación es sincrónica pero **no bloquea la acción**: si
+ * falla, el artículo igual queda publicado/editado y el motivo viaja en
+ * `indexingError` para que el panel lo muestre y se pueda reintentar con
+ * `node ace kb:reindex`.
  */
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
@@ -17,6 +20,7 @@ import {
   serializeKbArticleListItem,
   uniqueSlug,
 } from '#services/kb/kb_articles'
+import { clearArticleIndex, reindexArticle } from '#services/kb/rag_ingest_service'
 import { createKbArticleValidator, updateKbArticleValidator } from '#validators/kb'
 
 export default class KbAdminController {
@@ -72,7 +76,10 @@ export default class KbAdminController {
       metadata: { slug: article.slug, status: article.status },
     })
 
-    return response.status(201).send({ article: serializeKbArticle(article) })
+    if (publish) await this.tryReindex(article)
+
+    const counts = await countChunksByArticle([article.id])
+    return response.status(201).send({ article: serializeKbArticle(article, counts.get(article.id) ?? 0) })
   }
 
   /** GET /admin/kb/articles/:id — detalle con el markdown completo. */
@@ -134,7 +141,12 @@ export default class KbAdminController {
       })
     }
 
-    // F3: si cambió el body de un artículo publicado, hay que reindexarlo.
+    // El texto vectorizado incluye título y secciones, así que tanto un cambio
+    // de body como de título invalidan los fragmentos de un artículo publicado.
+    if (article.status === 'published' && (changed.includes('body') || changed.includes('title'))) {
+      await this.tryReindex(article)
+    }
+
     const counts = await countChunksByArticle([article.id])
     return response.status(200).send({ article: serializeKbArticle(article, counts.get(article.id) ?? 0) })
   }
@@ -180,20 +192,26 @@ export default class KbAdminController {
       metadata: { slug: article.slug },
     })
 
+    await this.tryReindex(article)
+
     const counts = await countChunksByArticle([article.id])
     return response.status(200).send({ article: serializeKbArticle(article, counts.get(article.id) ?? 0) })
   }
 
   /**
    * POST /admin/kb/articles/:id/unpublish — lo saca de la KB activa sin
-   * borrarlo. En F3 esta acción elimina también sus chunks vectorizados.
+   * borrarlo. Elimina también sus fragmentos vectorizados: un artículo
+   * despublicado no puede seguir alimentando las respuestas del bot.
    */
   async unpublish({ params, response, currentUser }: HttpContext) {
     const article = await KbArticle.find(params.id)
     if (!article) return this.notFound(response)
 
     article.status = 'draft'
+    article.indexedAt = null
+    article.indexingError = null
     await article.save()
+    await clearArticleIndex(article.id)
 
     await writeAudit({
       actorId: currentUser.id,
@@ -210,5 +228,19 @@ export default class KbAdminController {
 
   private notFound(response: HttpContext['response']) {
     return response.status(404).send({ code: 'KB_ARTICLE_NOT_FOUND', message: 'Artículo no encontrado.' })
+  }
+
+  /**
+   * Reindexa sin propagar el fallo: la acción del admin (publicar, editar) ya
+   * se aplicó y no se revierte porque el proveedor de IA esté caído. El motivo
+   * queda persistido en `indexingError` (lo escribe el servicio) y el panel lo
+   * muestra; se reintenta con `kb:reindex`.
+   */
+  private async tryReindex(article: KbArticle): Promise<void> {
+    try {
+      await reindexArticle(article)
+    } catch {
+      // Ya quedó registrado en article.indexingError y en el log del servicio.
+    }
   }
 }

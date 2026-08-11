@@ -29,6 +29,14 @@ export default class KbArticle extends BaseModel {
   @column.dateTime({ columnName: 'published_at' })
   declare publishedAt: DateTime | null
 
+  /** Última indexación exitosa (chunking + embeddings). Null = sin indexar. */
+  @column.dateTime({ columnName: 'indexed_at' })
+  declare indexedAt: DateTime | null
+
+  /** Motivo del último fallo de indexación; null si la última salió bien. */
+  @column({ columnName: 'indexing_error' })
+  declare indexingError: string | null
+
   @column({ columnName: 'created_by' })
   declare createdBy: string | null
 

@@ -80,8 +80,10 @@ export type KbArticleStatus = 'draft' | 'published'
 
 /**
  * Artículo de la base de conocimiento que alimenta al chatbot. `body` es
- * markdown. `chunksCount`/`indexed` reflejan el estado de la vectorización
- * (siempre 0/false hasta que aterrice la ingesta en F3).
+ * markdown. El bloque de indexación describe el estado de la vectorización:
+ * `indexed` es true cuando el artículo tiene fragmentos vectorizados vigentes,
+ * e `indexingError` trae el motivo del último fallo (null si la última salió
+ * bien). Un artículo puede estar publicado y no indexado si falló la ingesta.
  */
 export interface KbArticle {
   id: string
@@ -94,6 +96,8 @@ export interface KbArticle {
   updatedAt: string
   chunksCount: number
   indexed: boolean
+  indexedAt: string | null
+  indexingError: string | null
 }
 
 /**
