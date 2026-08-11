@@ -468,3 +468,78 @@ Authorization: Bearer {{login.response.body.accessToken}}
 #   Reindexación manual (no es HTTP, se corre en la terminal):
 #     node ace kb:reindex                       # todos los publicados
 #     node ace kb:reindex --slug=<slug>         # uno solo
+
+# ═══════════════════ CHATBOT — usuario (F4, ADR-0004) ════════════════════════
+#   El asistente responde SOLO con lo documentado en la KB. Dos barreras:
+#   (1) gate de umbral: si el mejor score < RAG_MIN_SCORE devuelve el fallback
+#       sin llamar al modelo (grounded:false, sources:[]);
+#   (2) system prompt: ataja lo que pasa el umbral pero pide consejo,
+#       predicciones o datos de la cartera (también grounded:false).
+#   Requiere artículos publicados e indexados (ver KB13) y GEMINI_API_KEY.
+
+### CH1 · Pregunta documentada → 200 { answer, grounded:true, sources[] }
+# @name chat
+POST {{base}}/chat
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "message": "¿Cómo cargo una transacción?" }
+
+### CH2 · Seguir el hilo (memoria corta: entiende la referencia al turno previo)
+POST {{base}}/chat
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "message": "¿Y cómo la edito después?", "conversationId": "{{chat.response.body.conversationId}}" }
+
+### CH3 · Tema ajeno → 200 con grounded:false y sources vacío (no llama al modelo)
+POST {{base}}/chat
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "message": "¿Quién ganó el mundial de fútbol 2022?" }
+
+### CH4 · Pide consejo financiero → grounded:false (lo ataja el system prompt)
+POST {{base}}/chat
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "message": "¿Me conviene comprar Bitcoin ahora?" }
+
+### CH5 · Pide datos de la cartera → grounded:false (el bot no accede a eso)
+POST {{base}}/chat
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "message": "¿Cuánto tengo invertido en mi cartera?" }
+
+### CH6 · Mensaje demasiado corto → 422 VALIDATION_ERROR
+POST {{base}}/chat
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "message": "a" }
+
+### CH7 · Conversación ajena o inexistente → 404 CONVERSATION_NOT_FOUND
+POST {{base}}/chat
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "message": "hola", "conversationId": "00000000-0000-0000-0000-000000000000" }
+
+### CH8 · Mis conversaciones → 200 { data } (más reciente primero)
+GET {{base}}/chat/conversations
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### CH9 · Mensajes de un hilo → 200 { conversationId, data }
+GET {{base}}/chat/conversations/{{chat.response.body.conversationId}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### CH10 · Borrar un hilo propio → 204 (sus mensajes caen en cascada)
+DELETE {{base}}/chat/conversations/{{chat.response.body.conversationId}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+#   Otros casos que no se pueden disparar desde acá:
+#     - 429 CHAT_RATE_LIMITED: más de 30 preguntas por usuario en una hora.
+#     - 503 AI_UNAVAILABLE: sin GEMINI_API_KEY configurada.
+#     - 502 CHAT_PROVIDER_ERROR: el proveedor falló (modelo dado de baja, red).

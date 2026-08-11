@@ -173,6 +173,21 @@ export const updateKbArticleInputSchema = z
     message: 'No hay cambios para aplicar.',
   })
 
+// ---- Chatbot RAG — conversación (F4) ----
+
+/**
+ * Pregunta al asistente. `conversationId` continúa un hilo existente; sin él se
+ * crea uno nuevo.
+ */
+export const sendChatMessageInputSchema = z.object({
+  message: z
+    .string()
+    .trim()
+    .min(2, 'Escribí tu consulta.')
+    .max(1000, 'La consulta no puede superar los 1000 caracteres.'),
+  conversationId: z.string().uuid().optional(),
+})
+
 export type LoginInput = z.infer<typeof loginInputSchema>
 export type RegisterInput = z.infer<typeof registerInputSchema>
 export type RefreshInput = z.infer<typeof refreshInputSchema>
@@ -187,3 +202,4 @@ export type CreateSectionInput = z.infer<typeof createSectionInputSchema>
 export type CreateContentItemInput = z.infer<typeof createContentItemInputSchema>
 export type CreateKbArticleInput = z.infer<typeof createKbArticleInputSchema>
 export type UpdateKbArticleInput = z.infer<typeof updateKbArticleInputSchema>
+export type SendChatMessageInput = z.infer<typeof sendChatMessageInputSchema>
