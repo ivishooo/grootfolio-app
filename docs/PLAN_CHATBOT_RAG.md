@@ -1,4 +1,4 @@
-# Plan de implementación — Chatbot RAG (v2)
+# Plan de implementación — Chatbot RAG (v3)
 
 > Decisión de arquitectura: [ADR-0004](adr/0004-chatbot-rag-gemini.md).
 > Alcance: chatbot de dominio **acotado** que responde solo sobre (a) uso de la
@@ -20,22 +20,46 @@
 | Fuente de conocimiento | KB dedicada (`kb_articles`, markdown) |
 | Vector store | `pgvector` sobre el Postgres existente |
 | Proveedor IA | Google Gemini (SDK `@google/genai`) |
-| Modelos | Embeddings (`text-embedding-004`/`gemini-embedding-001`) + Gemini Flash |
+| Modelos | `gemini-embedding-001` a 768 dims + Gemini Flash |
 | Superficies | Web y mobile |
 | Grounding | Umbral de similitud + system prompt estricto + citas + fallback |
 
-## A confirmar antes de F1
+## Decisiones cerradas antes de F3 (2026-08-11)
 
-1. **Plan de Gemini**: free tier vs pay-as-you-go (Google AI Studio → API keys /
-   Google Cloud → Billing). Define límites de rate y privacidad de datos.
-2. **Modelo de embeddings disponible** y su **dimensión** (768 / 1536 / 3072) —
-   fija el tipo de la columna `vector(N)`.
-3. **Parámetros iniciales** de retrieval: `RAG_TOP_K` (p. ej. 4) y
-   `RAG_MIN_SCORE` (umbral de similitud coseno; se calibra en F7).
+1. **Modelo de embeddings: `gemini-embedding-001` truncado a 768 dimensiones**
+   (vía Matryoshka / `outputDimensionality`). Mantiene la columna `vector(768)`
+   creada en F1 — sin migración de la columna ni del índice — y la pérdida de
+   calidad frente a 3072 es marginal.
+   ⚠️ Al truncar por debajo de la dimensión nativa **hay que re-normalizar el
+   vector** antes de guardarlo, si no las distancias coseno quedan mal.
+2. **Las conversaciones se persisten** (tablas `chat_conversations` y
+   `chat_messages`). Motivos: material real para el capítulo de evaluación,
+   habilita el rate limit por usuario casi gratis, y permite mostrar el
+   historial al reabrir el chat.
+3. **Indexación sincrónica al publicar, con estado persistido**
+   (`kb_articles.indexed_at` / `indexing_error`). La KB es de decenas de
+   artículos: no justifica un job en background, y el estado sirve para mostrar
+   "indexado ✓" o el error en el panel de admin.
+4. **Parámetros iniciales de retrieval**: `RAG_TOP_K=4` y `RAG_MIN_SCORE=0.65`
+   (similitud coseno). Se calibran con datos en F7.
+
+## Pendiente de confirmar
+
+- **Plan de Gemini para la API.** La suscripción **Google AI Pro no habilita el
+  acceso programático**: la API va por una API key de Google AI Studio, con su
+  propio free tier y su propio pago según si el proyecto de Google Cloud tiene
+  billing habilitado. Hay que verificar en *aistudio.google.com → Get API key*
+  si el proyecto figura como free o con billing activo.
+  Criterio: desarrollar en free está bien; **habilitar billing antes de la
+  defensa** para no arriesgar la demo en vivo por rate limit (y por la
+  privacidad de los prompts, que en los tiers gratuitos suelen poder usarse
+  para mejorar el producto).
+- **UX del chat** (se define antes de F5, recomendación en las fases F5/F6).
+- **Renderer de markdown en las respuestas** (dependencia nueva, ver F5/F6).
 
 ---
 
-## Fase F1 — Infraestructura y datos
+## Fase F1 — Infraestructura y datos ✅ (PR #136, en `develop`)
 
 **Objetivo:** dejar la base lista, sin lógica de IA aún.
 
@@ -57,45 +81,67 @@
 
 ---
 
-## Fase F2 — KB: administración (backend)
+## Fase F2 — KB: administración (backend) ✅ (PR #137, en revisión)
 
 **Objetivo:** CRUD de artículos de conocimiento para admins.
 
 - `KbAdminController` bajo `/admin/kb` (auth + admin middleware):
-  - `GET /admin/kb/articles` (lista + filtros por estado/búsqueda)
+  - `GET /admin/kb/articles` (lista + filtros por estado/búsqueda; los totales
+    son **globales**, no del resultado filtrado)
   - `POST /admin/kb/articles` (alta)
   - `GET /admin/kb/articles/:id`
   - `PATCH /admin/kb/articles/:id`
   - `DELETE /admin/kb/articles/:id`
   - `POST /admin/kb/articles/:id/publish`
+  - `POST /admin/kb/articles/:id/unpublish` *(agregado sobre el plan original:
+    F5 pide publicar/despublicar desde el panel)*
 - Validators VineJS + schemas Zod en `packages/shared`
-  (`kbArticleInputSchema`, tipos `KbArticle`).
+  (`createKbArticleInputSchema`, `updateKbArticleInputSchema`, tipos
+  `KbArticle`, `KbArticleListItem`, `KbStats`).
 - Cada acción escribe en el **audit log** existente (`kb.create`, `kb.update`,
-  `kb.publish`, `kb.delete`).
+  `kb.publish`, `kb.unpublish`, `kb.delete`).
+- El listado no manda el markdown completo: devuelve `excerpt` en texto plano y
+  `bodyLength`. `chunksCount`/`indexed` ya viajan en el contrato (0/`false`
+  hasta F3) para que F5 muestre el estado de indexación sin cambiarlo después.
 - Aún sin embeddings: publicar solo marca `status=published` (la indexación
   llega en F3).
 
-**Entrega:** CRUD probado con `requests.http`.
+**Entrega:** CRUD probado con `requests.http` (casos KB1–KB12).
 
 ---
 
-## Fase F3 — Ingesta y embeddings
+## Fase F3 — Ingesta y embeddings ← **siguiente**
 
 **Objetivo:** convertir artículos publicados en chunks vectorizados.
 
-- `RagIngestService`:
-  - **Chunking**: partir el markdown por encabezados/párrafos en fragmentos de
-    ~500–800 tokens con solapamiento leve; preservar referencia a la sección.
-  - **Embeddings**: generar el vector de cada chunk con el modelo de embeddings
-    de Gemini (batch).
-  - **Upsert**: al publicar/editar un artículo → borrar sus chunks previos y
-    regenerarlos (idempotente).
-- Hook o job: `POST /admin/kb/articles/:id/publish` dispara la reindexación.
-- Command Ace `kb:reindex` para reindexar todo (mantenimiento / primer carga).
-- Manejo de errores y rate limits (reintentos con backoff).
+- **Migración `0009`** (lo que el esquema de F1 no previó):
+  - `kb_chunks.heading` — sección del artículo a la que pertenece el fragmento.
+    Necesaria para que las citas digan "Artículo › sección" y no solo el
+    artículo.
+  - `kb_articles.indexed_at` y `kb_articles.indexing_error` — estado de
+    indexación (decisión 3).
+  - La columna `embedding` **no cambia**: sigue en `vector(768)` (decisión 1).
+- `services/kb/gemini_client.ts`: wrapper del SDK `@google/genai`, init
+  perezosa, error tipado si falta la API key, único punto de configuración de
+  modelos.
+- `services/kb/chunker.ts`: partir el markdown por encabezados y después por
+  párrafos, ~500–800 tokens con solapamiento leve, arrastrando el `heading`.
+  **Lógica pura → unit tests sin red.**
+- `services/kb/rag_ingest_service.ts` (`reindexArticle`):
+  - **Embeddings**: en batch, con `outputDimensionality: 768` y
+    **re-normalización del vector** (obligatorio al truncar; ver decisión 1).
+  - **Upsert**: borrar chunks previos y regenerarlos (idempotente).
+  - Reintentos con backoff para los 429 de rate limit; el error se guarda en
+    `indexing_error`.
+- Enganche en `KbAdminController`: `publish` indexa, `unpublish`/`destroy`
+  borran chunks, y editar el `body` de un artículo publicado lo reindexa.
+- Command Ace `kb:reindex` para reindexar todo (mantenimiento / primera carga /
+  cambio de modelo de embeddings), siguiendo el patrón de los commands ya
+  existentes (`prices_refresh`, `suspensions_sweep`).
 
 **Entrega:** publicar un artículo deja sus chunks + embeddings en la base;
-`kb:reindex` reconstruye todo.
+`kb:reindex` reconstruye todo y es idempotente (correrlo dos veces da el mismo
+resultado); despublicar no deja chunks huérfanos.
 
 ---
 
@@ -111,24 +157,45 @@
      fallback fijo **sin llamar al generador**.
   4. Si pasa: armar prompt (contexto = chunks recuperados) + system prompt de
      grounding estricto → **Gemini Flash** → respuesta.
-  5. Adjuntar **citas** (artículos/secciones de origen) y `grounded: true`.
-- `ChatController`: `POST /chat` (auth) → `{ answer, sources[], grounded }`.
-  Acepta historial corto opcional (sin memoria de largo plazo).
-- Config: `RAG_TOP_K`, `RAG_MIN_SCORE`, modelos, todo por env.
-- `requests.http`: casos in-scope (responde con cita) y out-of-scope (rechaza).
+  5. Adjuntar **citas** (artículo + `heading` de origen) y `grounded: true`.
 
-**Entrega:** `/chat` funcional y acotado, verificado end-to-end.
+  ⚠️ El operador `<=>` devuelve **distancia** coseno, no similitud: el gate
+  compara contra `1 - distancia`.
+- **Migración `0010`**: `chat_conversations` y `chat_messages` (decisión 2).
+- `services/kb/prompts.ts`: el system prompt de grounding estricto en un archivo
+  aparte y versionado — va a cambiar varias veces en F7 y su evolución es
+  material de tesis.
+- `ChatController`: `POST /chat` (auth) → `{ answer, sources[], grounded }`.
+  Acepta historial corto (últimos ~4 mensajes; sin memoria de largo plazo en el
+  prompt aunque la conversación quede guardada).
+- **Rate limit por usuario/hora**, contando filas en `chat_messages`.
+- Config: `RAG_TOP_K`, `RAG_MIN_SCORE`, modelos, todo por env. Si falta
+  `GEMINI_API_KEY` el endpoint responde "IA no disponible" sin romper el resto.
+- `requests.http`: casos in-scope (responde con cita), out-of-scope (rechaza) y
+  sin API key configurada.
+
+**Entrega:** `/chat` funcional y acotado, verificado end-to-end **por HTTP antes
+de tocar UI** (una pregunta documentada responde con cita; una fuera de alcance
+se rechaza sin llegar a llamar al generador).
 
 ---
 
 ## Fase F5 — Web (chat + administración de la KB)
 
-- **Usuario**: pantalla/panel de chat (burbuja flotante o vista dedicada) con
-  historial de la sesión, estado de carga, y render de **citas** con enlace al
-  artículo. Muestra claramente cuando el bot no tiene información.
-- **Admin**: sección "Base de conocimiento" en el panel — lista de artículos,
-  editor markdown (crear/editar), publicar/despublicar, estado de indexación.
-- Hooks en `queries.ts` (`useChat`, `useKbArticles`, `useCreateKbArticle`, …).
+- **Usuario**: `features/chat/ChatWidget.tsx` — **burbuja flotante** presente en
+  toda la app (recomendado sobre la vista dedicada: el bot resuelve dudas
+  *mientras* se usa la app). Historial de la sesión, estado de carga, **citas
+  como enlaces al artículo**, y un vacío claro y honesto cuando el bot no tiene
+  información.
+- **Admin**: `features/admin/AdminKbPage.tsx` + ruta `/admin/kb` bajo
+  `RequireAdmin` (junto a `/admin/users` y `/admin/content`) — lista con filtros
+  y totales, editor markdown con preview, publicar/despublicar y **estado de
+  indexación** (indexado ✓ / error / sin indexar).
+- Hooks en `queries.ts`: `useKbArticles`, `useKbArticle`, `useCreateKbArticle`,
+  `useUpdateKbArticle`, `useDeleteKbArticle`, `usePublishKbArticle`,
+  `useUnpublishKbArticle`, `useSendChatMessage`.
+- **Dependencia nueva a decidir**: `react-markdown` para renderizar las
+  respuestas del bot y el preview del editor.
 
 **Entrega:** flujo completo en web, verificado con Playwright.
 
@@ -136,12 +203,19 @@
 
 ## Fase F6 — Mobile (espejo de F5)
 
-- Pantalla de chat (React Native) con el mismo contrato.
-- Gestión de la KB para admins (lista + editor), reutilizando `BottomSheet` y
-  los patrones de `AdminUsersScreen`/`AdminContentScreen`.
+- `ChatScreen` en el `RootNavigator`, con entrada desde un **botón en el
+  `AppHeader`** (al lado de la campanita). No se agrega un séptimo tab: el
+  `TabNavigator` ya tiene seis y Notificaciones ya resuelve así su acceso.
+- `AdminKbScreen` reutilizando `BottomSheet` y los patrones de
+  `AdminUsersScreen`/`AdminContentScreen`. **Simplificación propuesta**: en
+  mobile el admin sólo lista, publica/despublica y borra; la redacción del
+  markdown queda en web (escribir artículos largos en un teléfono es incómodo).
 - Hooks equivalentes en el `queries.ts` de mobile.
+- **Sin librería de markdown en RN** (las disponibles son de calidad despareja):
+  formateo mínimo propio, o pedirle al bot respuestas en texto plano.
 
-**Entrega:** paridad mobile; entra en el próximo build de TestFlight.
+**Entrega:** paridad mobile; entra en el próximo build de TestFlight
+(enlaza con GF-252 / GF-259).
 
 ---
 
@@ -149,15 +223,58 @@
 
 **Objetivo:** medir y calibrar el acotamiento — el aporte académico.
 
-- Set de evaluación: N preguntas **in-scope** (deben responderse con cita) y N
-  **out-of-scope** (deben rechazarse).
-- Métricas: tasa de respuesta correcta in-scope, tasa de rechazo correcto
-  out-of-scope, precisión de las citas.
-- Calibrar `RAG_MIN_SCORE` y `RAG_TOP_K`; ajustar el system prompt.
+- Set de evaluación (fixture): 20–30 preguntas **in-scope** (deben responderse
+  con cita correcta) y 20–30 **out-of-scope** (deben rechazarse). Se escriben
+  **antes** de mirar resultados, y no se ajustan para que den bien.
+- Command `kb:eval` que corre el set y reporta las métricas: tasa de respuesta
+  correcta in-scope, tasa de rechazo correcto out-of-scope, precisión de citas.
+- **Barrido de `RAG_MIN_SCORE`** (p. ej. 0.50 → 0.85) y de `RAG_TOP_K`,
+  tabulando el trade-off. Esa tabla es el corazón del aporte académico: muestra
+  el compromiso entre "responde poco" y "alucina".
+- Ajuste del system prompt con los fallos que aparezcan, re-corriendo el set en
+  cada iteración.
 - (Opcional) verificador de respaldo como capa extra.
-- Documento de resultados para la tesis.
+- Documento de resultados para la tesis (metodología + tablas).
 
 **Entrega:** parámetros calibrados + informe de evaluación.
+
+---
+
+## Fase F8 — QA y cierre
+
+Espejo del F8 del feature Admin/Contenidos.
+
+- Unit tests del chunker y del gate de umbral; E2E del flujo de chat y del panel
+  de KB.
+- Repaso de estados vacíos, errores de red, IA caída y sesión expirada en ambas
+  superficies.
+
+---
+
+## Fase F9 — Despliegue
+
+- `GEMINI_API_KEY` y envs de RAG en **Railway**; las migraciones `0009`/`0010`
+  corren solas en el Pre-Deploy.
+- **Cargar la KB real en producción** y correr `kb:reindex` contra prod.
+- Deploy web (Vercel, automático) + build EAS y subida a **TestFlight**
+  (GF-252 / GF-259).
+- Smoke test del bot en las tres superficies contra prod.
+
+---
+
+## Trabajo paralelo — contenido de la KB (camino crítico)
+
+**No es código, y es lo que determina si el bot sirve.** F7 no tiene sentido con
+una KB vacía, así que la redacción arranca **en paralelo a F3/F4**, no después.
+
+Cobertura mínima sugerida (~18 artículos):
+
+- **Uso de la app (~8):** cargar una transacción, editarla/borrarla, cómo se
+  calcula el P&L, cómo se valúa en USD y qué FX se usa, qué es un holding, cómo
+  leer el dashboard, los reportes, el cuestionario de perfil.
+- **Inversiones (~10):** qué es una acción / un bono / un ETF / una cripto / una
+  divisa / un CEDEAR, diversificación, riesgo vs retorno, los tres perfiles de
+  inversor, P&L realizado vs no realizado.
 
 ---
 
@@ -166,13 +283,17 @@
 | Riesgo | Mitigación |
 |---|---|
 | Alucinación residual | Umbral + prompt + citas + verificador; evaluación en F7 |
-| Rate limits (free tier) en demo | Confirmar plan; considerar pay-as-you-go para la defensa |
-| Privacidad de prompts (free tier) | Evaluar pay-as-you-go; las preguntas son de bajo riesgo |
-| KB pobre → respuestas pobres | Curaduría de contenido; el bot es tan bueno como la KB |
-| Dimensión de embeddings mal fijada | Confirmar modelo/dim en "A confirmar antes de F1" |
+| Rate limits (free tier) en demo | Verificar el tier real de la API key; habilitar billing antes de la defensa |
+| Privacidad de prompts (free tier) | Ídem; las preguntas son de bajo riesgo |
+| KB pobre → respuestas pobres | Redacción en paralelo desde F3 (ver sección de contenido) |
+| Vector truncado sin re-normalizar | Re-normalizar en `rag_ingest_service` (decisión 1); cubierto por unit test |
+| KB completa demasiado tarde → F7 apretada | Arrancar la redacción ya, no al final |
 
 ## Estimación
 
-7 fases cortas. F1–F4 (backend) son el grueso; F5–F6 (UI) siguen patrones
-existentes; F7 es análisis. Sin fechas comprometidas: el pendiente crítico del
-proyecto sigue siendo la monografía de tesis (Epic 6).
+9 fases. F3–F4 (backend con IA) son el grueso y el mayor riesgo técnico; F5–F6
+(UI) siguen patrones existentes y pueden repartirse entre los dos integrantes;
+F7 es análisis. Sin fechas comprometidas: el pendiente crítico del proyecto
+sigue siendo la monografía de tesis (Epic 6), y el chatbot alimenta los
+capítulos de implementación (GF-239), pruebas (GF-240) y el manual de usuario
+(GF-242).
