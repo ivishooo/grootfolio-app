@@ -49,11 +49,10 @@
    (`kb_articles.indexed_at` / `indexing_error`). La KB es de decenas de
    artículos: no justifica un job en background, y el estado sirve para mostrar
    "indexado ✓" o el error en el panel de admin.
-4. **Parámetros iniciales de retrieval**: `RAG_TOP_K=4` y `RAG_MIN_SCORE=0.60`
-   (similitud coseno). Se calibran con datos en F7 — ver la sonda de abajo, que
-   muestra que 0.65 quedaba demasiado ajustado.
+4. **Parámetros iniciales de retrieval**: `RAG_TOP_K=4` y `RAG_MIN_SCORE=0.63`
+   (similitud coseno). Se calibran con datos en F7 — ver las dos sondas de abajo.
 
-### Sonda de retrieval (2026-08-11)
+### Sonda 1 — embeddings sueltos (2026-08-11)
 
 Medición real contra `gemini-embedding-001` a 768 dims, con 2 chunks de ejemplo
 y 6 preguntas. **No es una calibración** (eso es F7 con la KB completa): es lo
@@ -68,13 +67,37 @@ mínimo para elegir un punto de partida sensato.
 Conclusiones:
 
 - `taskType` mejora el caso difícil sin acercar los out-of-scope → **se usa**.
-- `RAG_MIN_SCORE=0.65` dejaba una pregunta legítima a 0.01 del corte: se baja el
-  arranque a **0.60**.
+- `RAG_MIN_SCORE=0.65` dejaba una pregunta legítima a 0.01 del corte.
 - El out-of-scope más alto (0.5983) fue *"¿me conviene comprar Bitcoin ahora?"*:
   temáticamente cercano a la KB pero pide consejo financiero, que está fuera de
-  alcance. **El margen real es de ~0.06**, así que el umbral por sí solo no
-  alcanza: el system prompt de grounding es la segunda barrera imprescindible, y
-  la calibración de F7 no es decorativa.
+  alcance.
+
+### Sonda 2 — pipeline completo de F3 (2026-08-11)
+
+Ya con el pipeline real: artículo publicado por la API, chunkeado, vectorizado y
+recuperado por similitud desde `kb_chunks` (3 fragmentos).
+
+| Pregunta | Mejor score | Fragmento recuperado |
+|---|---|---|
+| ¿Cómo cargo una transacción? | 0.7694 | Cargar una transacción ✓ |
+| ¿Cómo borro una operación? | 0.7348 | Editar o borrar ✓ |
+| ¿Qué tipo de cambio usan para el costo? | 0.6969 | Cómo se valúa en dólares ✓ |
+| ¿Quién ganó el mundial 2022? | 0.5106 | — (rechazar) |
+| **¿Me conviene comprar Bitcoin ahora?** | **0.6020** | — (rechazar) |
+
+El retrieval acierta el fragmento correcto en las tres preguntas legítimas. Pero
+**"¿me conviene comprar Bitcoin ahora?" volvió a quedar arriba de todos los
+demás out-of-scope, en 0.6020: por encima del umbral 0.60 que se había fijado.**
+Es decir, con 0.60 el gate la dejaba pasar.
+
+Por eso `RAG_MIN_SCORE` arranca en **0.63**, que equidista de los dos peores
+casos medidos (peor in-scope 0.6599, peor out-of-scope 0.6020). Es un punto de
+partida sobre 8 preguntas, no una calibración: **F7 lo fija con el set completo.**
+
+Lo que estas dos sondas dejan claro, y es material de tesis: hay preguntas
+out-of-scope que **ningún umbral va a separar**, porque son temáticamente
+idénticas a la KB y sólo difieren en que piden consejo financiero. Para ésas la
+única defensa es el system prompt de grounding de F4.
 
 ## Pendiente de confirmar
 

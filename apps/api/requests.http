@@ -344,9 +344,12 @@ Authorization: Bearer {{login.response.body.accessToken}}
 DELETE {{base}}/admin/content/sections/{{adminSection.response.body.section.id}}
 Authorization: Bearer {{login.response.body.accessToken}}
 
-# ══════════ ADMIN — base de conocimiento del chatbot (F2, ADR-0004) ══════════
-#   CRUD de los artículos markdown que alimentan al bot. Todavía sin embeddings:
-#   publicar sólo cambia el estado (la ingesta llega en F3).
+# ════════ ADMIN — base de conocimiento del chatbot (F2/F3, ADR-0004) ═════════
+#   CRUD de los artículos markdown que alimentan al bot. Desde F3, publicar
+#   dispara la indexación (chunking + embeddings con Gemini): mirá chunksCount,
+#   indexed, indexedAt e indexingError en las respuestas.
+#   Sin GEMINI_API_KEY la indexación falla pero la acción NO se revierte: el
+#   artículo queda publicado con el motivo en indexingError.
 
 ### KB1 · Crear artículo (borrador) → 201 { article }
 # @name kbArticle
@@ -410,11 +413,11 @@ Content-Type: application/json
 
 {}
 
-### KB9 · Publicar → 200 { article } (status: published)
+### KB9 · Publicar → 200 { article } (published + indexado: chunksCount > 0)
 POST {{base}}/admin/kb/articles/{{kbArticle.response.body.article.id}}/publish
 Authorization: Bearer {{login.response.body.accessToken}}
 
-### KB10 · Despublicar → 200 { article } (status: draft)
+### KB10 · Despublicar → 200 { article } (draft + chunks borrados: chunksCount 0)
 POST {{base}}/admin/kb/articles/{{kbArticle.response.body.article.id}}/unpublish
 Authorization: Bearer {{login.response.body.accessToken}}
 
@@ -425,3 +428,43 @@ Authorization: Bearer {{login.response.body.accessToken}}
 ### KB12 · Borrar artículo → 204
 DELETE {{base}}/admin/kb/articles/{{kbArticle.response.body.article.id}}
 Authorization: Bearer {{login.response.body.accessToken}}
+
+### KB13 · Alta ya publicada → 201 { article } con chunksCount > 0
+#   El alta con publish:true indexa en el momento. Un artículo con varias
+#   secciones deja un fragmento por sección (cada uno con su heading).
+# @name kbIndexado
+POST {{base}}/admin/kb/articles
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Cómo se valúa el portafolio",
+  "body": "## En qué moneda\n\nGrootFolio expresa todo en dólares. El costo de cada operación se normaliza a USD con el tipo de cambio de la fecha en que la cargaste.\n\n## Qué es el P&L\n\nEl P&L es la diferencia entre lo que vale hoy tu posición y lo que te costó. El realizado corresponde a las ventas ya hechas; el no realizado, a lo que todavía tenés en cartera.",
+  "publish": true
+}
+
+### KB14 · Editar el body de un publicado → 200, reindexa (cambian los vectores)
+PATCH {{base}}/admin/kb/articles/{{kbIndexado.response.body.article.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "body": "## En qué moneda\n\nGrootFolio expresa todo en dólares estadounidenses, usando el tipo de cambio de la fecha de cada operación.\n\n## Qué es el P&L\n\nEs la diferencia entre el valor actual de la posición y su costo de adquisición." }
+
+### KB15 · Editar sólo el slug → 200, NO reindexa (el slug no se vectoriza)
+PATCH {{base}}/admin/kb/articles/{{kbIndexado.response.body.article.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "slug": "valuacion-del-portafolio" }
+
+### KB16 · Despublicar → los fragmentos se borran (chunksCount 0, indexedAt null)
+POST {{base}}/admin/kb/articles/{{kbIndexado.response.body.article.id}}/unpublish
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### KB17 · Limpieza
+DELETE {{base}}/admin/kb/articles/{{kbIndexado.response.body.article.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+#   Reindexación manual (no es HTTP, se corre en la terminal):
+#     node ace kb:reindex                       # todos los publicados
+#     node ace kb:reindex --slug=<slug>         # uno solo
