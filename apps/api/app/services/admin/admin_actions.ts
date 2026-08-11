@@ -42,6 +42,11 @@ export type AuditAction =
   | 'content.publish'
   | 'content.delete'
   | 'content.section_create'
+  | 'kb.create'
+  | 'kb.update'
+  | 'kb.publish'
+  | 'kb.unpublish'
+  | 'kb.delete'
 
 export async function writeAudit(entry: {
   actorId: string
