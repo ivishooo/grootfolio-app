@@ -30,8 +30,17 @@
    (vía Matryoshka / `outputDimensionality`). Mantiene la columna `vector(768)`
    creada en F1 — sin migración de la columna ni del índice — y la pérdida de
    calidad frente a 3072 es marginal.
-   ⚠️ Al truncar por debajo de la dimensión nativa **hay que re-normalizar el
-   vector** antes de guardarlo, si no las distancias coseno quedan mal.
+   - **Verificado contra la API** (2026-08-11): nativo 3072 con norma L2 = 1;
+     truncado a 768 la norma cae a ≈ 0.60, es decir **el truncado no viene
+     re-normalizado**.
+   - Con `<=>` y `vector_cosine_ops` eso **no altera el ranking ni el score**
+     (la distancia coseno divide por las normas), así que re-normalizar no es
+     obligatorio. Se hace igual al indexar, por dos razones: deja los vectores
+     comparables entre sí y habilita cambiar a `<#>` (inner product, más
+     barato) sin recalcular nada.
+   - **Usar `taskType`**: `RETRIEVAL_DOCUMENT` al indexar chunks y
+     `RETRIEVAL_QUERY` al embeber la pregunta. Medido, ensancha el margen entre
+     in-scope y out-of-scope de ~0.02 a ~0.06 (ver "Sonda de retrieval").
 2. **Las conversaciones se persisten** (tablas `chat_conversations` y
    `chat_messages`). Motivos: material real para el capítulo de evaluación,
    habilita el rate limit por usuario casi gratis, y permite mostrar el
@@ -40,8 +49,32 @@
    (`kb_articles.indexed_at` / `indexing_error`). La KB es de decenas de
    artículos: no justifica un job en background, y el estado sirve para mostrar
    "indexado ✓" o el error en el panel de admin.
-4. **Parámetros iniciales de retrieval**: `RAG_TOP_K=4` y `RAG_MIN_SCORE=0.65`
-   (similitud coseno). Se calibran con datos en F7.
+4. **Parámetros iniciales de retrieval**: `RAG_TOP_K=4` y `RAG_MIN_SCORE=0.60`
+   (similitud coseno). Se calibran con datos en F7 — ver la sonda de abajo, que
+   muestra que 0.65 quedaba demasiado ajustado.
+
+### Sonda de retrieval (2026-08-11)
+
+Medición real contra `gemini-embedding-001` a 768 dims, con 2 chunks de ejemplo
+y 6 preguntas. **No es una calibración** (eso es F7 con la KB completa): es lo
+mínimo para elegir un punto de partida sensato.
+
+| | sin `taskType` | con `taskType` |
+|---|---|---|
+| Peor pregunta **in-scope** | 0.6153 | **0.6599** |
+| Mejor pregunta **out-of-scope** | 0.5981 | 0.5983 |
+| **Margen** | 0.017 | **0.062** |
+
+Conclusiones:
+
+- `taskType` mejora el caso difícil sin acercar los out-of-scope → **se usa**.
+- `RAG_MIN_SCORE=0.65` dejaba una pregunta legítima a 0.01 del corte: se baja el
+  arranque a **0.60**.
+- El out-of-scope más alto (0.5983) fue *"¿me conviene comprar Bitcoin ahora?"*:
+  temáticamente cercano a la KB pero pide consejo financiero, que está fuera de
+  alcance. **El margen real es de ~0.06**, así que el umbral por sí solo no
+  alcanza: el system prompt de grounding es la segunda barrera imprescindible, y
+  la calibración de F7 no es decorativa.
 
 ## Pendiente de confirmar
 
@@ -128,8 +161,9 @@
   párrafos, ~500–800 tokens con solapamiento leve, arrastrando el `heading`.
   **Lógica pura → unit tests sin red.**
 - `services/kb/rag_ingest_service.ts` (`reindexArticle`):
-  - **Embeddings**: en batch, con `outputDimensionality: 768` y
-    **re-normalización del vector** (obligatorio al truncar; ver decisión 1).
+  - **Embeddings**: en batch, con `outputDimensionality: 768`,
+    `taskType: 'RETRIEVAL_DOCUMENT'` y re-normalización del vector (ver
+    decisión 1).
   - **Upsert**: borrar chunks previos y regenerarlos (idempotente).
   - Reintentos con backoff para los 429 de rate limit; el error se guarda en
     `indexing_error`.
@@ -150,7 +184,7 @@ resultado); despublicar no deja chunks huérfanos.
 **Objetivo:** el núcleo del bot.
 
 - `RagQueryService`:
-  1. Embedding de la pregunta.
+  1. Embedding de la pregunta, con `taskType: 'RETRIEVAL_QUERY'`.
   2. Búsqueda por similitud en `kb_chunks` (`ORDER BY embedding <=> $q LIMIT
      top_k`), solo de artículos `published`.
   3. **Gate de umbral**: si el mejor score < `RAG_MIN_SCORE` → devolver el
@@ -286,7 +320,7 @@ Cobertura mínima sugerida (~18 artículos):
 | Rate limits (free tier) en demo | Verificar el tier real de la API key; habilitar billing antes de la defensa |
 | Privacidad de prompts (free tier) | Ídem; las preguntas son de bajo riesgo |
 | KB pobre → respuestas pobres | Redacción en paralelo desde F3 (ver sección de contenido) |
-| Vector truncado sin re-normalizar | Re-normalizar en `rag_ingest_service` (decisión 1); cubierto por unit test |
+| Margen in/out-scope estrecho (~0.06) | Umbral + `taskType` + prompt de grounding como segunda barrera; calibración en F7 |
 | KB completa demasiado tarde → F7 apretada | Arrancar la redacción ya, no al final |
 
 ## Estimación
