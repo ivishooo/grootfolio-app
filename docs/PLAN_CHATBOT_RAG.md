@@ -226,7 +226,7 @@ resultado); despublicar no deja chunks huérfanos.
 
 ---
 
-## Fase F4 — Retrieval + endpoint de chat + grounding ✅ (PR pendiente)
+## Fase F4 — Retrieval + endpoint de chat + grounding ✅ (PR #140, en `develop`)
 
 **Objetivo:** el núcleo del bot.
 
@@ -261,7 +261,7 @@ se rechaza sin llegar a llamar al generador).
 
 ---
 
-## Fase F5 — Web (chat + administración de la KB) ← **siguiente**
+## Fase F5 — Web (chat + administración de la KB) ✅ (PR pendiente)
 
 - **Usuario**: `features/chat/ChatWidget.tsx` — **burbuja flotante** presente en
   toda la app (recomendado sobre la vista dedicada: el bot resuelve dudas
@@ -275,14 +275,17 @@ se rechaza sin llegar a llamar al generador).
 - Hooks en `queries.ts`: `useKbArticles`, `useKbArticle`, `useCreateKbArticle`,
   `useUpdateKbArticle`, `useDeleteKbArticle`, `usePublishKbArticle`,
   `useUnpublishKbArticle`, `useSendChatMessage`.
-- **Dependencia nueva a decidir**: `react-markdown` para renderizar las
-  respuestas del bot y el preview del editor.
+- **Sin dependencia nueva**: se resolvió con un componente `Markdown` propio
+  (~190 líneas) que cubre encabezados, párrafos, listas, código, negrita,
+  itálica y links — que es todo lo que usan la KB y el bot (al que el system
+  prompt ya le pide texto simple). Si en algún momento hace falta markdown
+  completo, se reemplaza ese único componente por `react-markdown`.
 
 **Entrega:** flujo completo en web, verificado con Playwright.
 
 ---
 
-## Fase F6 — Mobile (espejo de F5)
+## Fase F6 — Mobile (espejo de F5) ← **siguiente**
 
 - `ChatScreen` en el `RootNavigator`, con entrada desde un **botón en el
   `AppHeader`** (al lado de la campanita). No se agrega un séptimo tab: el

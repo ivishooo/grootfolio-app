@@ -11,11 +11,18 @@ import type {
   AssetSearchResult,
   AssetType,
   AuditLogEntry,
+  ChatAnswer,
+  ChatConversation,
+  ChatMessage,
   ContentItem,
   ContentSection,
   ContentType,
+  CreateKbArticleInput,
   CreateTransactionInput,
   CreateUserInput,
+  KbArticle,
+  KbArticleListItem,
+  KbStats,
   LedgerEntry,
   PortfolioSummary,
   QuizQuestion,
@@ -23,6 +30,7 @@ import type {
   RiskProfileResult,
   SuspendUserInput,
   Transaction,
+  UpdateKbArticleInput,
   UpdateTransactionInput,
   UpdateUserInput,
   User,
@@ -56,6 +64,15 @@ export const queryKeys = {
     ['admin', 'content', 'items', f] as const,
   contentItems: (f: { sectionId?: string; search?: string }) => ['content', 'items', f] as const,
   notifications: ['notifications'] as const,
+  kbArticles: (f: KbFilters) => ['admin', 'kb', 'articles', f] as const,
+  kbArticle: (id: string) => ['admin', 'kb', 'article', id] as const,
+  chatConversations: ['chat', 'conversations'] as const,
+  chatMessages: (id: string) => ['chat', 'messages', id] as const,
+}
+
+export interface KbFilters {
+  status?: 'draft' | 'published'
+  search?: string
 }
 
 interface QuizAnswer {
@@ -489,5 +506,112 @@ export function useDeleteAvatar() {
   return useMutation({
     mutationFn: () => api.delete<{ user: User }>('/me/avatar'),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['me'] }),
+  })
+}
+
+// --- Base de conocimiento del chatbot (admin) ---
+
+interface KbArticlesResponse {
+  data: KbArticleListItem[]
+  stats: KbStats
+}
+
+export function useKbArticles(filters: KbFilters = {}) {
+  return useQuery({
+    queryKey: queryKeys.kbArticles(filters),
+    queryFn: () => api.get<KbArticlesResponse>(`/admin/kb/articles${qs({ ...filters })}`),
+  })
+}
+
+/** Detalle con el markdown completo (el listado sólo trae un extracto). */
+export function useKbArticle(id: string | null) {
+  return useQuery({
+    queryKey: queryKeys.kbArticle(id ?? ''),
+    queryFn: () => api.get<{ article: KbArticle }>(`/admin/kb/articles/${id}`).then((r) => r.article),
+    enabled: !!id,
+  })
+}
+
+function useKbInvalidate() {
+  const qc = useQueryClient()
+  return () => void qc.invalidateQueries({ queryKey: ['admin', 'kb'] })
+}
+
+export function useCreateKbArticle() {
+  const invalidate = useKbInvalidate()
+  return useMutation({
+    mutationFn: (input: CreateKbArticleInput) =>
+      api.post<{ article: KbArticle }>('/admin/kb/articles', input),
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateKbArticle() {
+  const invalidate = useKbInvalidate()
+  return useMutation({
+    mutationFn: ({ id, ...input }: UpdateKbArticleInput & { id: string }) =>
+      api.patch<{ article: KbArticle }>(`/admin/kb/articles/${id}`, input),
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteKbArticle() {
+  const invalidate = useKbInvalidate()
+  return useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/admin/kb/articles/${id}`),
+    onSuccess: invalidate,
+  })
+}
+
+/**
+ * Publicar dispara la indexación (chunking + embeddings) en el backend, así que
+ * puede tardar unos segundos. Despublicar borra los fragmentos.
+ */
+export function usePublishKbArticle() {
+  const invalidate = useKbInvalidate()
+  return useMutation({
+    mutationFn: ({ id, publish }: { id: string; publish: boolean }) =>
+      api.post<{ article: KbArticle }>(`/admin/kb/articles/${id}/${publish ? 'publish' : 'unpublish'}`),
+    onSuccess: invalidate,
+  })
+}
+
+// --- Chatbot ---
+
+export function useChatConversations() {
+  return useQuery({
+    queryKey: queryKeys.chatConversations,
+    queryFn: () => api.get<{ data: ChatConversation[] }>('/chat/conversations').then((r) => r.data),
+  })
+}
+
+export function useChatMessages(conversationId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.chatMessages(conversationId ?? ''),
+    queryFn: () =>
+      api
+        .get<{ data: ChatMessage[] }>(`/chat/conversations/${conversationId}`)
+        .then((r) => r.data),
+    enabled: !!conversationId,
+  })
+}
+
+export function useSendChatMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { message: string; conversationId?: string }) =>
+      api.post<ChatAnswer>('/chat', input),
+    onSuccess: (answer) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.chatConversations })
+      void qc.invalidateQueries({ queryKey: queryKeys.chatMessages(answer.conversationId) })
+    },
+  })
+}
+
+export function useDeleteChatConversation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/chat/conversations/${id}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['chat'] }),
   })
 }
