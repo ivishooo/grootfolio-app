@@ -8,6 +8,8 @@ import { AddAssetScreen } from '@/screens/AddAssetScreen'
 import { AdminUsersScreen } from '@/screens/AdminUsersScreen'
 import { AdminUserDetailScreen } from '@/screens/AdminUserDetailScreen'
 import { AdminContentScreen } from '@/screens/AdminContentScreen'
+import { AdminKbScreen } from '@/screens/AdminKbScreen'
+import { ChatScreen } from '@/screens/ChatScreen'
 import { NotificationsScreen } from '@/screens/NotificationsScreen'
 import { AccountSuspendedScreen } from '@/screens/AccountSuspendedScreen'
 import { TabNavigator } from './TabNavigator'
@@ -20,6 +22,8 @@ export type RootStackParamList = {
   AdminUsers: undefined
   AdminUserDetail: { id: string }
   AdminContent: undefined
+  AdminKb: undefined
+  Chat: undefined
   Notifications: undefined
   AccountSuspended: { reason: string | null; suspendedUntil: string | null }
 }
@@ -50,6 +54,8 @@ export function RootNavigator() {
           <Stack.Screen name="AdminUsers" component={AdminUsersScreen} options={{ headerShown: true, title: 'Usuarios' }} />
           <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} options={{ headerShown: true, title: 'Detalle' }} />
           <Stack.Screen name="AdminContent" component={AdminContentScreen} options={{ headerShown: true, title: 'Gestión de contenidos' }} />
+          <Stack.Screen name="AdminKb" component={AdminKbScreen} options={{ headerShown: true, title: 'Base de conocimiento' }} />
+          <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: true, title: 'Asistente' }} />
         </>
       ) : (
         <>

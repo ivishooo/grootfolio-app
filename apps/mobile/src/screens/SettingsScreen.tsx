@@ -103,6 +103,10 @@ export function SettingsScreen() {
               <Text style={{ color: VIOLET, fontWeight: '600' }}>Gestión de contenidos</Text>
               <Text style={{ color: theme.text.muted }}>›</Text>
             </TouchableOpacity>
+            <TouchableOpacity onPress={() => nav.navigate('AdminKb')} style={s.navRow}>
+              <Text style={{ color: VIOLET, fontWeight: '600' }}>Base de conocimiento</Text>
+              <Text style={{ color: theme.text.muted }}>›</Text>
+            </TouchableOpacity>
           </>
         )}
       </View>
