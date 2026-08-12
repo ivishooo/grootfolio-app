@@ -261,7 +261,7 @@ se rechaza sin llegar a llamar al generador).
 
 ---
 
-## Fase F5 — Web (chat + administración de la KB) ✅ (PR pendiente)
+## Fase F5 — Web (chat + administración de la KB) ✅ (PR #141, en `develop`)
 
 - **Usuario**: `features/chat/ChatWidget.tsx` — **burbuja flotante** presente en
   toda la app (recomendado sobre la vista dedicada: el bot resuelve dudas
@@ -285,7 +285,7 @@ se rechaza sin llegar a llamar al generador).
 
 ---
 
-## Fase F6 — Mobile (espejo de F5) ← **siguiente**
+## Fase F6 — Mobile (espejo de F5) ✅ (PR pendiente)
 
 - `ChatScreen` en el `RootNavigator`, con entrada desde un **botón en el
   `AppHeader`** (al lado de la campanita). No se agrega un séptimo tab: el
@@ -303,7 +303,7 @@ se rechaza sin llegar a llamar al generador).
 
 ---
 
-## Fase F7 — Evaluación y tuning (capítulo de tesis)
+## Fase F7 — Evaluación y tuning (capítulo de tesis) ← **siguiente**
 
 **Objetivo:** medir y calibrar el acotamiento — el aporte académico.
 
