@@ -10,6 +10,7 @@ import { ProfileResultPage } from '@/features/profile-test/ProfileResultPage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
 import { AdminUsersPage } from '@/features/admin/AdminUsersPage'
 import { AdminContentPage } from '@/features/admin/AdminContentPage'
+import { AdminKbPage } from '@/features/admin/AdminKbPage'
 import { ContentLibraryPage } from '@/features/content/ContentLibraryPage'
 import { AccountSuspendedPage } from '@/features/auth/AccountSuspendedPage'
 import { AppLayout } from '@/components/ui/AppLayout'
@@ -36,6 +37,7 @@ export function App() {
           <Route element={<RequireAdmin />}>
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/content" element={<AdminContentPage />} />
+            <Route path="/admin/kb" element={<AdminKbPage />} />
           </Route>
         </Route>
       </Route>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { ChatWidget } from '@/features/chat/ChatWidget'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
 import { useNotifications } from '@/lib/queries'
@@ -88,6 +89,12 @@ const ContentIcon = () => (
   </Svg>
 )
 
+const KbIcon = () => (
+  <Svg>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+  </Svg>
+)
+
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', Icon: DashboardIcon },
   { to: '/assets', label: 'Activos', Icon: AssetsIcon },
@@ -100,6 +107,7 @@ const NAV_ITEMS = [
 const ADMIN_ITEMS = [
   { to: '/admin/users', label: 'Usuarios', Icon: UsersIcon },
   { to: '/admin/content', label: 'Gestión de contenidos', Icon: UploadIcon },
+  { to: '/admin/kb', label: 'Base de conocimiento', Icon: KbIcon },
 ] as const
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -228,6 +236,9 @@ export function AppLayout() {
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           <Outlet />
         </main>
+
+        {/* Asistente: flotante sobre toda la app autenticada (F5). */}
+        <ChatWidget />
       </div>
     </div>
   )

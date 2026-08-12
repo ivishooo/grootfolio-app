@@ -114,10 +114,16 @@ export async function answerQuestion(question: string, history: ChatTurn[] = [])
   // pregunta puede ser temáticamente cercana a la KB y aun así declinarse (pide
   // consejo, una predicción o datos de la cartera). En ese caso no se muestran
   // citas, porque no respaldan nada.
+  // Sólo se citan los fragmentos que por sí solos superan el umbral. El
+  // retrieval siempre devuelve `top_k` resultados, y los de la cola suelen ser
+  // de artículos que no tienen nada que ver: citarlos sugiere un respaldo que
+  // no existe. El primero siempre pasa (lo garantiza el gate de arriba).
+  const relevant = chunks.filter((chunk) => chunk.score >= minScore)
+
   return {
     answer,
     grounded: answeredFromContext,
-    sources: answeredFromContext ? dedupeSources(chunks) : [],
+    sources: answeredFromContext ? dedupeSources(relevant) : [],
     topScore,
   }
 }
