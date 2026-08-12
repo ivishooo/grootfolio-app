@@ -116,6 +116,47 @@ export interface KbStats {
   draft: number
 }
 
+// ---- Chatbot RAG — conversación (F4) ----
+
+/** Fragmento de la KB que respaldó una respuesta del bot. */
+export interface ChatSource {
+  articleId: string
+  title: string
+  slug: string
+  heading: string | null
+  score: number
+}
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  /**
+   * Sólo en mensajes del bot: `true` si respondió con respaldo documental,
+   * `false` si devolvió el fallback por estar fuera de alcance.
+   */
+  grounded: boolean | null
+  sources: ChatSource[]
+  createdAt: string
+}
+
+export interface ChatConversation {
+  id: string
+  title: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** Respuesta de POST /chat. `remaining` son las preguntas que quedan en la hora. */
+export interface ChatAnswer {
+  conversationId: string
+  messageId: string
+  answer: string
+  grounded: boolean
+  sources: ChatSource[]
+  remaining: number
+}
+
 export interface AppNotification {
   id: string
   type: NotificationType

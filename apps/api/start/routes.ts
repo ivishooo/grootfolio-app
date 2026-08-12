@@ -61,6 +61,12 @@ router
     router.get('/notifications', '#controllers/notifications_controller.index')
     router.post('/notifications/read-all', '#controllers/notifications_controller.readAll')
     router.post('/notifications/:id/read', '#controllers/notifications_controller.read')
+
+    // Chatbot RAG (F4, ADR-0004)
+    router.post('/chat', '#controllers/chat_controller.send')
+    router.get('/chat/conversations', '#controllers/chat_controller.conversations')
+    router.get('/chat/conversations/:id', '#controllers/chat_controller.messages')
+    router.delete('/chat/conversations/:id', '#controllers/chat_controller.destroyConversation')
   })
   .use(middleware.auth())
 

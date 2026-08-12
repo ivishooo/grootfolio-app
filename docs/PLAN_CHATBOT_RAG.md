@@ -20,7 +20,7 @@
 | Fuente de conocimiento | KB dedicada (`kb_articles`, markdown) |
 | Vector store | `pgvector` sobre el Postgres existente |
 | Proveedor IA | Google Gemini (SDK `@google/genai`) |
-| Modelos | `gemini-embedding-001` a 768 dims + Gemini Flash |
+| Modelos | `gemini-embedding-001` a 768 dims + `gemini-3.6-flash` |
 | Superficies | Web y mobile |
 | Grounding | Umbral de similitud + system prompt estricto + citas + fallback |
 
@@ -99,6 +99,30 @@ out-of-scope que **ningún umbral va a separar**, porque son temáticamente
 idénticas a la KB y sólo difieren en que piden consejo financiero. Para ésas la
 única defensa es el system prompt de grounding de F4.
 
+### Sonda 3 — el bot completo (2026-08-11, F4)
+
+Con `/chat` andando sobre una KB de 4 artículos (9 fragmentos), la doble barrera
+quedó confirmada en funcionamiento:
+
+| Pregunta | Score | Quién la resolvió | `grounded` |
+|---|---|---|---|
+| ¿Cómo cargo una transacción? | 0.786 | respondió con citas | `true` |
+| ¿Qué es el P&L no realizado? | 0.815 | respondió con citas | `true` |
+| ¿Qué perfiles de inversor hay? | 0.787 | respondió con citas | `true` |
+| ¿Me conviene comprar Bitcoin ahora? | < 0.63 | **gate de umbral** | `false` |
+| ¿Cuánto va a valer el dólar el mes que viene? | 0.647 | **system prompt** | `false` |
+| ¿Cuánto tengo invertido en mi cartera? | 0.700 | **system prompt** | `false` |
+
+**Dos de las tres preguntas fuera de alcance pasaron el umbral** y las atajó el
+prompt — exactamente el escenario que anticipaban las sondas 1 y 2. El umbral
+solo habría dejado pasar ambas.
+
+De acá salió también una corrección de contrato: al principio esas respuestas
+volvían con `grounded: true` y citas, porque el umbral había pasado. Se agregó
+**salida estructurada** (`answer` + `answeredFromContext`): el modelo declara si
+usó el contexto, y si declinó no se muestran fuentes. Mostrar citas debajo de un
+"no puedo responder eso" es peor que no mostrar ninguna.
+
 ## Pendiente de confirmar
 
 - **Plan de Gemini para la API.** La suscripción **Google AI Pro no habilita el
@@ -166,7 +190,7 @@ idénticas a la KB y sólo difieren en que piden consejo financiero. Para ésas 
 
 ---
 
-## Fase F3 — Ingesta y embeddings ← **siguiente**
+## Fase F3 — Ingesta y embeddings ✅ (PR #139, en `develop`)
 
 **Objetivo:** convertir artículos publicados en chunks vectorizados.
 
@@ -202,7 +226,7 @@ resultado); despublicar no deja chunks huérfanos.
 
 ---
 
-## Fase F4 — Retrieval + endpoint de chat + grounding
+## Fase F4 — Retrieval + endpoint de chat + grounding ✅ (PR pendiente)
 
 **Objetivo:** el núcleo del bot.
 
@@ -237,7 +261,7 @@ se rechaza sin llegar a llamar al generador).
 
 ---
 
-## Fase F5 — Web (chat + administración de la KB)
+## Fase F5 — Web (chat + administración de la KB) ← **siguiente**
 
 - **Usuario**: `features/chat/ChatWidget.tsx` — **burbuja flotante** presente en
   toda la app (recomendado sobre la vista dedicada: el bot resuelve dudas

@@ -39,9 +39,14 @@ export const EMBEDDING_DIMENSIONS = 768
  */
 export type EmbeddingTaskType = 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY'
 
-/** Defaults si las env no están seteadas (en `env.ts` son todas opcionales). */
+/**
+ * Defaults si las env no están seteadas (en `env.ts` son todas opcionales).
+ * Se pinean versiones concretas a propósito (no `gemini-flash-latest`): un
+ * alias que se mueve solo haría irreproducible la evaluación de F7.
+ * `gemini-2.5-flash`, el default original de F1, ya fue dado de baja por Google.
+ */
 const DEFAULT_EMBED_MODEL = 'gemini-embedding-001'
-const DEFAULT_CHAT_MODEL = 'gemini-2.5-flash'
+const DEFAULT_CHAT_MODEL = 'gemini-3.6-flash'
 
 let client: GoogleGenAI | null = null
 
