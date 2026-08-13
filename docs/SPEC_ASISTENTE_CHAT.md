@@ -122,6 +122,20 @@ POST /api/assistant/feedback
 
 ## 7. Orden de trabajo
 
+> **Estado de implementación** (2026-08-13): PR 1 a 5 hechos, con dos
+> desviaciones deliberadas que quedan como decisiones de producto:
+>
+> - **El asistente no lee el portafolio.** El spec lo propone en la bienvenida,
+>   el header y el `portfolioBlock`, pero contradice el ADR-0004 y el system
+>   prompt de F4, donde tiene prohibido hablar de las tenencias del usuario.
+>   Prometer en la UI algo que el bot va a rechazar es peor que no prometerlo.
+> - **Sin streaming SSE.** Rehacer `POST /chat` como `text/event-stream` cambia
+>   el contrato en web, mobile y el harness de `kb:eval`. Hoy la respuesta llega
+>   completa y el indicador de escritura cubre la espera.
+>
+> El endpoint es `POST /chat` (+ `/chat/feedback`, `/chat/conversations`), no
+> `/api/assistant/*`: el proyecto no usa prefijo `/api`.
+
 1. **PR 1 — Shell + launcher.** Tokens CSS, launcher, overlay, animación de apertura, cierre con Esc, panel arranca cerrado. Sin tocar la lógica de chat.
 2. **PR 2 — Header, burbujas y composer.** Avatar, estado, textarea autogrow, Enter / Shift+Enter, botón enviar con estados real / disabled / streaming.
 3. **PR 3 — Bienvenida + sugerencias.** Tarjetas que precargan el prompt y lo envían; disclaimer fijo en el footer.
