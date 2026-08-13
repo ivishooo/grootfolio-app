@@ -20,6 +20,8 @@ export interface AssistantChat {
   pending: string | null
   status: AssistantStatus
   error: string | null
+  /** Última pregunta enviada, para poder reintentarla si falló. */
+  lastQuestion: string | null
   open: () => void
   close: () => void
   toggleExpanded: () => void
@@ -33,6 +35,7 @@ export function useAssistantChat(): AssistantChat {
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [lastQuestion, setLastQuestion] = useState<string | null>(null)
 
   // El historial sólo se pide con el panel abierto: cerrado no hay nada que pintar.
   const { data: messages = [] } = useChatMessages(isOpen ? conversationId : null)
@@ -43,6 +46,7 @@ export function useAssistantChat(): AssistantChat {
       const message = text.trim()
       if (!message || sendMessage.isPending) return
       setError(null)
+      setLastQuestion(message)
       setPending(message)
       try {
         const answer = await sendMessage.mutateAsync({
@@ -77,6 +81,7 @@ export function useAssistantChat(): AssistantChat {
     isExpanded,
     messages,
     pending,
+    lastQuestion,
     status: sendMessage.isPending ? 'streaming' : error ? 'error' : 'idle',
     error,
     open: useCallback(() => setIsOpen(true), []),
