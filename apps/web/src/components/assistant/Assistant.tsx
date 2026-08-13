@@ -6,6 +6,7 @@
 import { useEffect, useRef } from 'react'
 import { AssistantLauncher } from './AssistantLauncher'
 import { AssistantPanel } from './AssistantPanel'
+import { ConversationRail } from './ConversationRail'
 import { MessageList } from './MessageList'
 import { Composer } from './Composer'
 import { SuggestionCards } from './SuggestionCards'
@@ -39,7 +40,15 @@ export function Assistant() {
     <AssistantPanel
       onClose={chat.close}
       onNewConversation={chat.messages.length > 0 ? chat.newConversation : undefined}
+      onToggleExpanded={chat.toggleExpanded}
       isExpanded={chat.isExpanded}
+      rail={
+        <ConversationRail
+          activeId={chat.conversationId}
+          onSelect={chat.openConversation}
+          onNew={chat.newConversation}
+        />
+      }
     >
       <MessageList
         messages={chat.messages}
@@ -47,6 +56,12 @@ export function Assistant() {
         isStreaming={chat.status === 'streaming'}
         error={chat.error}
         onRetry={chat.lastQuestion ? () => ask(chat.lastQuestion!) : undefined}
+        onRetryMessage={(index) => {
+          // La pregunta que originó la respuesta es el mensaje inmediatamente
+          // anterior del usuario.
+          const previous = chat.messages[index - 1]
+          if (previous?.role === 'user') ask(previous.content)
+        }}
         empty={<SuggestionCards onPick={ask} />}
       />
 

@@ -8,6 +8,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { ChatMessage } from '@grootfolio/shared'
 import { ErrorBubble, MessageBubble, UserBubble } from './MessageBubble'
+import { MessageActions } from './MessageActions'
 import { SourceChips } from './SourceChips'
 import { TypingDots } from './TypingDots'
 
@@ -15,6 +16,8 @@ const AUTOSCROLL_THRESHOLD_PX = 80
 
 interface Props {
   messages: ChatMessage[]
+  /** Reenvía la pregunta que originó una respuesta. */
+  onRetryMessage?: (index: number) => void
   pending: string | null
   isStreaming: boolean
   error: string | null
@@ -22,7 +25,15 @@ interface Props {
   empty: ReactNode
 }
 
-export function MessageList({ messages, pending, isStreaming, error, onRetry, empty }: Props) {
+export function MessageList({
+  messages,
+  pending,
+  isStreaming,
+  error,
+  onRetry,
+  onRetryMessage,
+  empty,
+}: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const stickToBottom = useRef(true)
 
@@ -50,9 +61,16 @@ export function MessageList({ messages, pending, isStreaming, error, onRetry, em
     >
       {isEmpty && empty}
 
-      {messages.map((message) => (
+      {messages.map((message, index) => (
         <MessageBubble key={message.id} message={message}>
           <SourceChips message={message} />
+          {message.role === 'assistant' && (
+            <MessageActions
+              messageId={message.id}
+              content={message.content}
+              onRetry={onRetryMessage ? () => onRetryMessage(index) : undefined}
+            />
+          )}
         </MessageBubble>
       ))}
 

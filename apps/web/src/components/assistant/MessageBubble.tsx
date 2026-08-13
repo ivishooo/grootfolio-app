@@ -26,7 +26,7 @@ export function BotAvatar() {
 /** Fila del asistente: avatar + columna de contenido (burbuja, fuentes, acciones). */
 export function BotRow({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-start gap-2">
+    <div className="group flex items-start gap-2">
       <BotAvatar />
       <div className="min-w-0 flex-1 space-y-1.5">{children}</div>
     </div>
