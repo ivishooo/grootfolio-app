@@ -1,7 +1,7 @@
 # Design Reference — GrootFolio
 
 Fuente de verdad **visual** para el refinamiento de la app (ver
-`PLAN_CLAUDE_CODE_COMPLETO.md`). Todo lo de esta carpeta vive **dentro del
+`../PLAN_CLAUDE_CODE_COMPLETO.md`). Todo lo de esta carpeta vive **dentro del
 repo** para que la implementación no dependa de archivos externos.
 
 > Colocar esta carpeta en: **`grootfolio-app/docs/design-reference/`**
@@ -16,6 +16,9 @@ Hay **dos formas** de consultar el diseño, en orden de fidelidad:
    runtime `support.js` al lado). Es el diseño real, a escala 1:1, en light y
    dark. **Usalo para medir spacing, tamaños y colores exactos.**
    - Web: lienzo con las 5 pantallas × light/dark (paneable/zoomeable).
+   - Asistente: `screens/Asistente GrootFolio.dc.html` — rediseño del chat
+     (launcher, panel, burbujas, composer). Su spec está en
+     `../SPEC_ASISTENTE_CHAT.md`.
    - Mobile: las 5 pantallas en marco de teléfono (390px).
 
 2. **Diffing rápido — PNGs en `screenshots/`.** Capturas para comparar de un

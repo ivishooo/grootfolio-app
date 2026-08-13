@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { ChatWidget } from '@/features/chat/ChatWidget'
+import { Assistant } from '@/components/assistant/Assistant'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
 import { useNotifications } from '@/lib/queries'
@@ -237,8 +237,8 @@ export function AppLayout() {
           <Outlet />
         </main>
 
-        {/* Asistente: flotante sobre toda la app autenticada (F5). */}
-        <ChatWidget />
+        {/* Asistente: launcher flotante sobre toda la app autenticada. */}
+        <Assistant />
       </div>
     </div>
   )

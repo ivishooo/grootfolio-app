@@ -263,6 +263,10 @@ se rechaza sin llegar a llamar al generador).
 
 ## Fase F5 — Web (chat + administración de la KB) ✅ (PR #141, en `develop`)
 
+> **Rediseño en curso**: la interfaz del asistente se está rehaciendo según
+> [`SPEC_ASISTENTE_CHAT.md`](SPEC_ASISTENTE_CHAT.md), con la referencia visual en
+> `design-reference/screens/Asistente GrootFolio.dc.html`.
+
 - **Usuario**: `features/chat/ChatWidget.tsx` — **burbuja flotante** presente en
   toda la app (recomendado sobre la vista dedicada: el bot resuelve dudas
   *mientras* se usa la app). Historial de la sesión, estado de carga, **citas

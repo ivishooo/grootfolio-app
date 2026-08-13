@@ -1,0 +1,148 @@
+/**
+ * Tokens del asistente (rediseño, PR 1). Sólo lo que el spec define y Tailwind
+ * no cubre: geometría del panel, sombra específica y los neutros cálidos de la
+ * referencia, que son distintos de la escala `neutral` del proyecto.
+ *
+ * El acento NO se redefine: `--gf-accent` es #F97316, el mismo `brand[500]` que
+ * ya usa toda la app. Duplicar la escala de marca sería crear un segundo sistema
+ * de diseño que se desincroniza al primer cambio.
+ */
+:root {
+  --gf-accent: theme('colors.brand.500');
+  --gf-accent-hover: theme('colors.brand.600');
+  --gf-accent-soft: #fff1e7;
+
+  --gf-ink: #14161a;
+  --gf-ink-2: #4b5259;
+  --gf-ink-3: #8a9199;
+  --gf-line: #f0eee9;
+  --gf-border: #eae7e1;
+  --gf-bubble-bot: #f7f6f4;
+  --gf-bubble-bot-border: #efede8;
+  --gf-surface: #ffffff;
+
+  --gf-panel-w: 400px;
+  --gf-panel-h: 640px;
+  --gf-r-panel: 18px;
+  --gf-r-bubble: 16px;
+  --gf-r-composer: 14px;
+  --gf-r-icon: 11px;
+
+  --gf-shadow:
+    0 30px 60px -30px rgba(20, 22, 26, 0.35),
+    0 2px 6px -2px rgba(20, 22, 26, 0.08);
+}
+
+.dark {
+  --gf-ink: #f5f5f4;
+  --gf-ink-2: #c8ccd1;
+  --gf-ink-3: #8a9199;
+  --gf-line: #23262c;
+  --gf-border: #2c3037;
+  --gf-bubble-bot: #21242a;
+  --gf-bubble-bot-border: #2c3037;
+  --gf-surface: #17191d;
+  --gf-accent-soft: rgba(249, 115, 22, 0.14);
+}
+
+/* --- Launcher --- */
+
+.gf-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 40;
+  width: 60px;
+  height: 60px;
+  border-radius: 999px;
+  background: var(--gf-accent);
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 14px 30px -10px rgba(249, 115, 22, 0.6);
+  transition: transform 0.18s ease, background-color 0.18s ease;
+}
+.gf-launcher:hover {
+  transform: translateY(-2px) scale(1.03);
+  background: var(--gf-accent-hover);
+}
+.gf-launcher-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #16a34a;
+  border: 2.5px solid var(--gf-surface);
+}
+
+/* --- Capa --- */
+
+.gf-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(20, 22, 26, 0.06);
+  backdrop-filter: blur(1px);
+}
+
+.gf-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 41;
+  width: var(--gf-panel-w);
+  height: min(var(--gf-panel-h), 88vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--gf-surface);
+  border: 1px solid var(--gf-border);
+  border-radius: var(--gf-r-panel);
+  box-shadow: var(--gf-shadow);
+  overflow: hidden;
+  animation: gf-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes gf-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Vista ampliada: mismo componente, otro layout (se usa en el PR 5). */
+.gf-panel[data-expanded='true'] {
+  right: 50%;
+  bottom: 50%;
+  transform: translate(50%, 50%);
+  width: min(820px, 92vw);
+  height: min(560px, 86vh);
+}
+
+@media (max-width: 640px) {
+  .gf-panel,
+  .gf-panel[data-expanded='true'] {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: none;
+    border-radius: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gf-panel,
+  .gf-launcher {
+    animation: none;
+    transition: none;
+  }
+}
