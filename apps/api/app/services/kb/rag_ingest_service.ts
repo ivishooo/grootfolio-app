@@ -21,51 +21,16 @@ import {
   describeError,
   embedTexts,
   isAiEnabled,
+  withRetry,
 } from '#services/kb/gemini_client'
 
 /** Textos por llamada a la API de embeddings. */
 const EMBED_BATCH_SIZE = 50
-const MAX_ATTEMPTS = 3
-const BASE_BACKOFF_MS = 1000
 
 export interface IngestResult {
   articleId: string
   chunks: number
   skipped?: 'not_published' | 'empty_body'
-}
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-/**
- * Errores que vale la pena reintentar: cuota momentánea o backend caído. Un 400
- * (modelo inexistente, texto inválido) no se reintenta porque va a fallar igual.
- */
-function isRetryable(err: unknown): boolean {
-  const message = describeError(err).toUpperCase()
-  return (
-    message.includes('429') ||
-    message.includes('RESOURCE_EXHAUSTED') ||
-    message.includes('503') ||
-    message.includes('UNAVAILABLE') ||
-    message.includes('500') ||
-    message.includes('INTERNAL')
-  )
-}
-
-async function withRetry<T>(operation: () => Promise<T>, label: string): Promise<T> {
-  let lastError: unknown
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      return await operation()
-    } catch (err) {
-      lastError = err
-      if (!isRetryable(err) || attempt === MAX_ATTEMPTS) break
-      const delay = BASE_BACKOFF_MS * 2 ** (attempt - 1)
-      logger.warn(`[kb] ${label}: reintento ${attempt}/${MAX_ATTEMPTS - 1} en ${delay}ms`)
-      await sleep(delay)
-    }
-  }
-  throw lastError
 }
 
 /** Borra los fragmentos indexados de un artículo (al despublicar o borrar). */
@@ -134,10 +99,10 @@ async function embedAll(inputs: string[]): Promise<number[][]> {
   const vectors: number[][] = []
   for (let i = 0; i < inputs.length; i += EMBED_BATCH_SIZE) {
     const batch = inputs.slice(i, i + EMBED_BATCH_SIZE)
-    const embedded = await withRetry(
-      () => embedTexts(batch, 'RETRIEVAL_DOCUMENT'),
-      `embeddings ${i + 1}-${i + batch.length}`
-    )
+    const embedded = await withRetry(() => embedTexts(batch, 'RETRIEVAL_DOCUMENT'), {
+      onWait: (ms, attempt) =>
+        logger.warn(`[kb] embeddings ${i + 1}-${i + batch.length}: reintento ${attempt} en ${ms}ms`),
+    })
     vectors.push(...embedded)
   }
   return vectors

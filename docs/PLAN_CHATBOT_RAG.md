@@ -285,7 +285,7 @@ se rechaza sin llegar a llamar al generador).
 
 ---
 
-## Fase F6 — Mobile (espejo de F5) ✅ (PR pendiente)
+## Fase F6 — Mobile (espejo de F5) ✅ (PR #142, en `develop`)
 
 - `ChatScreen` en el `RootNavigator`, con entrada desde un **botón en el
   `AppHeader`** (al lado de la campanita). No se agrega un séptimo tab: el
@@ -307,18 +307,18 @@ se rechaza sin llegar a llamar al generador).
 
 **Objetivo:** medir y calibrar el acotamiento — el aporte académico.
 
-- Set de evaluación (fixture): 20–30 preguntas **in-scope** (deben responderse
-  con cita correcta) y 20–30 **out-of-scope** (deben rechazarse). Se escriben
-  **antes** de mirar resultados, y no se ajustan para que den bien.
-- Command `kb:eval` que corre el set y reporta las métricas: tasa de respuesta
-  correcta in-scope, tasa de rechazo correcto out-of-scope, precisión de citas.
-- **Barrido de `RAG_MIN_SCORE`** (p. ej. 0.50 → 0.85) y de `RAG_TOP_K`,
-  tabulando el trade-off. Esa tabla es el corazón del aporte académico: muestra
-  el compromiso entre "responde poco" y "alucina".
+- **Set de evaluación** en `apps/api/tests/eval/kb_eval_set.json`: 30 preguntas
+  in-scope (con el artículo que deberían citar) y 26 out-of-scope agrupadas en
+  cinco familias (`off_topic`, `advice`, `prediction`, `personal_data`,
+  `injection`). Escrito antes de mirar resultados.
+- **Command `kb:eval`**: corre el set y reporta tasa de respuesta in-scope,
+  precisión de citas, rechazo out-of-scope global y por familia, y el detalle de
+  cada fallo. `--retrieval` mide sólo la primera barrera (gratis y rápido);
+  `--sweep` agrega el barrido de umbrales; `--json` guarda el detalle.
+- **Metodología y resultados** en [`EVALUACION_CHATBOT.md`](EVALUACION_CHATBOT.md).
 - Ajuste del system prompt con los fallos que aparezcan, re-corriendo el set en
   cada iteración.
 - (Opcional) verificador de respaldo como capa extra.
-- Documento de resultados para la tesis (metodología + tablas).
 
 **Entrega:** parámetros calibrados + informe de evaluación.
 

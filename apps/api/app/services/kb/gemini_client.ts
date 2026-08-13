@@ -127,6 +127,70 @@ export function describeError(err: unknown): string {
   }
 }
 
+/**
+ * Cuota **diaria** agotada. Se distingue de la cuota por minuto porque no tiene
+ * sentido reintentar: la ventana se renueva recién al otro día. En el free tier
+ * de Gemini el tope diario de generación es de apenas 20 requests.
+ */
+export function isDailyQuotaExhausted(err: unknown): boolean {
+  return /PerDay|per day/i.test(describeError(err))
+}
+
+/**
+ * Errores que vale la pena reintentar: cuota momentánea o backend caído. Un 400
+ * (modelo inexistente, texto inválido) no se reintenta porque va a fallar igual,
+ * y una cuota diaria agotada tampoco.
+ */
+export function isRetryable(err: unknown): boolean {
+  if (isDailyQuotaExhausted(err)) return false
+  const message = describeError(err).toUpperCase()
+  return (
+    message.includes('429') ||
+    message.includes('RESOURCE_EXHAUSTED') ||
+    message.includes('503') ||
+    message.includes('UNAVAILABLE') ||
+    message.includes('500') ||
+    message.includes('INTERNAL')
+  )
+}
+
+/**
+ * Segundos que el proveedor pide esperar, si lo dice en el error. Los 429 de
+ * cuota traen `retryDelay` y respetarlo es mucho más eficaz que adivinar.
+ */
+export function retryDelayMs(err: unknown, fallbackMs: number): number {
+  const match = describeError(err).match(/"retryDelay"\s*:\s*"(\d+)s"/)
+  const seconds = match?.[1] ? Number(match[1]) : NaN
+  return Number.isFinite(seconds) ? (seconds + 1) * 1000 : fallbackMs
+}
+
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * Reintenta una operación contra el proveedor respetando su `retryDelay`.
+ * `onWait` permite avisar al usuario en comandos largos.
+ */
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  options: { attempts?: number; baseDelayMs?: number; onWait?: (ms: number, attempt: number) => void } = {}
+): Promise<T> {
+  const attempts = options.attempts ?? 3
+  const base = options.baseDelayMs ?? 1000
+  let lastError: unknown
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await operation()
+    } catch (err) {
+      lastError = err
+      if (!isRetryable(err) || attempt === attempts) break
+      const delay = retryDelayMs(err, base * 2 ** (attempt - 1))
+      options.onWait?.(delay, attempt)
+      await sleep(delay)
+    }
+  }
+  throw lastError
+}
+
 /** Reinicia el cliente memoizado. Sólo para tests. */
 export function resetClient(): void {
   client = null
