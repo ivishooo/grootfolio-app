@@ -14,7 +14,14 @@
 
   --gf-ink: #14161a;
   --gf-ink-2: #4b5259;
-  --gf-ink-3: #8a9199;
+  /*
+   * El #8A9199 del spec da 3,19:1 sobre blanco: no llega al 4,5:1 que pide AA
+   * para texto chico, y acá viste el disclaimer (10,5 px), el placeholder y el
+   * "En línea". #6B7280 da 4,83:1 y se lee igual de secundario.
+   * En oscuro el problema no existe (el gris claro contra el panel oscuro
+   * sobra), así que `.dark` conserva el valor del spec.
+   */
+  --gf-ink-3: #6b7280;
   --gf-line: #f0eee9;
   --gf-border: #eae7e1;
   --gf-bubble-bot: #f7f6f4;
@@ -36,7 +43,7 @@
 .dark {
   --gf-ink: #f5f5f4;
   --gf-ink-2: #c8ccd1;
-  --gf-ink-3: #8a9199;
+  --gf-ink-3: #8a9199; /* 5,52:1 sobre el panel oscuro: AA */
   --gf-line: #23262c;
   --gf-border: #2c3037;
   --gf-bubble-bot: #21242a;

@@ -112,8 +112,16 @@ export function Composer({ onSend, onStop, isStreaming, followUps = [], onFollow
         )}
       </form>
 
-      <p className="mt-1.5 px-1 text-[10.5px] text-[color:var(--gf-ink-3)]">
+      {/*
+        El disclaimer es fijo, no sólo de la bienvenida (spec §3): la duda sobre
+        qué puede responder el bot aparece cuando ya está respondiendo, no antes
+        de la primera pregunta.
+      */}
+      <p className="mt-1.5 px-1 text-[10.5px] leading-4 text-[color:var(--gf-ink-3)]">
         Enter para enviar · Shift + Enter salto de línea
+        <br />
+        Respondo sobre GrootFolio y lo que el equipo documentó. No es
+        asesoramiento financiero.
       </p>
     </footer>
   )
