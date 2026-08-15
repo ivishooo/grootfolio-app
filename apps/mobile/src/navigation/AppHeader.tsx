@@ -7,7 +7,7 @@ import { useTheme } from '../theme/ThemeProvider'
 import { useAuth } from '../auth/AuthProvider'
 import { brand } from '@grootfolio/tokens'
 import { Logo } from '@/components/ui/Logo'
-import { BellIcon, ChatIcon } from '@/components/ui/icons'
+import { BellIcon } from '@/components/ui/icons'
 import { useNotifications } from '@/lib/queries'
 import type { RootStackParamList } from './RootNavigator'
 
@@ -36,10 +36,12 @@ export function AppHeader() {
           <Logo variant="lockup" size={26} />
         </View>
 
+        {/*
+          El asistente ya no vive acá: se abre desde el launcher flotante
+          (`components/assistant`). En la barra competía con las notificaciones,
+          el tema y el avatar, y no se leía como "hablá con el asistente".
+        */}
         <View style={styles.actions}>
-          <TouchableOpacity onPress={() => nav.navigate('Chat')} style={[styles.iconBtn, { backgroundColor: theme.background.muted }]} accessibilityLabel="Abrir el asistente">
-            <ChatIcon color={theme.text.primary} size={20} />
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => nav.navigate('Notifications')} style={[styles.iconBtn, { backgroundColor: theme.background.muted }]}>
             <BellIcon color={theme.text.primary} size={20} />
             {unread > 0 && <View style={{ position: 'absolute', top: 7, right: 7, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' }} />}

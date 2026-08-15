@@ -608,6 +608,19 @@ export function useSendChatMessage() {
   })
 }
 
+/**
+ * Voto de utilidad de una respuesta. El backend lo guarda junto al
+ * `retrieval_score` del mensaje, así en F7 se puede cruzar "score alto" con "al
+ * usuario no le sirvió". Sin esto la señal se perdía en una de las dos
+ * superficies.
+ */
+export function useChatFeedback() {
+  return useMutation({
+    mutationFn: (input: { messageId: string; vote: 1 | -1; comment?: string }) =>
+      api.post<{ messageId: string; vote: number }>('/chat/feedback', input),
+  })
+}
+
 export function useDeleteChatConversation() {
   const qc = useQueryClient()
   return useMutation({
