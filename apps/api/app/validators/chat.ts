@@ -11,3 +11,12 @@ export const sendMessageValidator = vine.compile(
     conversationId: vine.string().uuid().optional(),
   })
 )
+
+/** Voto sobre una respuesta del asistente. 1 = útil, -1 = no útil. */
+export const chatFeedbackValidator = vine.compile(
+  vine.object({
+    messageId: vine.string().uuid(),
+    vote: vine.number().in([1, -1]),
+    comment: vine.string().trim().maxLength(500).optional(),
+  })
+)

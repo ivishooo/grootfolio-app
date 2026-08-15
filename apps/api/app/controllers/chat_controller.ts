@@ -8,9 +8,10 @@ import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 import ChatConversation from '#models/chat_conversation'
 import ChatMessage from '#models/chat_message'
+import ChatFeedback from '#models/chat_feedback'
 import { AiUnavailableError, isAiEnabled } from '#services/kb/gemini_client'
 import { MAX_HISTORY_MESSAGES, answerQuestion, type ChatTurn } from '#services/kb/rag_query_service'
-import { sendMessageValidator } from '#validators/chat'
+import { chatFeedbackValidator, sendMessageValidator } from '#validators/chat'
 
 /** Preguntas por usuario y hora. Protege la cuota del proveedor. */
 const RATE_LIMIT_PER_HOUR = 30
@@ -156,6 +157,47 @@ export default class ChatController {
     }
     await conversation.delete()
     return response.status(204).send(null)
+  }
+
+  /**
+   * POST /chat/feedback — voto de utilidad sobre una respuesta.
+   *
+   * Sólo se puede votar un mensaje propio y del asistente: votar la propia
+   * pregunta no significa nada. Votar de nuevo actualiza el voto anterior.
+   */
+  async feedback({ request, response, currentUser }: HttpContext) {
+    const payload = await request.validateUsing(chatFeedbackValidator)
+
+    const message = await ChatMessage.query()
+      .where('id', payload.messageId)
+      .where('user_id', currentUser.id)
+      .where('role', 'assistant')
+      .first()
+    if (!message) {
+      return response
+        .status(404)
+        .send({ code: 'MESSAGE_NOT_FOUND', message: 'Respuesta no encontrada.' })
+    }
+
+    const existing = await ChatFeedback.query()
+      .where('message_id', message.id)
+      .where('user_id', currentUser.id)
+      .first()
+
+    if (existing) {
+      existing.vote = payload.vote
+      existing.comment = payload.comment ?? null
+      await existing.save()
+    } else {
+      await ChatFeedback.create({
+        messageId: message.id,
+        userId: currentUser.id,
+        vote: payload.vote,
+        comment: payload.comment ?? null,
+      })
+    }
+
+    return response.status(200).send({ messageId: message.id, vote: payload.vote })
   }
 
   // --- helpers ---

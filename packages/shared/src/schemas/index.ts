@@ -188,6 +188,13 @@ export const sendChatMessageInputSchema = z.object({
   conversationId: z.string().uuid().optional(),
 })
 
+/** Voto sobre una respuesta del asistente. */
+export const chatFeedbackInputSchema = z.object({
+  messageId: z.string().uuid(),
+  vote: z.union([z.literal(1), z.literal(-1)]),
+  comment: z.string().trim().max(500).optional(),
+})
+
 export type LoginInput = z.infer<typeof loginInputSchema>
 export type RegisterInput = z.infer<typeof registerInputSchema>
 export type RefreshInput = z.infer<typeof refreshInputSchema>
@@ -203,3 +210,4 @@ export type CreateContentItemInput = z.infer<typeof createContentItemInputSchema
 export type CreateKbArticleInput = z.infer<typeof createKbArticleInputSchema>
 export type UpdateKbArticleInput = z.infer<typeof updateKbArticleInputSchema>
 export type SendChatMessageInput = z.infer<typeof sendChatMessageInputSchema>
+export type ChatFeedbackInput = z.infer<typeof chatFeedbackInputSchema>

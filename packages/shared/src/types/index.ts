@@ -147,6 +147,9 @@ export interface ChatConversation {
   updatedAt: string
 }
 
+/** Voto de utilidad sobre una respuesta del asistente. */
+export type ChatVote = 1 | -1
+
 /** Respuesta de POST /chat. `remaining` son las preguntas que quedan en la hora. */
 export interface ChatAnswer {
   conversationId: string

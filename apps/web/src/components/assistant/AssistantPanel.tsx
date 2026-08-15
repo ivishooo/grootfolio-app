@@ -16,8 +16,10 @@ import { useEffect, useRef, type ReactNode } from 'react'
 interface Props {
   onClose: () => void
   onNewConversation?: () => void
-  /** Reservado para la vista ampliada del PR 5. */
+  onToggleExpanded?: () => void
   isExpanded?: boolean
+  /** Rail de historial: sólo se muestra en la vista ampliada. */
+  rail?: ReactNode
   children: ReactNode
 }
 
@@ -44,7 +46,14 @@ function IconButton({
   )
 }
 
-export function AssistantPanel({ onClose, onNewConversation, isExpanded = false, children }: Props) {
+export function AssistantPanel({
+  onClose,
+  onNewConversation,
+  onToggleExpanded,
+  isExpanded = false,
+  rail,
+  children,
+}: Props) {
   const panelRef = useRef<HTMLElement>(null)
 
   // Esc cierra. El foco vuelve al launcher desde el componente padre, que es
@@ -75,6 +84,7 @@ export function AssistantPanel({ onClose, onNewConversation, isExpanded = false,
         className="gf-panel focus:outline-none"
         role="dialog"
         aria-label="Asistente GrootFolio"
+        aria-modal={isExpanded || undefined}
         data-expanded={isExpanded}
       >
         <header className="flex items-center gap-3 border-b border-[color:var(--gf-line)] px-4 py-3">
@@ -103,6 +113,21 @@ export function AssistantPanel({ onClose, onNewConversation, isExpanded = false,
             </IconButton>
           )}
 
+          {onToggleExpanded && (
+            <IconButton
+              label={isExpanded ? 'Reducir' : 'Ampliar'}
+              onClick={onToggleExpanded}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                {isExpanded ? (
+                  <path d="M9 3v6H3M15 21v-6h6M3 15h6v6M21 9h-6V3" />
+                ) : (
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                )}
+              </svg>
+            </IconButton>
+          )}
+
           <IconButton label="Cerrar el asistente" onClick={onClose}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-5 w-5">
               <path d="M18 6 6 18M6 6l12 12" />
@@ -110,7 +135,10 @@ export function AssistantPanel({ onClose, onNewConversation, isExpanded = false,
           </IconButton>
         </header>
 
-        {children}
+        <div className="flex min-h-0 flex-1">
+          {isExpanded && rail}
+          <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        </div>
       </section>
     </>
   )

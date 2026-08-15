@@ -543,3 +543,33 @@ Authorization: Bearer {{login.response.body.accessToken}}
 #     - 429 CHAT_RATE_LIMITED: más de 30 preguntas por usuario en una hora.
 #     - 503 AI_UNAVAILABLE: sin GEMINI_API_KEY configurada.
 #     - 502 CHAT_PROVIDER_ERROR: el proveedor falló (modelo dado de baja, red).
+
+### CH11 · Votar una respuesta como útil → 200 { messageId, vote }
+#   Sólo se puede votar un mensaje propio y del asistente. Votar de nuevo
+#   actualiza el voto anterior (único por usuario y mensaje).
+POST {{base}}/chat/feedback
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "messageId": "{{chat.response.body.messageId}}", "vote": 1 }
+
+### CH12 · Votar como no útil, con comentario → 200
+POST {{base}}/chat/feedback
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "messageId": "{{chat.response.body.messageId}}", "vote": -1, "comment": "Se fue por las ramas." }
+
+### CH13 · Voto inválido → 422 VALIDATION_ERROR
+POST {{base}}/chat/feedback
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "messageId": "{{chat.response.body.messageId}}", "vote": 5 }
+
+### CH14 · Votar un mensaje ajeno o inexistente → 404 MESSAGE_NOT_FOUND
+POST {{base}}/chat/feedback
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{ "messageId": "00000000-0000-0000-0000-000000000000", "vote": 1 }

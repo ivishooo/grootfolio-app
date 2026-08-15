@@ -608,6 +608,13 @@ export function useSendChatMessage() {
   })
 }
 
+export function useChatFeedback() {
+  return useMutation({
+    mutationFn: (input: { messageId: string; vote: 1 | -1; comment?: string }) =>
+      api.post<{ messageId: string; vote: number }>('/chat/feedback', input),
+  })
+}
+
 export function useDeleteChatConversation() {
   const qc = useQueryClient()
   return useMutation({

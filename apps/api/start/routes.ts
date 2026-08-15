@@ -67,6 +67,7 @@ router
     router.get('/chat/conversations', '#controllers/chat_controller.conversations')
     router.get('/chat/conversations/:id', '#controllers/chat_controller.messages')
     router.delete('/chat/conversations/:id', '#controllers/chat_controller.destroyConversation')
+    router.post('/chat/feedback', '#controllers/chat_controller.feedback')
   })
   .use(middleware.auth())
 
