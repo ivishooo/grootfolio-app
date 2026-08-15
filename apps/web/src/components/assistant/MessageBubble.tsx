@@ -15,7 +15,7 @@ import { Markdown } from '@/components/ui/Markdown'
 export function BotAvatar() {
   return (
     <div
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--gf-accent-soft)] text-[11px] font-bold text-[color:var(--gf-accent)]"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--gf-accent-soft)] text-[11px] font-bold text-[color:var(--gf-accent-ink)]"
       aria-hidden="true"
     >
       G
@@ -37,7 +37,7 @@ export function UserBubble({ content, muted = false }: { content: string; muted?
   return (
     <div className="flex justify-end">
       <div
-        className={`max-w-[86%] rounded-[var(--gf-r-bubble)] bg-[color:var(--gf-accent)] px-3.5 py-2.5 text-sm leading-relaxed text-white ${
+        className={`max-w-[86%] rounded-[var(--gf-r-bubble)] bg-[color:var(--gf-accent-strong)] px-3.5 py-2.5 text-sm leading-relaxed text-white ${
           muted ? 'opacity-70' : ''
         }`}
       >
@@ -68,7 +68,7 @@ export function ErrorBubble({ message, onRetry }: { message: string; onRetry?: (
           <button
             type="button"
             onClick={onRetry}
-            className="mt-2 rounded-lg border border-[color:var(--gf-border)] bg-[color:var(--gf-surface)] px-2.5 py-1 text-xs font-medium text-[color:var(--gf-ink-2)] transition-colors hover:border-[color:var(--gf-accent)] hover:text-[color:var(--gf-accent)]"
+            className="mt-2 rounded-lg border border-[color:var(--gf-border)] bg-[color:var(--gf-surface)] px-2.5 py-1 text-xs font-medium text-[color:var(--gf-ink-2)] transition-colors hover:border-[color:var(--gf-accent)] hover:text-[color:var(--gf-accent-ink)]"
           >
             Reintentar
           </button>

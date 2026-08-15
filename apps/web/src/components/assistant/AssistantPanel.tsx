@@ -9,7 +9,10 @@
  *  - **Identidad**: avatar, nombre de producto y señal de disponibilidad, con el
  *    header separado del cuerpo por un divisor.
  *  - **Accesibilidad**: `role="dialog"`, Esc cierra y devuelve el foco al
- *    launcher, y los íconos tienen área de toque de 44 px en móvil.
+ *    launcher, y los íconos tienen área de toque de 44 px en móvil. En la vista
+ *    ampliada el foco además queda atrapado dentro del panel, porque ahí es
+ *    `aria-modal`: prometer modalidad al lector de pantalla y dejar que el Tab
+ *    se escape a la página de atrás es peor que no prometerla.
  */
 import { useEffect, useRef, type ReactNode } from 'react'
 
@@ -58,16 +61,49 @@ export function AssistantPanel({
 
   // Esc cierra. El foco vuelve al launcher desde el componente padre, que es
   // quien sabe si el launcher volvió a montarse.
+  //
+  // Con la vista ampliada, Tab cicla dentro del panel: es `aria-modal`, así que
+  // el foco no puede caerse a la página de atrás.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation()
         onClose()
+        return
+      }
+
+      if (event.key !== 'Tab' || !isExpanded) return
+
+      const panel = panelRef.current
+      if (!panel) return
+
+      const focusable = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => el.offsetParent !== null)
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (!first || !last) return
+
+      const active = document.activeElement
+
+      // Salir por cualquiera de los dos extremos vuelve a entrar por el otro.
+      if (event.shiftKey && (active === first || active === panel)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      } else if (!panel.contains(active)) {
+        event.preventDefault()
+        first.focus()
       }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  }, [onClose, isExpanded])
 
   // Al abrir, el foco entra al panel para que el teclado no siga en la página.
   useEffect(() => {
@@ -89,7 +125,7 @@ export function AssistantPanel({
       >
         <header className="flex items-center gap-3 border-b border-[color:var(--gf-line)] px-4 py-3">
           <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--gf-accent-soft)] text-sm font-bold text-[color:var(--gf-accent)]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--gf-accent-soft)] text-sm font-bold text-[color:var(--gf-accent-ink)]"
             aria-hidden="true"
           >
             G
