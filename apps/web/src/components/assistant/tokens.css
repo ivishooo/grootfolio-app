@@ -12,6 +12,21 @@
   --gf-accent-hover: theme('colors.brand.600');
   --gf-accent-soft: #fff1e7;
 
+  /*
+   * El acento como TEXTO no llega a AA: #F97316 da 2,53:1 sobre `accent-soft`
+   * (avatar, chips, voto activo) y 2,80:1 sobre blanco. brand-700 da 4,68:1 y
+   * 5,18:1 respectivamente, y sigue siendo naranja.
+   */
+  --gf-accent-ink: theme('colors.brand.700');
+
+  /*
+   * Superficies sólidas que llevan texto blanco encima — hoy la burbuja del
+   * usuario. Con brand-500 el blanco daba 2,80:1 sobre texto de 14 px; con
+   * brand-700 da 5,18:1. El launcher y los botones de ícono siguen en
+   * `--gf-accent`: ahí el naranja es forma, no texto.
+   */
+  --gf-accent-strong: theme('colors.brand.700');
+
   --gf-ink: #14161a;
   --gf-ink-2: #4b5259;
   /*
@@ -50,6 +65,12 @@
   --gf-bubble-bot-border: #2c3037;
   --gf-surface: #17191d;
   --gf-accent-soft: rgba(249, 115, 22, 0.14);
+  /*
+   * En oscuro el acento como texto tiene que ir para el otro lado: sobre el
+   * soft compuesto (#37261C) brand-700 daría 2,78:1 y brand-400 da 6,37:1.
+   * `--gf-accent-strong` no cambia: esa burbuja lleva texto blanco en ambos modos.
+   */
+  --gf-accent-ink: theme('colors.brand.400');
 }
 
 /* --- Launcher --- */

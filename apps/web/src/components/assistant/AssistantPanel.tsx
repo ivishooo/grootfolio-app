@@ -125,7 +125,7 @@ export function AssistantPanel({
       >
         <header className="flex items-center gap-3 border-b border-[color:var(--gf-line)] px-4 py-3">
           <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--gf-accent-soft)] text-sm font-bold text-[color:var(--gf-accent)]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--gf-accent-soft)] text-sm font-bold text-[color:var(--gf-accent-ink)]"
             aria-hidden="true"
           >
             G

@@ -54,7 +54,7 @@ export function Composer({ onSend, onStop, isStreaming, followUps = [], onFollow
               key={text}
               type="button"
               onClick={() => onFollowUp?.(text)}
-              className="rounded-full border border-[color:var(--gf-border)] bg-[color:var(--gf-accent-soft)] px-3 py-1 text-xs text-[color:var(--gf-ink-2)] transition-colors hover:border-[color:var(--gf-accent)] hover:text-[color:var(--gf-accent)]"
+              className="rounded-full border border-[color:var(--gf-border)] bg-[color:var(--gf-accent-soft)] px-3 py-1 text-xs text-[color:var(--gf-ink-2)] transition-colors hover:border-[color:var(--gf-accent)] hover:text-[color:var(--gf-accent-ink)]"
             >
               {text}
             </button>
