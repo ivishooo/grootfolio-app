@@ -35,7 +35,7 @@ import { FALLBACK_ANSWER, SYSTEM_PROMPT, buildUserPrompt } from '#services/kb/pr
 import { GoogleGenAI } from '@google/genai'
 
 const DEFAULT_TOP_K = 4
-const DEFAULT_MIN_SCORE = 0.63
+const DEFAULT_MIN_SCORE = 0.68
 /** Turnos previos que se mandan como memoria corta (2 intercambios). */
 export const MAX_HISTORY_MESSAGES = 4
 

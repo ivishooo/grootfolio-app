@@ -51,6 +51,7 @@
    "indexado ✓" o el error en el panel de admin.
 4. **Parámetros iniciales de retrieval**: `RAG_TOP_K=4` y `RAG_MIN_SCORE=0.63`
    (similitud coseno). Se calibran con datos en F7 — ver las dos sondas de abajo.
+   **Calibrado en F7 (2026-08-18): `RAG_MIN_SCORE=0.68`**, con la KB completa.
 
 ### Sonda 1 — embeddings sueltos (2026-08-11)
 
@@ -307,7 +308,7 @@ se rechaza sin llegar a llamar al generador).
 
 ---
 
-## Fase F7 — Evaluación y tuning (capítulo de tesis) ← **siguiente**
+## Fase F7 — Evaluación y tuning (capítulo de tesis) ✅ (PR #143 + KB completa)
 
 **Objetivo:** medir y calibrar el acotamiento — el aporte académico.
 
@@ -326,6 +327,15 @@ se rechaza sin llegar a llamar al generador).
 
 **Entrega:** parámetros calibrados + informe de evaluación.
 
+**Estado (2026-08-18):** hecha, con un bloqueo acotado. Con los 19 artículos de
+la KB cargados, el retrieval acierta el artículo correcto en **30/30** preguntas
+in-scope y el umbral se recalibró de **0,63 a 0,68** (rechazo out-of-scope del
+30,8 % al 69,2 %, acierto global 85,7 %). Las 8 preguntas que atraviesan el
+umbral se verificaron contra el generador y el system prompt las frenó a todas.
+Lo que falta es la corrida **completa** de las 56 preguntas contra el pipeline
+entero, que necesita billing (free tier: 20 generaciones/día). Detalle y
+metodología en [`EVALUACION_CHATBOT.md`](EVALUACION_CHATBOT.md).
+
 ---
 
 ## Fase F8 — QA y cierre
@@ -343,7 +353,9 @@ Espejo del F8 del feature Admin/Contenidos.
 
 - `GEMINI_API_KEY` y envs de RAG en **Railway**; las migraciones `0009`/`0010`
   corren solas en el Pre-Deploy.
-- **Cargar la KB real en producción** y correr `kb:reindex` contra prod.
+- **Cargar la KB real en producción**: `node ace kb:seed --index` contra prod
+  (reemplaza los 3 artículos de prueba y carga los 19 definitivos). `kb:reindex`
+  queda para mantenimiento y cambios de modelo de embeddings.
 - Deploy web (Vercel, automático) + build EAS y subida a **TestFlight**
   (GF-252 / GF-259).
 - Smoke test del bot en las tres superficies contra prod.
@@ -354,6 +366,21 @@ Espejo del F8 del feature Admin/Contenidos.
 
 **No es código, y es lo que determina si el bot sirve.** F7 no tiene sentido con
 una KB vacía, así que la redacción arranca **en paralelo a F3/F4**, no después.
+
+> **Hecho (2026-08-18).** La KB son **19 artículos** versionados como markdown en
+> `apps/api/database/kb/`, con frontmatter (`title`, `slug`, `status`), que se
+> cargan e indexan con **`node ace kb:seed --index`**. Vivir en el repo y no sólo
+> en la base tiene tres consecuencias que importan: el contenido se revisa en un
+> PR, la evaluación es reproducible en cualquier entorno, y la carga en
+> producción deja de ser un trámite manual. El upsert es por `slug` y no borra lo
+> que un admin haya cargado desde el panel.
+>
+> Cubre los 13 artículos que exige el set de evaluación más seis de contexto
+> (catálogo de activos, precios y cotizaciones, cuenta y perfil, biblioteca de
+> contenidos, divisas y el propio asistente). Todo lo que describe el
+> comportamiento de la aplicación se verificó **contra el código**, no contra el
+> plan: el criterio de FX del dashboard frente al de los reportes, el costeo
+> promedio ponderado, los bonos sin cotización, los tipos de activo del catálogo.
 
 Cobertura mínima sugerida (~18 artículos):
 
@@ -373,8 +400,8 @@ Cobertura mínima sugerida (~18 artículos):
 | Alucinación residual | Umbral + prompt + citas + verificador; evaluación en F7 |
 | Rate limits (free tier) en demo | Verificar el tier real de la API key; habilitar billing antes de la defensa |
 | Privacidad de prompts (free tier) | Ídem; las preguntas son de bajo riesgo |
-| KB pobre → respuestas pobres | Redacción en paralelo desde F3 (ver sección de contenido) |
-| Margen in/out-scope estrecho (~0.06) | Umbral + `taskType` + prompt de grounding como segunda barrera; calibración en F7 |
+| KB pobre → respuestas pobres | ✅ Resuelto: 19 artículos versionados en `database/kb/` |
+| Margen in/out-scope estrecho (~0.06) | Medido en F7 con la KB completa: las medianas separan (0,78 vs 0,66) pero los extremos se solapan. Umbral 0,68 + prompt de grounding como segunda barrera |
 | KB completa demasiado tarde → F7 apretada | Arrancar la redacción ya, no al final |
 
 ## Estimación
