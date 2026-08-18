@@ -85,7 +85,11 @@ export default class KbSeed extends BaseCommand {
 
     let files: string[]
     try {
-      files = (await readdir(dir)).filter((name) => name.endsWith('.md')).sort()
+      // El README de la carpeta documenta cómo escribir artículos: es markdown
+      // sin frontmatter y no es contenido de la KB.
+      files = (await readdir(dir))
+        .filter((name) => name.endsWith('.md') && name.toLowerCase() !== 'readme.md')
+        .sort()
     } catch {
       this.logger.error(`No se pudo leer ${dir}`)
       this.exitCode = 1
