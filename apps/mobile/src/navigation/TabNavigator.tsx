@@ -37,14 +37,18 @@ export function TabNavigator() {
           backgroundColor: theme.background.surface,
           borderTopColor: theme.border.default,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        // Con seis pestañas, en 375 px cada una tiene ~62 px: a 11 px los
+        // labels largos ("Dashboard", "Contenidos") se cortaban. Y con el texto
+        // grande del sistema se cortaba cualquiera, de ahí el allowFontScaling.
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+        tabBarAllowFontScaling: false,
       }}
     >
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
         options={{
-          tabBarLabel: 'Dashboard',
+          tabBarLabel: 'Inicio',
           tabBarIcon: ({ color, size }) => <DashboardIcon color={color} size={size} />,
         }}
       />
@@ -85,7 +89,7 @@ export function TabNavigator() {
         name="Settings"
         component={SettingsScreen}
         options={{
-          tabBarLabel: 'Config',
+          tabBarLabel: 'Ajustes',
           tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
         }}
       />

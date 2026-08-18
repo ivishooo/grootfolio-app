@@ -6,6 +6,7 @@
 import { ScrollView, View, Text, StyleSheet } from 'react-native'
 import Svg, { Polyline } from 'react-native-svg'
 import { useTheme } from '@/theme/ThemeProvider'
+import { BarChart } from '@/components/ui/BarChart'
 import { useReportSummary, useReportLedger } from '@/lib/queries'
 import { formatCurrency, formatPercent, assetTypeLabel } from '@grootfolio/shared'
 import type { AssetType } from '@grootfolio/shared'
@@ -72,19 +73,11 @@ export function ReportsScreen() {
               {s.historicalBalance.length === 0 ? (
                 <EmptyState title="Sin histórico aún" description="Se muestra cuando hay snapshots históricos (crypto)." />
               ) : (
-                <View style={st.barChart}>
-                  {s.historicalBalance.map((m) => {
-                    const maxBar = Math.max(...s.historicalBalance.map((x) => x.value), 1)
-                    return (
-                      <View key={m.month} style={st.barCol}>
-                        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                          <View style={[st.bar, { height: `${(m.value / maxBar) * 100}%`, backgroundColor: theme.chart.series2 }]} />
-                        </View>
-                        <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 4, textAlign: 'center' }}>{m.month}</Text>
-                      </View>
-                    )
-                  })}
-                </View>
+                <BarChart
+                  data={s.historicalBalance.map((m) => ({ label: m.month, value: m.value }))}
+                  color={theme.chart.series2}
+                  formatValue={formatCurrency}
+                />
               )}
             </Card>
 
@@ -216,9 +209,6 @@ function RealizedLine({ points, color }: { points: number[]; color: string }) {
 
 const st = StyleSheet.create({
   statCard: { borderRadius: 16, borderWidth: 1, padding: 16 },
-  barChart: { flexDirection: 'row', height: 160, gap: 6 },
-  barCol: { flex: 1 },
-  bar: { borderRadius: 4, minHeight: 4 },
   row: { flexDirection: 'row', gap: 10, paddingVertical: 12, borderTopWidth: 1, alignItems: 'center' },
   chip: { fontSize: 11, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, overflow: 'hidden' },
   opChip: { fontSize: 11, fontWeight: '700', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },

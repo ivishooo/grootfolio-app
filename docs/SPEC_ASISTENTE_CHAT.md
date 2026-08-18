@@ -135,6 +135,11 @@ POST /api/assistant/feedback
 >
 > El endpoint es `POST /chat` (+ `/chat/feedback`, `/chat/conversations`), no
 > `/api/assistant/*`: el proyecto no usa prefijo `/api`.
+>
+> **Consecuencia (2026-08-18):** el botón "Detener" y los chips de seguimiento
+> del composer, que sólo tenían sentido con streaming, se sacaron. Estaban
+> implementados pero ningún llamador les pasaba las props: prometían en el
+> código una función que el asistente no tiene.
 
 1. **PR 1 — Shell + launcher.** Tokens CSS, launcher, overlay, animación de apertura, cierre con Esc, panel arranca cerrado. Sin tocar la lógica de chat.
 2. **PR 2 — Header, burbujas y composer.** Avatar, estado, textarea autogrow, Enter / Shift+Enter, botón enviar con estados real / disabled / streaming.
