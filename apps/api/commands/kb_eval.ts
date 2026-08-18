@@ -25,6 +25,15 @@ const SWEEP_THRESHOLDS = [0.5, 0.55, 0.58, 0.6, 0.62, 0.63, 0.65, 0.68, 0.7, 0.7
  */
 const DEFAULT_DELAY_SECONDS = 13
 
+/**
+ * Pausa entre preguntas en modo `--retrieval`. Ahí no se genera, pero **sí se
+ * embebe cada pregunta**, y el free tier corta a 100 embeddings por minuto
+ * (contando también los del `kb:seed --index` reciente). Sin pausa, una corrida
+ * de 56 preguntas se pasa del tope y muere a mitad de camino: el modo "gratis y
+ * rápido" era el único que no podía terminar. Con billing: `--delay=0`.
+ */
+const DEFAULT_RETRIEVAL_DELAY_SECONDS = 1
+
 export default class KbEval extends BaseCommand {
   static commandName = 'kb:eval'
   static description = 'Evalúa el acotamiento del chatbot contra el set de preguntas (F7)'
@@ -40,7 +49,7 @@ export default class KbEval extends BaseCommand {
   declare json?: string
 
   @flags.number({
-    description: `Segundos de pausa entre preguntas (default ${DEFAULT_DELAY_SECONDS}, por el límite del free tier). Con billing: 0`,
+    description: `Segundos de pausa entre preguntas (default ${DEFAULT_DELAY_SECONDS}; ${DEFAULT_RETRIEVAL_DELAY_SECONDS} con --retrieval, por los límites del free tier). Con billing: 0`,
   })
   declare delay?: number
 
@@ -83,7 +92,12 @@ export default class KbEval extends BaseCommand {
 
     const run = async (question: string, extra: Partial<EvalOutcome>): Promise<EvalOutcome> => {
       if (this.retrieval) {
-        const chunks = await retrieve(question)
+        const chunks = await withRetry(() => retrieve(question), {
+          attempts: 4,
+          baseDelayMs: 15_000,
+          onWait: (ms) =>
+            this.logger.warning(`  límite de embeddings por minuto, esperando ${Math.round(ms / 1000)}s…`),
+        })
         const topScore = chunks[0]?.score ?? null
         return {
           question,
@@ -108,11 +122,12 @@ export default class KbEval extends BaseCommand {
       }
     }
 
-    const delayMs = (this.delay ?? DEFAULT_DELAY_SECONDS) * 1000
+    const defaultDelay = this.retrieval ? DEFAULT_RETRIEVAL_DELAY_SECONDS : DEFAULT_DELAY_SECONDS
+    const delayMs = (this.delay ?? defaultDelay) * 1000
     const throttle = async () => {
-      if (!this.retrieval && delayMs > 0) await sleep(delayMs)
+      if (delayMs > 0) await sleep(delayMs)
     }
-    if (!this.retrieval && delayMs > 0) {
+    if (delayMs > 0) {
       const total = runnable.length + evalSet.out_of_scope.length
       this.logger.info(
         `Pausa de ${delayMs / 1000}s entre preguntas (límite del free tier) → ~${Math.ceil((total * delayMs) / 60000)} min`
