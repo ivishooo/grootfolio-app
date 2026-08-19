@@ -32,11 +32,13 @@ Archivo del andamiaje: `apps/web/vercel.json` (framework, build, output, rewrite
    Setearla para Production (y Preview si querés que las branch previews peguen
    al mismo backend).
 5. **Deploy**. Al terminar, Vercel te da una URL tipo
-   `https://grootfolio.vercel.app`.
+   `https://<proyecto>.vercel.app`. **La de este proyecto es
+   `https://grootfolio-app-web.vercel.app`** (no `grootfolio.vercel.app`, que
+   no existe y devuelve 404).
 6. **CORS en el backend**: en Railway → servicio de la API → Variables, setear
    `CORS_ORIGINS` con el dominio de Vercel (coma-separado si hay varios):
    ```
-   CORS_ORIGINS = https://grootfolio.vercel.app
+   CORS_ORIGINS = https://grootfolio-app-web.vercel.app
    ```
    Sin esto, la web en producción recibe error de CORS al llamar a la API.
    (Las branch previews de Vercel usan subdominios cambiantes; si querés que

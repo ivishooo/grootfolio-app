@@ -1,6 +1,6 @@
 # GrootFolio - Onboarding y Estado del Proyecto
 
-*Snapshot tomado el 28 de abril de 2026.*
+*Snapshot actualizado el 18 de agosto de 2026 (el original es del 28 de abril).*
 
 Este documento es el "punto de aterrizaje" para cualquiera que llegue al
 proyecto sin haber estado en las decisiones iniciales. Esta pensado
@@ -48,7 +48,8 @@ oral.
 **Fuera de alcance del MVP** (queda como v2):
 
 - Ejecucion de operaciones reales o integracion con brokers.
-- Chatbot.
+- Chatbot. *(Reabierto a proposito en agosto de 2026 como modulo v2: ver
+  `docs/adr/0004-chatbot-rag-gemini.md`. Esta implementado y desplegado.)*
 - Analisis tecnico avanzado propio (se delega en widget de TradingView).
 - Notificaciones push de alertas de precio.
 
@@ -70,7 +71,9 @@ Las decisiones de stack ya estan tomadas y documentadas en
 - **Backend unico compartido** entre web y mobile: AdonisJS 6 + TypeScript +
   Lucid + PostgreSQL 16.
 - **Web**: React 19 + Vite + TypeScript + TanStack Query + Tailwind CSS.
-- **Mobile**: React Native 0.81 + Expo SDK 54 + React Navigation 7 + victory-native v41.
+- **Mobile**: React Native 0.81 + Expo SDK 54 + React Navigation 7. Los
+  graficos son componentes propios sobre `react-native-svg`: `victory-native`
+  v41 exige react-native-skia y nunca llego a usarse, asi que se saco.
 - **Shared**: tipos de dominio, schemas Zod y cliente HTTP en
   `packages/shared`. Design tokens en `packages/tokens`.
 - **Auth**: JWT propio con refresh rotatorio.
@@ -110,55 +113,75 @@ descartadas. No se modifica el ADR-0001.
    5433 para no chocar con otros proyectos locales). CI quedo verde.
 8. **Onboarding** (este documento): se creo `ONBOARDING.md` para que Franco
    tenga el mismo contexto que Ivan al abrir Cowork.
+9. **Fases 1 a 6 del CLAUDE_CODE_PLAN** (mayo-junio): design system, navegacion,
+   pantallas con datos mock, componentes reutilizables, integracion con la API
+   real y QA. El MVP quedo funcionando de punta a punta en web y mobile.
+10. **Backend completo** (mayo-julio): auth JWT con refresh rotatorio,
+    transacciones, holdings, portfolio, precios con cache (CoinGecko, Yahoo,
+    Frankfurter), FX, reportes y cuestionario de perfil.
+11. **Despliegue** (julio): API en Railway, web en Vercel, iOS en TestFlight
+    via EAS Build. Sentry y observabilidad configurados.
+12. **Admin y Contenidos** (julio): panel de administracion con ABM de
+    usuarios, suspensiones, audit log, biblioteca de contenidos y
+    notificaciones.
+13. **Chatbot RAG** (agosto, ADR-0004): el chatbot estaba fuera del alcance del
+    MVP y se reabrio a proposito como modulo v2. pgvector sobre el Postgres
+    existente + Google Gemini, con dominio acotado a la base de conocimiento
+    del equipo. Fases F1 a F7 completas.
+14. **Rediseno del asistente** (agosto): burbuja flotante en web y mobile,
+    historial, fuentes citadas y feedback.
 
-**Lo proximo es la Fase 1 del CLAUDE_CODE_PLAN** (design system + theming).
+**Lo proximo es la monografia de tesis** (epic GF-235), que es el pendiente
+grueso del proyecto.
 
 ## 5. Estado actual del codigo
 
 ### Que esta listo
 
-- Estructura del monorepo completa, con `pnpm install` funcionando.
-- `packages/tokens`: paleta + temas light/dark + preset Tailwind + tipografia
-  + spacing + radios + sombras + breakpoints. **Compila y pasa lint.**
-- `packages/shared`: tipos de dominio, schemas Zod (`loginInput`,
-  `registerInput`, `createTransactionInput`, `submitQuizInput`), utils
-  (`formatCurrency`, `formatPercent`, `averageCost`), `ApiClient`.
-  **Compila y pasa lint.**
-- `apps/web`: stubs de las 6 pantallas (Login, Dashboard, AddAsset,
-  ProfileTest, ProfileResult, Settings), AppLayout con sidebar, mocks fieles
-  al Figma, ThemeProvider, React Router. **`vite build` pasa.**
-- `apps/mobile`: stubs de las 5 pantallas (Login, Dashboard, AddAsset,
-  ProfileTest, ProfileResult), RootNavigator, ThemeProvider.
-  **Compila y pasa lint.**
-- `apps/api`: scaffolding inicial AdonisJS 6 (kernel.ts + auth_middleware
-  stub + path aliases + subpath imports), migracion inicial Postgres
-  (8 tablas), rutas REST esqueleto. **`tsc --noEmit` pasa.** El `ace build`
-  y `ace test` estan como placeholders hasta que se complete la Fase 2.
-- CI: tres jobs (lint+typecheck, test, build) verdes en `develop`.
-- Postgres aislado en puerto 5433 con volumen propio
-  (`grootfolio-postgres-data`), sin chocar con otros Postgres locales.
+**Todo el MVP, desplegado en las tres superficies.**
 
-### Que falta y en que orden
+- **`apps/api`** (AdonisJS 6 + Lucid + Postgres 16 con pgvector): auth JWT con
+  refresh rotatorio, CRUD de transacciones, holdings agregados con costeo
+  promedio ponderado, portfolio valuado en USD, precios cacheados de CoinGecko
+  / Yahoo / Frankfurter, FX historico, reportes (P&L realizado, ledger, balance
+  mark-to-market), cuestionario de perfil, panel de admin, contenidos,
+  notificaciones y el chatbot RAG.
+- **`apps/web`** (React 19 + Vite + TanStack Query + Tailwind): dashboard,
+  activos, reportes, contenidos, perfil, configuracion, panel de admin y el
+  asistente como burbuja flotante.
+- **`apps/mobile`** (React Native 0.81 + Expo SDK 54): paridad con la web en
+  seis pestanas, mas las pantallas de admin y el asistente.
+- **`packages/shared` y `packages/tokens`**: tipos, schemas Zod, utils, cliente
+  HTTP y design tokens con preset Tailwind.
+- **Base de conocimiento del chatbot**: 19 articulos versionados en
+  `apps/api/database/kb/`, que se cargan con `node ace kb:seed --index`.
+- **Despliegue**: API en Railway, web en Vercel
+  (`grootfolio-app-web.vercel.app`), iOS en TestFlight.
+- **CI**: lint + typecheck, tests y build, verdes en `develop`.
 
-Las fases estan detalladas en **`docs/CLAUDE_CODE_PLAN.md`**. Resumen:
+### Que falta
 
-1. **Fase 1 - Design system y theming**: cerrar tokens, configurar Inter en
-   web y mobile, simetrizar ThemeProvider de web con el de mobile, smoke
-   screen de swatches. *(Pendiente, es lo proximo a arrancar.)*
-2. **Fase 2 - Navegacion y layouts base**: rutas, AppLayout responsive,
-   ProtectedRoute, bottom-tab navigator en mobile.
-3. **Fase 3 - Pantallas con datos mock**: 6 pantallas web + 5 mobile
-   completas, graficos con Recharts y victory-native.
-4. **Fase 4 - Componentes reutilizables**: extraer Button, Input, Card,
-   Tabs, ProgressBar, Badge, Stat, Table.
-5. **Fase 5 - Integracion con API real**: cuando el backend este pronto.
-6. **Fase 6 - Pulido y QA**: skeletons, empty states, error states,
-   accesibilidad, E2E.
+1. **La monografia de tesis** (GF-235 y sus siete sub-issues). Es el camino
+   critico del proyecto.
+2. **Billing en Google Cloud** para el chatbot: el free tier de Gemini corta en
+   20 generaciones por dia, lo que bloquea la evaluacion definitiva del
+   capitulo de pruebas y haria inviable una demo en vivo.
+3. **Smoke test en iPhone** del ultimo build de TestFlight (GF-252, GF-259).
+4. **Infraestructura y DevOps** (GF-177).
 
-El backend AdonisJS esta cableado solo a nivel scaffolding. La Fase 2 del
-plan implica completar `bin/server.ts`, `start/env.ts`, `config/database.ts`,
-controladores, servicios, validators con Vine. Eso es lo que liderara Franco
-cuando arranque la parte backend.
+Las fases del `CLAUDE_CODE_PLAN.md` estan todas completas: ese documento queda
+como registro historico de la planificacion, no como plan vigente.
+
+### Donde mirar segun que quieras hacer
+
+| Si vas a... | Leete |
+|---|---|
+| tocar el chatbot | `docs/PLAN_CHATBOT_RAG.md` + `docs/adr/0004-chatbot-rag-gemini.md` |
+| escribir contenido de la KB | `apps/api/database/kb/README.md` |
+| tocar el asistente en la UI | `docs/SPEC_ASISTENTE_CHAT.md` |
+| desplegar | `docs/DEPLOY_BACKEND.md` y `docs/DEPLOY_WEB.md` |
+| probar a mano | `docs/TESTING_MANUAL.md` |
+| entender una decision de stack | `docs/adr/` |
 
 ## 6. Estado de la documentacion de tesis
 

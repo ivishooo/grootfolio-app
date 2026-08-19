@@ -33,7 +33,7 @@ export function ConversationRail({ activeId, onSelect, onNew }: Props) {
         <button
           type="button"
           onClick={onNew}
-          className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-[color:var(--gf-accent)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[color:var(--gf-accent-hover)]"
+          className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-[color:var(--gf-accent-strong)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[color:var(--gf-accent-strong-hover)]"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4" aria-hidden="true">
             <path d="M12 5v14M5 12h14" />

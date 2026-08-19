@@ -88,7 +88,7 @@ openssl rand -base64 48             # JWT_SECRET
 3. Setear el resto de secretos:
 
    ```bash
-   fly secrets set APP_KEY=... JWT_SECRET=... CORS_ORIGINS=https://grootfolio.vercel.app
+   fly secrets set APP_KEY=... JWT_SECRET=... CORS_ORIGINS=https://grootfolio-app-web.vercel.app
    ```
 4. `fly deploy -c apps/api/fly.toml`. El `release_command` corre las
    **migraciones** automáticamente en cada deploy.

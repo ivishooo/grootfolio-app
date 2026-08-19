@@ -26,6 +26,12 @@
    * `--gf-accent`: ahí el naranja es forma, no texto.
    */
   --gf-accent-strong: theme('colors.brand.700');
+  /*
+   * Hover de esas superficies. No puede ser `--gf-accent-hover` (brand-600):
+   * es más claro que brand-700 y bajaría el contraste justo al interactuar.
+   * brand-800 da 7,31:1 con blanco.
+   */
+  --gf-accent-strong-hover: theme('colors.brand.800');
 
   --gf-ink: #14161a;
   --gf-ink-2: #4b5259;

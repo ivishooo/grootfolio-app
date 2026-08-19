@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { AssetAvatar } from '@/components/ui/AssetAvatar'
 import { assetColor } from '@/lib/asset-visual'
+import { BarChart } from '@/components/ui/BarChart'
 import { DashboardSkeleton } from './DashboardSkeleton'
 
 export function DashboardScreen() {
@@ -69,19 +70,11 @@ export function DashboardScreen() {
               {p.monthlyReturn.length === 0 ? (
                 <EmptyState title="Sin histórico aún" description="Se mostrará cuando haya datos históricos." />
               ) : (
-                <View style={s.barChart}>
-                  {p.monthlyReturn.map((m) => {
-                    const maxBar = Math.max(...p.monthlyReturn.map((x) => x.value))
-                    return (
-                      <View key={m.month} style={s.barCol}>
-                        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                          <View style={[s.bar, { height: `${maxBar > 0 ? (m.value / maxBar) * 100 : 0}%`, backgroundColor: theme.chart.series1 }]} />
-                        </View>
-                        <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 4, textAlign: 'center' }}>{m.month}</Text>
-                      </View>
-                    )
-                  })}
-                </View>
+                <BarChart
+                  data={p.monthlyReturn.map((m) => ({ label: m.month, value: m.value }))}
+                  color={theme.chart.series1}
+                  formatValue={formatCurrency}
+                />
               )}
             </Card>
 
@@ -149,9 +142,6 @@ const s = StyleSheet.create({
   distSegment: { borderRadius: 4 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
-  barChart: { flexDirection: 'row', height: 160, gap: 6 },
-  barCol: { flex: 1 },
-  bar: { borderRadius: 4, minHeight: 4 },
   holdingRow: { flexDirection: 'row', gap: 10, paddingVertical: 12, borderTopWidth: 1, alignItems: 'center' },
   chip: { fontSize: 10, fontWeight: '700', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, overflow: 'hidden' },
 })
