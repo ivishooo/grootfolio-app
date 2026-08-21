@@ -126,7 +126,11 @@ usó el contexto, y si declinó no se muestran fuentes. Mostrar citas debajo de 
 
 ## Pendiente de confirmar
 
-- **Plan de Gemini para la API.** La suscripción **Google AI Pro no habilita el
+- ~~**Plan de Gemini para la API.**~~ **Resuelto el 2026-08-21**: el proyecto
+  quedó en **Tier 1 con prepago**, lo que levanta el tope de 20 generaciones
+  diarias (queda el límite por minuto, que los reintentos absorben). El crédito
+  comprado por adelantado funciona además como tope duro de gasto. Nota original:
+  la suscripción **Google AI Pro no habilita el
   acceso programático**: la API va por una API key de Google AI Studio, con su
   propio free tier y su propio pago según si el proyecto de Google Cloud tiene
   billing habilitado. Hay que verificar en *aistudio.google.com → Get API key*
@@ -327,7 +331,15 @@ se rechaza sin llegar a llamar al generador).
 
 **Entrega:** parámetros calibrados + informe de evaluación.
 
-**Estado (2026-08-18):** hecha, con un bloqueo acotado. Con los 19 artículos de
+**Estado (2026-08-21): CERRADA.** Con billing habilitado se corrió el set
+completo contra el pipeline entero: **100 % de acierto** — 30/30 in-scope
+respondidas y con la cita correcta, 26/26 out-of-scope rechazadas, todas las
+familias al 100 %. El dato que importa para la tesis es el reparto: el umbral
+frenó 18 de las 26 y el system prompt las otras 8, que son justamente las que
+piden consejo financiero o datos privados. No hizo falta iterar el prompt
+porque no hubo fallos.
+
+**Estado anterior (2026-08-18):** hecha, con un bloqueo acotado. Con los 19 artículos de
 la KB cargados, el retrieval acierta el artículo correcto en **30/30** preguntas
 in-scope y el umbral se recalibró de **0,63 a 0,68** (rechazo out-of-scope del
 30,8 % al 69,2 %, acierto global 85,7 %). Las 8 preguntas que atraviesan el
@@ -397,9 +409,9 @@ Cobertura mínima sugerida (~18 artículos):
 
 | Riesgo | Mitigación |
 |---|---|
-| Alucinación residual | Umbral + prompt + citas + verificador; evaluación en F7 |
-| Rate limits (free tier) en demo | Verificar el tier real de la API key; habilitar billing antes de la defensa |
-| Privacidad de prompts (free tier) | Ídem; las preguntas son de bajo riesgo |
+| Alucinación residual | Umbral + prompt + citas; medido en F7: 100 % de acierto sobre 56 casos, sin necesidad del verificador extra |
+| Rate limits (free tier) en demo | ✅ Resuelto: proyecto en Tier 1 con prepago (2026-08-21) |
+| Privacidad de prompts (free tier) | ✅ Resuelto: en el tier pago el contenido no se usa para mejorar el producto |
 | KB pobre → respuestas pobres | ✅ Resuelto: 19 artículos versionados en `database/kb/` |
 | Margen in/out-scope estrecho (~0.06) | Medido en F7 con la KB completa: las medianas separan (0,78 vs 0,66) pero los extremos se solapan. Umbral 0,68 + prompt de grounding como segunda barrera |
 | KB completa demasiado tarde → F7 apretada | Arrancar la redacción ya, no al final |
