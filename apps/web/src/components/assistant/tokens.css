@@ -195,3 +195,26 @@
 @media (prefers-reduced-motion: reduce) {
   .gf-typing-dot { animation: none; opacity: 0.5; }
 }
+
+/* --- El panel acoplado no tapa el contenido --- */
+
+/*
+ * Con el panel abierto en pantallas anchas, el contenido de la app se corre
+ * para no quedar debajo. El ancho reservado es el del panel más sus márgenes
+ * (24 px de cada lado).
+ *
+ * El corte en 1280 px no es arbitrario: por debajo, correr 448 px dejaría el
+ * contenido más angosto que el propio panel, lo que es peor que taparlo un
+ * rato. Ahí el patrón de overlay es el correcto.
+ */
+@media (min-width: 1280px) {
+  body.gf-assistant-docked .gf-app-main {
+    padding-right: calc(var(--gf-panel-w) + 48px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gf-app-main {
+    transition: none;
+  }
+}

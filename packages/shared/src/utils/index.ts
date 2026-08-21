@@ -119,3 +119,57 @@ export function suspensionLabel(
     }
   }
 }
+
+/**
+ * Agrupa las fuentes de una respuesta del asistente por artículo.
+ *
+ * El bot recupera *fragmentos*, y varios pueden salir del mismo artículo: con
+ * la base de conocimiento completa es lo habitual. Mostrados sueltos, cada chip
+ * lleva el nombre de una sección distinta del mismo texto y la fila se lee como
+ * un menú de sugerencias en vez de como la cita de una fuente.
+ *
+ * Agrupados, cada artículo aparece una sola vez con su título, y las secciones
+ * quedan disponibles para el tooltip. El orden lo da el mejor score de cada
+ * artículo, que es el que decidió la respuesta.
+ */
+export interface GroupedChatSource {
+  articleId: string
+  title: string
+  slug: string
+  /** Secciones citadas de ese artículo, sin repetir y sin las vacías. */
+  headings: string[]
+  /** Mejor score entre los fragmentos del artículo. */
+  score: number
+}
+
+export function groupSourcesByArticle(
+  sources: Array<{
+    articleId: string
+    title: string
+    slug: string
+    heading: string | null
+    score: number
+  }>
+): GroupedChatSource[] {
+  const byArticle = new Map<string, GroupedChatSource>()
+
+  for (const source of sources) {
+    const existing = byArticle.get(source.articleId)
+    if (!existing) {
+      byArticle.set(source.articleId, {
+        articleId: source.articleId,
+        title: source.title,
+        slug: source.slug,
+        headings: source.heading ? [source.heading] : [],
+        score: source.score,
+      })
+      continue
+    }
+    if (source.heading && !existing.headings.includes(source.heading)) {
+      existing.headings.push(source.heading)
+    }
+    if (source.score > existing.score) existing.score = source.score
+  }
+
+  return [...byArticle.values()].sort((a, b) => b.score - a.score)
+}

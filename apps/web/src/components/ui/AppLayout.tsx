@@ -233,7 +233,7 @@ export function AppLayout() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
+        <main className="gf-app-main flex-1 p-4 transition-[padding] duration-200 md:p-6 lg:p-8">
           <Outlet />
         </main>
 

@@ -26,6 +26,22 @@ export function Assistant() {
     wasOpen.current = chat.isOpen
   }, [chat.isOpen])
 
+  /*
+   * El panel es `fixed` abajo a la derecha, así que en el dashboard tapaba la
+   * tercera columna (la tarjeta "Mejor Activo" y medio gráfico). En pantallas
+   * anchas el contenido se corre para dejarle lugar; abajo de eso no hay ancho
+   * para correr nada y sigue siendo overlay, que es el comportamiento esperable
+   * en pantallas chicas.
+   *
+   * No aplica en la vista ampliada: ahí el panel es un modal centrado con
+   * backdrop, y empujar el contenido de atrás no tendría sentido.
+   */
+  useEffect(() => {
+    const shouldPush = chat.isOpen && !chat.isExpanded
+    document.body.classList.toggle('gf-assistant-docked', shouldPush)
+    return () => document.body.classList.remove('gf-assistant-docked')
+  }, [chat.isOpen, chat.isExpanded])
+
   if (!chat.isOpen) {
     return (
       <div ref={launcherRef}>
