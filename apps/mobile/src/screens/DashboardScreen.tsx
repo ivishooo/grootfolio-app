@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useTheme } from '@/theme/ThemeProvider'
 import { usePortfolio } from '@/lib/queries'
-import { formatCurrency, formatPercent, assetTypeLabels, assetTypeLabel } from '@grootfolio/shared'
+import { formatCurrency, formatPercent, formatShare, assetTypeLabels, assetTypeLabel } from '@grootfolio/shared'
 import type { AssetType } from '@grootfolio/shared'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
 import { Screen } from '@/components/ui/Screen'
@@ -15,18 +15,22 @@ import { AssetAvatar } from '@/components/ui/AssetAvatar'
 import { assetColor } from '@/lib/asset-visual'
 import { BarChart } from '@/components/ui/BarChart'
 import { DashboardSkeleton } from './DashboardSkeleton'
+import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 
 export function DashboardScreen() {
   const { theme } = useTheme()
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const { data: p, isLoading, isError, error, refetch } = usePortfolio()
   const chartColors = [theme.chart.series1, theme.chart.series2, theme.chart.series3, theme.chart.series4]
+  /** Color del delta: neutro cuando la rentabilidad no es calculable. */
+  const deltaColor = (pct: number | null) =>
+    pct === null ? theme.text.secondary : pct >= 0 ? theme.chart.positive : theme.chart.negative
 
   const pct = (value: number, total: number) => (total > 0 ? Math.round((value / total) * 100) : 0)
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: ASSISTANT_SAFE_BOTTOM }}>
         <Text style={{ color: theme.text.primary, fontSize: 20, fontWeight: '700' }}>Dashboard</Text>
 
         {isLoading && <DashboardSkeleton />}
@@ -39,9 +43,11 @@ export function DashboardScreen() {
 
         {p && (
           <>
-            <StatCard label="Valor Total" value={formatCurrency(p.totalValue)} delta={formatPercent(p.pnlPercent)} deltaColor={p.pnlPercent >= 0 ? theme.chart.positive : theme.chart.negative} />
-            <StatCard label="Ganancia/Perdida" value={formatCurrency(p.pnlAbsolute)} delta={formatPercent(p.pnlPercent)} deltaColor={p.pnlAbsolute >= 0 ? theme.chart.positive : theme.chart.negative} />
-            <StatCard label="Mejor Activo" value={p.bestAsset?.name ?? '—'} delta={p.bestAsset ? formatPercent(p.bestAsset.pnlPercent) : ''} deltaColor={(p.bestAsset?.pnlPercent ?? 0) >= 0 ? theme.chart.positive : theme.chart.negative} />
+            {/* pnlPercent puede ser null (sin base de costo o sin cotizacion): en
+                ese caso el delta es "—" y no se pinta ni de verde ni de rojo. */}
+            <StatCard testID="stat-valor-total" label="Valor total" value={formatCurrency(p.totalValue)} delta={formatPercent(p.pnlPercent)} deltaColor={deltaColor(p.pnlPercent)} />
+            <StatCard testID="stat-pnl" label="Ganancia / Pérdida" value={formatCurrency(p.pnlAbsolute)} delta={formatPercent(p.pnlPercent)} deltaColor={p.pnlPercent === null ? theme.text.secondary : p.pnlAbsolute >= 0 ? theme.chart.positive : theme.chart.negative} />
+            <StatCard testID="stat-mejor-activo" label="Mejor activo" value={p.bestAsset?.name ?? '—'} delta={p.bestAsset ? formatPercent(p.bestAsset.pnlPercent) : ''} deltaColor={deltaColor(p.bestAsset?.pnlPercent ?? null)} />
 
             <Card title="Distribución del Portafolio">
               {p.distribution.length === 0 ? (
@@ -100,8 +106,9 @@ export function DashboardScreen() {
                 p.holdings.map((h) => {
                   const c = assetColor(h.asset.type)
                   const pct = p.totalValue > 0 ? (h.value / p.totalValue) * 100 : 0
+                  const known = h.pnlPercent !== null
                   const up = h.pnl >= 0
-                  const pnlColor = up ? theme.chart.positive : theme.chart.negative
+                  const pnlColor = !known ? theme.text.muted : up ? theme.chart.positive : theme.chart.negative
                   return (
                     <View key={h.assetId} style={[s.holdingRow, { borderColor: theme.border.default }]}>
                       <AssetAvatar asset={h.asset} size={34} />
@@ -117,7 +124,7 @@ export function DashboardScreen() {
                           <View style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: theme.background.muted, overflow: 'hidden' }}>
                             <View style={{ height: '100%', width: `${Math.min(pct, 100)}%`, backgroundColor: c.accent, borderRadius: 3 }} />
                           </View>
-                          <Text style={{ color: theme.text.muted, fontSize: 10 }}>{pct.toFixed(1)}%</Text>
+                          <Text style={{ color: theme.text.muted, fontSize: 10 }}>{formatShare(pct)}</Text>
                         </View>
                       </View>
                       <View style={{ alignItems: 'flex-end' }}>

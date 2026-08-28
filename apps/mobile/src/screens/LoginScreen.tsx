@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
@@ -37,7 +37,10 @@ export function LoginScreen() {
     } catch (err) {
       const e = err as { code?: string; reason?: string | null; suspendedUntil?: string | null }
       if (e.code === 'ACCOUNT_SUSPENDED') {
-        nav.navigate('AccountSuspended', { reason: e.reason ?? null, suspendedUntil: e.suspendedUntil ?? null })
+        nav.navigate('AccountSuspended', {
+          reason: e.reason ?? null,
+          suspendedUntil: e.suspendedUntil ?? null,
+        })
         return
       }
       setFormError(err instanceof Error ? err.message : 'No se pudo iniciar sesión')
@@ -48,46 +51,84 @@ export function LoginScreen() {
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: theme.background.canvas }]}>
-      <Card padding="lg">
-        <View style={{ gap: 14 }}>
-          <View style={{ alignItems: 'center' }}>
-            <Logo variant="lockup" />
-          </View>
-          <Text style={[s.title, { color: theme.text.primary }]}>Bienvenido de vuelta</Text>
-          <Text style={{ color: theme.text.secondary, textAlign: 'center' }}>Ingresá a tu portafolio</Text>
+      {/* Sin esto el teclado tapa el boton "Ingresar": el formulario esta
+          centrado y el boton cae justo en la franja que ocupa el teclado, asi
+          que al terminar de tipear la contrasena no habia forma de enviar sin
+          cerrar el teclado a mano. */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Card padding="lg">
+            <View style={{ gap: 14 }}>
+              <View style={{ alignItems: 'center' }}>
+                <Logo variant="lockup" />
+              </View>
+              <Text style={[s.title, { color: theme.text.primary }]}>Bienvenido de vuelta</Text>
+              <Text style={{ color: theme.text.secondary, textAlign: 'center' }}>
+                Ingresá a tu portafolio
+              </Text>
 
-          <FormField
-            testID="login-email"
-            label="Email"
-            placeholder="tu@email.com"
-            value={email}
-            onChange={(t) => { setEmail(t); setErrors((p) => ({ ...p, email: '' })) }}
-            error={errors.email}
-            keyboard="email-address"
-          />
-          <FormField
-            testID="login-password"
-            label="Contraseña"
-            placeholder="••••••••"
-            value={password}
-            onChange={(t) => { setPassword(t); setErrors((p) => ({ ...p, password: '' })) }}
-            error={errors.password}
-            secureTextEntry
-          />
-          {formError && (
-            <Text style={{ color: '#EF4444', textAlign: 'center', fontSize: 13 }}>{formError}</Text>
-          )}
-          <Button testID="login-submit" fullWidth onPress={handleLogin} disabled={submitting || (!email && !password)}>
-            {submitting ? 'Ingresando…' : 'Ingresar'}
-          </Button>
-        </View>
-      </Card>
+              <FormField
+                testID="login-email"
+                label="Email"
+                placeholder="tu@email.com"
+                value={email}
+                onChange={(t) => {
+                  setEmail(t)
+                  setErrors((p) => ({ ...p, email: '' }))
+                }}
+                error={errors.email}
+                keyboard="email-address"
+              />
+              <FormField
+                testID="login-password"
+                label="Contraseña"
+                placeholder="••••••••"
+                value={password}
+                onChange={(t) => {
+                  setPassword(t)
+                  setErrors((p) => ({ ...p, password: '' }))
+                }}
+                error={errors.password}
+                secureTextEntry
+              />
+              {formError && (
+                <Text style={{ color: '#EF4444', textAlign: 'center', fontSize: 13 }}>
+                  {formError}
+                </Text>
+              )}
+              <Button
+                testID="login-submit"
+                fullWidth
+                onPress={handleLogin}
+                disabled={submitting || (!email && !password)}
+              >
+                {submitting ? 'Ingresando…' : 'Ingresar'}
+              </Button>
+            </View>
+          </Card>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, justifyContent: 'center', padding: 20 },
-  logo: { alignSelf: 'center', width: 48, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  safe: { flex: 1, padding: 20 },
+  scroll: { flexGrow: 1, justifyContent: 'center' },
+  logo: {
+    alignSelf: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: 8 },
 })

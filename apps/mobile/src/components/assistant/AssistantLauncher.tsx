@@ -25,6 +25,7 @@ export function AssistantLauncher({ onOpen }: { onOpen: () => void }) {
     <TouchableOpacity
       accessibilityRole="button"
       accessibilityLabel="Abrir el asistente"
+      testID="assistant-launcher"
       onPress={onOpen}
       activeOpacity={0.85}
       style={{

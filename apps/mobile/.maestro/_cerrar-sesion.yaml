@@ -1,0 +1,30 @@
+# Subflow: deja la app parada en el login, venga de donde venga.
+#
+# `clearState` NO alcanza para esto bajo Expo Go: los tokens viven en
+# expo-secure-store (lib/auth-storage.ts), que en iOS es el Keychain, y el
+# Keychain sobrevive al borrado del contenedor de datos de la app. Resultado:
+# despues de un clearState la app seguia entrando derecho al Dashboard.
+# Por eso, si quedo sesion abierta, la cerramos por la UI.
+appId: host.exp.Exponent
+---
+- runFlow: _abrir-app.yaml
+- runFlow:
+    when:
+      visible:
+        id: 'tab-ajustes'
+    commands:
+      - tapOn:
+          id: 'tab-ajustes'
+      # "Cerrar sesión" vive al fondo de Configuración, debajo del fold en un
+      # iPhone 17 Pro: hay que scrollear, no basta con esperarlo.
+      - scrollUntilVisible:
+          element:
+            id: 'settings-logout'
+          direction: DOWN
+          timeout: 20000
+      - tapOn:
+          id: 'settings-logout'
+- extendedWaitUntil:
+    visible:
+      id: 'login-email'
+    timeout: 20000

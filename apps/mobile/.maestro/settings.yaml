@@ -1,25 +1,56 @@
-# Flujo E2E mobile (Fase B): login -> Config -> togglear tema -> cerrar sesión.
-# Se corre con Maestro sobre la app en un simulador/emulador (ver README.md).
-appId: com.grootfolio.app
+# Configuración: perfil, tema y cierre de sesión.
+#
+# La pantalla es más alta que el viewport: Apariencia, Cuenta y el botón de
+# cerrar sesión quedan debajo del fold. Por eso se llega con `scrollUntilVisible`
+# y no con `assertVisible` a secas, que fallaba sin que nada estuviera roto.
+appId: host.exp.Exponent
+tags: [smoke]
 ---
-- launchApp:
-    clearState: true
+- runFlow: _login.yaml
 - tapOn:
-    id: 'login-email'
-- inputText: 'dev@grootfolio.test'
-- tapOn:
-    id: 'login-password'
-- inputText: 'DevPass123!'
-- tapOn:
-    id: 'login-submit'
-- assertVisible: 'Dashboard'
-# Ir a Configuración
-- tapOn: 'Config'
-- assertVisible: 'Configuración'
-- assertVisible: 'Apariencia'
-- assertVisible: 'Cuenta'
-# Togglear el tema (accessibilityLabel del botón)
+    id: 'tab-ajustes'
+- extendedWaitUntil:
+    visible: 'Configuración'
+    timeout: 20000
+- assertVisible:
+    id: 'settings-nombre'
+
+- scrollUntilVisible:
+    element: 'Apariencia'
+    direction: DOWN
+    timeout: 20000
+# Scrollear hasta el título de la sección deja el control debajo del fold: la
+# jerarquía igual lo reporta, así que el tap "funciona" pero cae sobre el tab
+# bar y termina cambiando de pestaña. `centerElement` lo trae al medio.
+- scrollUntilVisible:
+    element: 'Cambiar tema'
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+# El toggle de tema es idempotente: lo tocamos dos veces para dejar la app como
+# estaba y no ensuciar el estado de los flows que corran después.
 - tapOn: 'Cambiar tema'
-# Cerrar sesión -> el RootNavigator conmuta al login
-- tapOn: 'Cerrar sesión'
-- assertVisible: 'Bienvenido de vuelta'
+- waitForAnimationToEnd:
+    timeout: 4000
+- tapOn: 'Cambiar tema'
+- waitForAnimationToEnd:
+    timeout: 4000
+
+- scrollUntilVisible:
+    element: 'Cuenta'
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+# Cerrar sesión devuelve al login (el RootNavigator conmuta de stack).
+- scrollUntilVisible:
+    element:
+      id: 'settings-logout'
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: 'settings-logout'
+- extendedWaitUntil:
+    visible:
+      id: 'login-email'
+    timeout: 20000

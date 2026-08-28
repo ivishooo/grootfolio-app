@@ -1,0 +1,19 @@
+# Credenciales incorrectas: la app tiene que quedarse en el login y explicar
+# por qué, en vez de tragarse el error o entrar igual.
+appId: host.exp.Exponent
+tags: [smoke]
+---
+- runFlow: _cerrar-sesion.yaml
+- tapOn:
+    id: 'login-email'
+- inputText: 'noexiste@grootfolio.app'
+- tapOn:
+    id: 'login-password'
+- inputText: 'ClaveIncorrecta1!'
+- tapOn:
+    id: 'login-submit'
+- extendedWaitUntil:
+    visible: 'Email o password incorrectos.'
+    timeout: 20000
+- assertVisible:
+    id: 'login-submit'

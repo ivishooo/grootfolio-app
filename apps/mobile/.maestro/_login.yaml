@@ -1,0 +1,38 @@
+# Subflow: deja la sesión iniciada y la app parada en el Dashboard.
+#
+# Idempotente en dos sentidos, para que los flows corran en cualquier orden:
+#  - Si ya hay sesión, el formulario no aparece y sigue de largo.
+#  - La app recuerda la última pestaña entre aperturas, así que volvemos a
+#    Inicio a propósito en vez de asumir dónde quedó el flow anterior.
+appId: host.exp.Exponent
+---
+- runFlow: _abrir-app.yaml
+- runFlow:
+    when:
+      visible:
+        id: 'login-email'
+    commands:
+      - tapOn:
+          id: 'login-email'
+      - inputText: 'dev@grootfolio.test'
+      - tapOn:
+          id: 'login-password'
+      - inputText: 'DevPass123!'
+      - tapOn:
+          id: 'login-submit'
+      # Ver login.yaml: el diálogo del Llavero de iOS tapa la app tras entrar.
+      - runFlow:
+          when:
+            visible: '¿Guardar contraseña?'
+          commands:
+            - tapOn: 'Ahora no'
+- extendedWaitUntil:
+    visible:
+      id: 'tab-inicio'
+    timeout: 40000
+- tapOn:
+    id: 'tab-inicio'
+- extendedWaitUntil:
+    visible:
+      id: 'stat-valor-total'
+    timeout: 40000

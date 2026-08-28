@@ -1,10 +1,14 @@
-# Flujo E2E mobile (GF-234): login -> dashboard.
-# Se corre con Maestro sobre la app en un simulador/emulador (ver README.md).
-# appId del dev build; para Expo Go usar host.exp.Exponent.
-appId: com.grootfolio.app
+# Login con el usuario de desarrollo hasta ver el Dashboard con datos.
+#
+# Arranca sin sesión para probar el camino real desde cero: el RootNavigator
+# tiene que mostrar el formulario. `clearState` no sirve para garantizarlo
+# (el Keychain sobrevive), así que lo garantiza `_cerrar-sesion.yaml`.
+appId: host.exp.Exponent
+tags: [smoke]
 ---
-- launchApp:
-    clearState: true
+- runFlow: _cerrar-sesion.yaml
+- assertVisible:
+    id: 'login-email'
 - tapOn:
     id: 'login-email'
 - inputText: 'dev@grootfolio.test'
@@ -13,4 +17,20 @@ appId: com.grootfolio.app
 - inputText: 'DevPass123!'
 - tapOn:
     id: 'login-submit'
-- assertVisible: 'Dashboard'
+# Tras un login exitoso iOS ofrece guardar la contraseña en el Llavero. Es un
+# diálogo del sistema: tapa la app y se come los taps hasta que se responde.
+- runFlow:
+    when:
+      visible: '¿Guardar contraseña?'
+    commands:
+      - tapOn: 'Ahora no'
+# El Dashboard no está listo cuando aparece el título, sino cuando llegaron los
+# datos del portafolio: por eso esperamos la tarjeta, no el encabezado.
+- extendedWaitUntil:
+    visible:
+      id: 'stat-valor-total'
+    timeout: 40000
+- assertVisible:
+    id: 'stat-pnl'
+- assertVisible:
+    id: 'stat-mejor-activo'

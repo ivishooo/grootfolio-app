@@ -20,6 +20,7 @@ import { FormField } from '@/components/ui/FormField'
 import { AssetAutocomplete } from '@/components/ui/AssetAutocomplete'
 import { useToast } from '@/components/ui/ToastProvider'
 import { assetColor, assetMark } from '@/lib/asset-visual'
+import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 
 type AssetType = CreateTransactionInput['type']
 
@@ -134,7 +135,7 @@ export function AddAssetScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Screen>
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: ASSISTANT_SAFE_BOTTOM }} keyboardShouldPersistTaps="handled">
           <View>
             <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={6}>
               <Text style={{ color: theme.text.secondary, fontSize: 13 }}>← Volver</Text>

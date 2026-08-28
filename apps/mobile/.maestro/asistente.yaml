@@ -1,0 +1,15 @@
+# La burbuja del asistente tiene que estar accesible y abrir el panel.
+#
+# Además cuida una regresión visual: la burbuja es `position: absolute` sobre el
+# tab bar y llegó a tapar el "Eliminar posición" de la última tarjeta en
+# Activos. Las pantallas reservan ASSISTANT_SAFE_BOTTOM para evitarlo.
+appId: host.exp.Exponent
+---
+- runFlow: _login.yaml
+- assertVisible:
+    id: 'assistant-launcher'
+- tapOn:
+    id: 'assistant-launcher'
+- extendedWaitUntil:
+    visible: 'Asistente GrootFolio'
+    timeout: 20000

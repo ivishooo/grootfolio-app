@@ -12,6 +12,7 @@ import {
   assetTypeLabel,
   formatCurrency,
   formatPercent,
+  formatShare,
   updateTransactionInputSchema,
 } from '@grootfolio/shared'
 import type { AssetType, Holding, Transaction, UpdateTransactionInput } from '@grootfolio/shared'
@@ -32,6 +33,7 @@ import { FormField } from '@/components/ui/FormField'
 import { AssetAvatar } from '@/components/ui/AssetAvatar'
 import { assetColor } from '@/lib/asset-visual'
 import { EmptyState, ErrorState } from '@/components/ui/States'
+import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 
 const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
 
@@ -90,7 +92,7 @@ export function AssetsScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: ASSISTANT_SAFE_BOTTOM }}>
         {bannerOpen && (
           <View style={[st.banner, { backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.35)' }]}>
             <Text style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
@@ -104,7 +106,7 @@ export function AssetsScreen() {
 
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: theme.text.primary, fontSize: 22, fontWeight: '800' }}>Activos</Text>
+            <Text testID="screen-activos-title" style={{ color: theme.text.primary, fontSize: 22, fontWeight: '800' }}>Activos</Text>
             {p && p.holdings.length > 0 ? (
               <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
                 {p.holdings.length} posiciones · Valor total{' '}
@@ -112,7 +114,7 @@ export function AssetsScreen() {
               </Text>
             ) : null}
           </View>
-          <Button size="sm" onPress={() => navigation.navigate('AddAsset')}>+ Cargar activo</Button>
+          <Button testID="activos-cargar" size="sm" onPress={() => navigation.navigate('AddAsset')}>+ Cargar activo</Button>
         </View>
 
         {isLoading ? (
@@ -129,7 +131,7 @@ export function AssetsScreen() {
                 title="Todavía no tenés activos"
                 description="Cargá tu primera transacción para empezar a ver tu portafolio."
               />
-              <Button fullWidth onPress={() => navigation.navigate('AddAsset')}>Cargar activo</Button>
+              <Button testID="activos-cargar-vacio" fullWidth onPress={() => navigation.navigate('AddAsset')}>Cargar activo</Button>
             </View>
           </View>
         ) : (
@@ -163,8 +165,12 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
   const { theme } = useTheme()
   const c = assetColor(holding.asset.type)
   const pct = total > 0 ? (holding.value / total) * 100 : 0
+  // Cuando pnlPercent es null la rentabilidad no es calculable (sin base de
+  // costo o sin cotizacion). Ni flecha ni color: un triangulo verde al lado de
+  // "—" afirma que subio, que es justo lo que no sabemos.
+  const known = holding.pnlPercent !== null
   const up = holding.pnl >= 0
-  const pnlColor = up ? theme.chart.positive : theme.chart.negative
+  const pnlColor = !known ? theme.text.muted : up ? theme.chart.positive : theme.chart.negative
 
   return (
     <View style={[st.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default, padding: 0 }]}>
@@ -194,21 +200,21 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
             <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: theme.background.muted, overflow: 'hidden' }}>
               <View style={{ height: '100%', width: `${Math.min(pct, 100)}%`, backgroundColor: c.accent, borderRadius: 3 }} />
             </View>
-            <Text style={{ color: theme.text.muted, fontSize: 11, fontWeight: '600' }}>{pct.toFixed(1)}%</Text>
+            <Text style={{ color: theme.text.muted, fontSize: 11, fontWeight: '600' }}>{formatShare(pct)}</Text>
           </View>
         </View>
 
         <View style={{ alignItems: 'flex-end' }}>
           <Text style={{ color: theme.text.primary, fontSize: 16, fontWeight: '800' }}>{formatCurrency(holding.value)}</Text>
           <Text style={{ color: pnlColor, fontSize: 12, fontWeight: '700' }}>
-            {up ? '▲' : '▼'} {formatPercent(holding.pnlPercent)}
+            {known ? (up ? '▲ ' : '▼ ') : ''}{formatPercent(holding.pnlPercent)}
           </Text>
           <Text style={{ color: pnlColor, fontSize: 12 }}>{formatCurrency(holding.pnl)}</Text>
         </View>
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-        <Button variant="secondary" size="sm" onPress={onDeletePosition}>Eliminar posición</Button>
+        <Button testID="holding-eliminar" variant="secondary" size="sm" onPress={onDeletePosition}>Eliminar posición</Button>
       </View>
 
       {expanded && (

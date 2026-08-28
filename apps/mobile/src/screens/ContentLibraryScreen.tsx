@@ -11,6 +11,7 @@ import { useContentItems, useContentSections, useMarkContentViewed } from '@/lib
 import { useTheme } from '@/theme/ThemeProvider'
 import { Screen } from '@/components/ui/Screen'
 import { EmptyState } from '@/components/ui/States'
+import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 
 const TYPE_META: Record<ContentType, { color: string; icon: string; cta: string }> = {
   doc: { color: '#DC2626', icon: '▤', cta: 'Leer' },
@@ -43,7 +44,7 @@ export function ContentLibraryScreen() {
       <FlatList
         data={rest}
         keyExtractor={(i) => i.id}
-        contentContainerStyle={{ padding: 16, gap: 12 }}
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: ASSISTANT_SAFE_BOTTOM }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.brand.solid} />}
         ListHeaderComponent={
           <View style={{ gap: 12, marginBottom: 4 }}>
@@ -52,6 +53,7 @@ export function ContentLibraryScreen() {
               <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>Material educativo del equipo de GrootFolio.</Text>
             </View>
             <TextInput
+              testID="content-search"
               placeholder="Buscar contenido…"
               placeholderTextColor={theme.text.placeholder}
               value={search}

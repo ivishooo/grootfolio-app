@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/Card'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { AssetAvatar } from '@/components/ui/AssetAvatar'
 import { assetColor } from '@/lib/asset-visual'
+import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 
 function formatDate(iso: string): string {
   const d = new Date(iso)
@@ -30,7 +31,7 @@ export function ReportsScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: ASSISTANT_SAFE_BOTTOM }}>
         <View>
           <Text style={{ color: theme.text.primary, fontSize: 22, fontWeight: '800' }}>Reportes</Text>
           <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
@@ -75,7 +76,8 @@ export function ReportsScreen() {
               ) : (
                 <BarChart
                   data={s.historicalBalance.map((m) => ({ label: m.month, value: m.value }))}
-                  color={theme.chart.series2}
+                  // Mismo dato que el Dashboard (valor del portafolio): mismo color.
+                  color={theme.chart.series1}
                   formatValue={formatCurrency}
                 />
               )}

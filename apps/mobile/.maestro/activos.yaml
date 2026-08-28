@@ -1,0 +1,30 @@
+# Pantalla de Activos: lista de posiciones y acceso al alta.
+appId: host.exp.Exponent
+---
+- runFlow: _login.yaml
+- tapOn:
+    id: 'tab-activos'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-activos-title'
+    timeout: 20000
+# El CTA de alta tiene que estar siempre a mano, con o sin posiciones cargadas.
+- assertVisible:
+    id: 'activos-cargar'
+- tapOn:
+    id: 'activos-cargar'
+- extendedWaitUntil:
+    visible: 'Cargar activo'
+    timeout: 20000
+# Volver sin guardar no debe dejar nada a medias. El formulario es largo:
+# "Cancelar" vive al pie, debajo del fold, así que hay que llegar scrolleando.
+- scrollUntilVisible:
+    element: 'Cancelar'
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: 'Cancelar'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-activos-title'
+    timeout: 20000
