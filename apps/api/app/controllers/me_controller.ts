@@ -20,10 +20,11 @@ function keyFromAvatarUrl(url: string | null): string | null {
 }
 
 export default class MeController {
-  /** PATCH /me — cambia el nombre visible. */
+  /** PATCH /me — nombre visible y/o moneda base. Ambos campos son opcionales. */
   async update({ request, response, currentUser }: HttpContext) {
-    const { fullName } = await request.validateUsing(updateProfileValidator)
-    currentUser.fullName = fullName
+    const { fullName, baseCurrency } = await request.validateUsing(updateProfileValidator)
+    if (fullName !== undefined) currentUser.fullName = fullName
+    if (baseCurrency !== undefined) currentUser.baseCurrency = baseCurrency
     await currentUser.save()
     return response.status(200).send({ user: currentUser.serialize() })
   }

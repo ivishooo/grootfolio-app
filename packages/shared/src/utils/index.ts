@@ -20,17 +20,129 @@ export const assetTypeLabel: Record<AssetType, string> = {
   currency: 'Divisa',
 }
 
-export function formatCurrency(value: number, currency = 'USD', locale = 'es-AR'): string {
+/**
+ * Monedas que la app sabe mostrar. `USD` es la de referencia: los importes
+ * viajan siempre en USD desde la API y se convierten al vuelo para mostrarlos.
+ */
+export const SUPPORTED_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
+export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number]
+
+export const currencyLabels: Record<SupportedCurrency, string> = {
+  USD: 'Dolar estadounidense',
+  ARS: 'Peso argentino',
+  EUR: 'Euro',
+}
+
+/**
+ * Cuantos decimales tiene sentido mostrar para un importe.
+ *
+ * Con `maximumFractionDigits: 0` fijo, un activo que cotiza a US$ 0,45 se
+ * renderizaba como "US$ 0" y el usuario no podia distinguirlo de cero. La regla
+ * es: de mil para arriba los centavos son ruido, abajo de uno son la
+ * informacion (tipico en cripto).
+ */
+function fractionDigitsFor(value: number): number {
+  const abs = Math.abs(value)
+  if (abs >= 1000 || abs === 0) return 0
+  if (abs >= 1) return 2
+  if (abs >= 0.01) return 4
+  return 8
+}
+
+export function formatCurrency(value: number | null | undefined, currency = 'USD', locale = 'es-AR'): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—'
+  const digits = fractionDigitsFor(value)
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
   }).format(value)
 }
 
-export function formatPercent(value: number, fractionDigits = 1): string {
+/**
+ * Porcentaje con signo. Devuelve "—" cuando el dato no existe.
+ *
+ * El `null` importa: cuando una posicion no tiene base de costo (por ejemplo una
+ * compra cargada a precio cero) la rentabilidad no es "0 %", es indefinida.
+ * Mostrar "0,0 %" al lado de una ganancia de US$ 39.225 era lo que hacia la
+ * version anterior, y se lee como un bug de calculo.
+ */
+export function formatPercent(value: number | null | undefined, fractionDigits = 1): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—'
   const sign = value > 0 ? '+' : ''
-  return `${sign}${value.toFixed(fractionDigits)}%`
+  const n = value.toLocaleString('es-AR', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  })
+  return `${sign}${n}%`
+}
+
+/**
+ * Porcentaje sin signo, para participaciones ("61,6 % del portafolio").
+ *
+ * Existe aparte de `formatPercent` porque aquel antepone "+" a los positivos,
+ * que en una participacion no significa nada. Antes esto se resolvia con
+ * `toFixed(1)`, que usa punto decimal: quedaba "61.6%" al lado de "+33,2%" en
+ * la misma tarjeta.
+ */
+export function formatShare(value: number | null | undefined, fractionDigits = 1): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—'
+  return `${value.toLocaleString('es-AR', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  })}%`
+}
+
+/**
+ * Numero abreviado para los ejes de los graficos: 1500 -> "1,5k", 39224 -> "39,2k".
+ *
+ * La version anterior hacia `(v / 1000).toFixed(0) + 'k'`, asi que el tick de
+ * 1.500 se rotulaba "2k" y el de 4.500 "5k": la etiqueta no coincidia con su
+ * propia linea y se leia mal el grafico por hasta 500.
+ */
+export function formatCompactNumber(value: number): string {
+  if (!Number.isFinite(value)) return '—'
+  const abs = Math.abs(value)
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toLocaleString('es-AR', { maximumFractionDigits: 1 })}M`
+  if (abs >= 1000) return `${(value / 1000).toLocaleString('es-AR', { maximumFractionDigits: 1 })}k`
+  return value.toLocaleString('es-AR', { maximumFractionDigits: 0 })
+}
+
+/**
+ * Fecha corta es-AR (31/07/2026). Fuente unica: antes cada pantalla lo resolvia
+ * por su cuenta y dos de ellas llamaban a `toLocaleDateString()` sin locale, asi
+ * que caian al del navegador y mostraban 7/31/2026 (formato de EE.UU.) al lado
+ * de pantallas que mostraban 30/7/2026.
+ */
+export function formatDate(value: string | Date | null | undefined): string {
+  if (!value) return '—'
+  const d = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('es-AR')
+}
+
+/**
+ * Valor de un `<input type="date">` ("2026-08-01") a ISO, respetando el dia que
+ * el usuario eligio.
+ *
+ * `new Date('2026-08-01')` se parsea como medianoche UTC, que en Argentina
+ * (-03:00) es el 31/07 a las 21:00: la operacion quedaba guardada un dia antes y
+ * el desfasaje se propagaba al detalle, al grafico mensual y al ledger. Anclamos
+ * al mediodia local, que ademas es inmune a los saltos de horario de verano.
+ */
+export function dateInputToISO(value: string): string {
+  const [year, month, day] = value.split('-').map(Number)
+  if (!year || !month || !day) return ''
+  return new Date(year, month - 1, day, 12, 0, 0, 0).toISOString()
+}
+
+/** ISO a valor de `<input type="date">`, leyendo los componentes en hora local. */
+export function isoToDateInput(value: string | null | undefined): string {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 /**

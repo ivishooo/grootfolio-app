@@ -17,6 +17,8 @@ export interface User {
   id: string
   email: string
   fullName: string | null
+  /** Moneda en la que el usuario ve los importes. Los datos siempre son USD. */
+  baseCurrency: string
   riskProfile: RiskProfileType | null
   role: UserRole
   avatarUrl: string | null
@@ -211,14 +213,21 @@ export interface Holding {
   currentPrice: number
   value: number
   pnl: number
-  pnlPercent: number
+  /**
+   * `null` cuando la rentabilidad no es calculable: sin base de costo (compra
+   * cargada a precio 0) o sin precio de mercado (ej. bonos, que todavia no
+   * tienen cotizacion en vivo). Mostrar 0 en esos casos se lee como "quedo
+   * plano", que es una afirmacion que no podemos hacer.
+   */
+  pnlPercent: number | null
 }
 
 export interface PortfolioSummary {
   totalValue: number
   pnlAbsolute: number
-  pnlPercent: number
-  bestAsset: (Asset & { pnlPercent: number }) | null
+  /** `null` si no hay base de costo contra la cual medir. */
+  pnlPercent: number | null
+  bestAsset: (Asset & { pnlPercent: number | null }) | null
   distribution: Array<{ type: AssetType; value: number }>
   monthlyReturn: Array<{ month: string; value: number }>
   holdings: Holding[]
@@ -310,4 +319,10 @@ export interface ApiError {
   code: string
   message: string
   details?: Record<string, unknown>
+}
+
+/** Respuesta de `GET /fx/rates`. `rates[X]` = unidades de X por 1 USD. */
+export interface FxRates {
+  base: 'USD'
+  rates: Record<string, number>
 }

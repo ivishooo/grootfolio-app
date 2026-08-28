@@ -38,12 +38,14 @@ export function aggregatePortfolio(
     // en aggregateHoldings. currentPrice también está en USD (price_service).
     // Solo comparamos ambos en USD, sin re-convertir por moneda del activo.
     if (currentPrice <= 0) {
-      return { ...h, currentPrice: 0, value: 0, pnl: 0, pnlPercent: 0 }
+      // Sin cotizacion no se puede afirmar nada sobre la rentabilidad: null, no 0.
+      return { ...h, currentPrice: 0, value: 0, pnl: 0, pnlPercent: null }
     }
     const invested = h.avgPrice * h.quantity
     const value = currentPrice * h.quantity
     const pnl = value - invested
-    const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0
+    // Sin base de costo la division no tiene sentido (seria infinito, no cero).
+    const pnlPercent = invested > 0 ? (pnl / invested) * 100 : null
     return { ...h, currentPrice, value, pnl, pnlPercent }
   })
 
@@ -51,11 +53,13 @@ export function aggregatePortfolio(
   const totalValue = priced.reduce((s, h) => s + h.value, 0)
   const totalInvested = priced.reduce((s, h) => s + h.quantity * h.avgPrice, 0)
   const pnlAbsolute = totalValue - totalInvested
-  const pnlPercent = totalInvested > 0 ? (pnlAbsolute / totalInvested) * 100 : 0
+  const pnlPercent = totalInvested > 0 ? (pnlAbsolute / totalInvested) * 100 : null
 
   let bestHolding: Holding | null = null
   for (const h of priced) {
-    if (!bestHolding || h.pnlPercent > bestHolding.pnlPercent) bestHolding = h
+    // Los holdings sin rentabilidad calculable no compiten por el primer puesto.
+    if (h.pnlPercent === null) continue
+    if (!bestHolding || h.pnlPercent > (bestHolding.pnlPercent ?? Number.NEGATIVE_INFINITY)) bestHolding = h
   }
   const bestAsset: PortfolioSummary['bestAsset'] = bestHolding
     ? { ...bestHolding.asset, pnlPercent: bestHolding.pnlPercent }
