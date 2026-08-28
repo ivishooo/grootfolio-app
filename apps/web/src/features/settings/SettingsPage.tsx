@@ -2,12 +2,13 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
-import { formatCurrency } from '@grootfolio/shared'
+import { SUPPORTED_CURRENCIES, currencyLabels, formatCurrency } from '@grootfolio/shared'
+import type { SupportedCurrency } from '@grootfolio/shared'
+import { useMoney } from '@/lib/money'
 import { useDeleteAvatar, useUpdateProfile, useUploadAvatar } from '@/lib/queries'
 import { useToast } from '@/components/ui/ToastProvider'
 import { Button } from '@/components/ui/Button'
 
-const CURRENCIES = ['USD', 'ARS', 'EUR'] as const
 
 function ProfileSection() {
   const { user, updateUser } = useAuth()
@@ -34,7 +35,7 @@ function ProfileSection() {
     deleteAvatar.mutate(undefined, { onSuccess: (r) => { updateUser(r.user); toast('Foto eliminada', 'info') } })
   const saveName = () => {
     if (name.trim().length < 2) { toast('El nombre debe tener al menos 2 caracteres.', 'error'); return }
-    updateProfile.mutate(name.trim(), {
+    updateProfile.mutate({ fullName: name.trim() }, {
       onSuccess: (r) => { updateUser(r.user); toast('Cambios guardados', 'success') },
       onError: (err) => toast(err instanceof Error ? err.message : 'No se pudo guardar.', 'error'),
     })
@@ -99,11 +100,73 @@ function ProfileSection() {
   )
 }
 
+/**
+ * Moneda base. Persiste en el perfil (`PATCH /me`) y se aplica en todas las
+ * pantallas via `useMoney`. Antes era un `useState` suelto: se elegia ARS, no
+ * pasaba nada, y al recargar volvia a USD.
+ */
+function CurrencySection() {
+  const { user, updateUser } = useAuth()
+  const { toast } = useToast()
+  const updateProfile = useUpdateProfile()
+  const money = useMoney()
+  const current = (user?.baseCurrency ?? 'USD') as SupportedCurrency
+
+  const change = (next: string) => {
+    if (next === current) return
+    updateProfile.mutate(
+      { baseCurrency: next },
+      {
+        onSuccess: (r) => {
+          updateUser(r.user)
+          toast('Moneda actualizada', 'success', { description: `Vas a ver los importes en ${next}.` })
+        },
+        onError: (err) =>
+          toast(err instanceof Error ? err.message : 'No se pudo cambiar la moneda.', 'error'),
+      }
+    )
+  }
+
+  return (
+    <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+      <h3 className="text-lg font-semibold">Preferencias</h3>
+      <p className="mb-4 text-xs text-neutral-500">Cómo querés ver los importes en toda la app.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <label htmlFor="baseCurrency" className="text-sm font-medium">Moneda base</label>
+          <p className="text-xs text-neutral-500">
+            Ejemplo: {formatCurrency(1234)} se muestra como {money.format(1234)}
+          </p>
+        </div>
+        <select
+          id="baseCurrency"
+          value={current}
+          disabled={updateProfile.isPending}
+          onChange={(e) => change(e.target.value)}
+          className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-800"
+        >
+          {SUPPORTED_CURRENCIES.map((c) => (
+            <option key={c} value={c}>{c} · {currencyLabels[c]}</option>
+          ))}
+        </select>
+      </div>
+      <p className="mt-3 text-xs text-neutral-500">
+        Tus operaciones se guardan siempre en USD. Esto sólo cambia cómo se muestran, usando la
+        cotización del día.
+      </p>
+      {money.isFallback && (
+        <p className="mt-2 text-xs text-warning-600 dark:text-warning-500">
+          No pudimos obtener la cotización de {money.preferred}; por ahora se muestra en USD.
+        </p>
+      )}
+    </section>
+  )
+}
+
 export function SettingsPage() {
   const { theme: themeName, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [currency, setCurrency] = useState('USD')
 
   const handleLogout = async () => {
     await logout()
@@ -136,27 +199,7 @@ export function SettingsPage() {
       </section>
 
       {/* Preferencias */}
-      <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-        <h3 className="text-lg font-semibold mb-4">Preferencias</h3>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">Moneda base</p>
-            <p className="text-xs text-neutral-500">
-              Preview: {formatCurrency(1234)}
-            </p>
-          </div>
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            aria-label="Moneda base"
-            className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-      </section>
+      <CurrencySection />
 
       {/* Cuenta */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">

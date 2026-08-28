@@ -18,6 +18,7 @@ import type {
   ContentSection,
   ContentType,
   CreateKbArticleInput,
+  FxRates,
   CreateTransactionInput,
   CreateUserInput,
   KbArticle,
@@ -55,6 +56,7 @@ export const queryKeys = {
   quizResult: ['quiz-result'] as const,
   reportSummary: ['reports', 'summary'] as const,
   reportLedger: ['reports', 'transactions'] as const,
+  fxRates: ['fx', 'rates'] as const,
   assetSearch: (q: string, type?: AssetType) => ['assets', 'search', type ?? 'all', q] as const,
   adminUsers: (f: AdminUsersFilters) => ['admin', 'users', f] as const,
   adminUser: (id: string) => ['admin', 'user', id] as const,
@@ -484,8 +486,24 @@ export function useMarkNotificationRead() {
 export function useUpdateProfile() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (fullName: string) => api.patch<{ user: User }>('/me', { fullName }),
+    mutationFn: (input: { fullName?: string; baseCurrency?: string }) =>
+      api.patch<{ user: User }>('/me', input),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['me'] }),
+  })
+}
+
+/**
+ * Cotizaciones para mostrar los importes en la moneda base elegida.
+ *
+ * `staleTime` alto a proposito: el backend ya cachea el FX con su propio TTL y
+ * la cotizacion no se mueve lo suficiente como para justificar refetch en cada
+ * navegacion.
+ */
+export function useFxRates() {
+  return useQuery({
+    queryKey: queryKeys.fxRates,
+    queryFn: () => api.get<FxRates>('/fx/rates'),
+    staleTime: 10 * 60_000,
   })
 }
 

@@ -8,10 +8,15 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   assetTypeLabel,
+  dateInputToISO,
   formatCurrency,
+  formatDate,
   formatPercent,
+  formatShare,
+  isoToDateInput,
   updateTransactionInputSchema,
 } from '@grootfolio/shared'
+import { useMoney } from '@/lib/money'
 import type { AssetType, Holding, Transaction, UpdateTransactionInput } from '@grootfolio/shared'
 import {
   useDeleteAssetPosition,
@@ -32,17 +37,9 @@ import { EmptyState, ErrorState } from '@/components/ui/States'
 
 const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
 
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString()
-}
-
-function isoToDateInput(iso: string): string {
-  return iso.slice(0, 10)
-}
-
 export function AssetsPage() {
   const { data: p, isLoading, isError, error, refetch } = usePortfolio()
+  const money = useMoney()
   const { data: transactions } = useTransactions()
   const [expanded, setExpanded] = useState<string | null>(null)
   const [bannerOpen, setBannerOpen] = useState(true)
@@ -83,7 +80,7 @@ export function AssetsPage() {
           {p && p.holdings.length > 0 && (
             <p className="mt-1 text-sm text-neutral-500">
               {p.holdings.length} posiciones · Valor total{' '}
-              <strong className="font-semibold text-neutral-900 dark:text-neutral-100">{formatCurrency(total)}</strong>
+              <strong className="font-semibold text-neutral-900 dark:text-neutral-100">{money.format(total)}</strong>
             </p>
           )}
         </div>
@@ -145,6 +142,7 @@ interface HoldingRowProps {
 }
 
 function HoldingRow({ holding, total, transactions, expanded, onToggle, onDeletePosition }: HoldingRowProps) {
+  const money = useMoney()
   const c = assetColor(holding.asset.type)
   const pct = total > 0 ? (holding.value / total) * 100 : 0
   const up = holding.pnl >= 0
@@ -177,23 +175,23 @@ function HoldingRow({ holding, total, transactions, expanded, onToggle, onDelete
           </div>
           <p className="mt-1.5 text-xs text-neutral-500">
             {holding.quantity} unidades · Compra{' '}
-            <span className="font-medium text-neutral-600 dark:text-neutral-300">{formatCurrency(holding.avgPrice)}</span> → Actual{' '}
-            <span className="font-medium text-neutral-600 dark:text-neutral-300">{formatCurrency(holding.currentPrice)}</span>
+            <span className="font-medium text-neutral-600 dark:text-neutral-300">{money.format(holding.avgPrice)}</span> → Actual{' '}
+            <span className="font-medium text-neutral-600 dark:text-neutral-300">{money.format(holding.currentPrice)}</span>
           </p>
           <div className="mt-2.5 flex max-w-[340px] items-center gap-2.5">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
               <div className="h-full rounded-full" style={{ width: `${pct}%`, background: c.accent }} />
             </div>
-            <span className="whitespace-nowrap text-[11px] font-semibold text-neutral-400">{pct.toFixed(1)}% del portafolio</span>
+            <span className="whitespace-nowrap text-[11px] font-semibold text-neutral-400">{formatShare(pct)} del portafolio</span>
           </div>
         </div>
 
         <div className="flex min-w-[130px] flex-col items-end gap-0.5">
-          <span className="text-lg font-bold tabular-nums">{formatCurrency(holding.value)}</span>
+          <span className="text-lg font-bold tabular-nums">{money.format(holding.value)}</span>
           <span className={`text-xs font-semibold tabular-nums ${pnlColor}`}>
             {up ? '▲' : '▼'} {formatPercent(holding.pnlPercent)}
           </span>
-          <span className={`text-xs font-medium tabular-nums ${pnlColor}`}>{formatCurrency(holding.pnl)}</span>
+          <span className={`text-xs font-medium tabular-nums ${pnlColor}`}>{money.format(holding.pnl)}</span>
           <Button variant="secondary" size="sm" className="mt-2" onClick={onDeletePosition}>
             Eliminar posición
           </Button>
@@ -247,8 +245,10 @@ function TransactionItem({ tx }: { tx: Transaction }) {
           {tx.kind === 'buy' ? 'Compra' : 'Venta'}
         </span>
         <span>{tx.quantity} unidades</span>
-        <span>{tx.unitPrice} {tx.priceCurrency}</span>
-        <span className="text-neutral-500">Comisión: {tx.fee}</span>
+        {/* El precio y la comision se muestran en la moneda en que se hizo la
+            operacion, no en la de visualizacion: es el dato historico. */}
+        <span>{formatCurrency(tx.unitPrice, tx.priceCurrency)} c/u</span>
+        <span className="text-neutral-500">Comisión: {formatCurrency(tx.fee, tx.priceCurrency)}</span>
         <span className="text-neutral-500">{formatDate(tx.purchasedAt)}</span>
       </div>
       <div className="flex gap-2">
@@ -281,7 +281,7 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
     if (unitPrice.trim() !== '') input.unitPrice = parseFloat(unitPrice)
     if (priceCurrency.trim() !== '') input.priceCurrency = priceCurrency
     if (fee.trim() !== '') input.fee = parseFloat(fee)
-    if (purchasedAt.trim() !== '') input.purchasedAt = new Date(purchasedAt).toISOString()
+    if (purchasedAt.trim() !== '') input.purchasedAt = dateInputToISO(purchasedAt)
     if (notes.trim() !== '') input.notes = notes
 
     const parsed = updateTransactionInputSchema.safeParse(input)
@@ -340,7 +340,7 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
           </div>
         </div>
         <Input label="Comisión" value={fee} onChange={setFee} type="number" />
-        <Input label="Fecha de compra" value={purchasedAt} onChange={setPurchasedAt} type="date" />
+        <Input label={kind === 'buy' ? 'Fecha de compra' : 'Fecha de venta'} value={purchasedAt} onChange={setPurchasedAt} type="date" max={isoToDateInput(new Date().toISOString())} />
       </div>
       <Input label="Notas" value={notes} onChange={setNotes} multiline />
 

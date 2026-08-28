@@ -4,7 +4,8 @@
  */
 import { useTheme } from '@/theme/ThemeProvider'
 import { useReportSummary, useReportLedger } from '@/lib/queries'
-import { formatCurrency, formatPercent, assetTypeLabel } from '@grootfolio/shared'
+import { formatCurrency, formatCompactNumber, formatDate, formatPercent, assetTypeLabel } from '@grootfolio/shared'
+import { useMoney } from '@/lib/money'
 import type { AssetType } from '@grootfolio/shared'
 import { themes } from '@grootfolio/tokens'
 import { Card } from '@/components/ui/Card'
@@ -14,11 +15,6 @@ import { assetColor } from '@/lib/asset-visual'
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString()
-}
 
 function ReportStat({
   icon, iconColor, iconBg, label, value, valueColor, sub,
@@ -39,6 +35,7 @@ function ReportStat({
 }
 
 export function ReportsPage() {
+  const money = useMoney()
   const { theme: themeName } = useTheme()
   const t = themes[themeName]
   const summaryQ = useReportSummary()
@@ -75,7 +72,7 @@ export function ReportsPage() {
             <ReportStat
               icon="↗" iconColor="#16A34A" iconBg="rgba(34,197,94,0.12)"
               label="P&L Realizado"
-              value={formatCurrency(s.realizedTotal)}
+              value={money.format(s.realizedTotal)}
               valueColor={s.realizedTotal >= 0 ? '#16A34A' : '#DC2626'}
               sub="Sobre posiciones cerradas"
             />
@@ -102,8 +99,8 @@ export function ReportsPage() {
                   <LineChart data={realizedSeries}>
                     <CartesianGrid strokeDasharray="3 3" stroke={t.border.default} />
                     <XAxis dataKey="date" tick={{ fill: t.text.secondary, fontSize: 12 }} />
-                    <YAxis tick={{ fill: t.text.secondary, fontSize: 12 }} tickFormatter={(v: number) => formatCurrency(v)} />
-                    <Tooltip formatter={(v) => formatCurrency(v as number)} />
+                    <YAxis tick={{ fill: t.text.secondary, fontSize: 12 }} tickFormatter={(v: number) => formatCompactNumber(money.convert(v))} width={56} />
+                    <Tooltip formatter={(v) => money.format(v as number)} />
                     <Line type="monotone" dataKey="value" stroke={t.chart.series1} strokeWidth={2.5} dot={{ r: 3, fill: t.chart.series1 }} activeDot={{ r: 5 }} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -118,9 +115,9 @@ export function ReportsPage() {
                   <BarChart data={s.historicalBalance}>
                     <CartesianGrid strokeDasharray="3 3" stroke={t.border.default} />
                     <XAxis dataKey="month" tick={{ fill: t.text.secondary, fontSize: 12 }} />
-                    <YAxis tick={{ fill: t.text.secondary, fontSize: 12 }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v) => formatCurrency(v as number)} />
-                    <Bar dataKey="value" fill={t.chart.series2} radius={[4, 4, 0, 0]} />
+                    <YAxis tick={{ fill: t.text.secondary, fontSize: 12 }} tickFormatter={(v: number) => formatCompactNumber(money.convert(v))} width={56} />
+                    <Tooltip formatter={(v) => money.format(v as number)} />
+                    <Bar dataKey="value" fill={t.chart.series1} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -165,10 +162,10 @@ export function ReportsPage() {
                             </span>
                           </td>
                           <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{r.quantitySold}</td>
-                          <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-neutral-500">{formatCurrency(r.proceeds)}</td>
-                          <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-neutral-500">{formatCurrency(r.costBasis)}</td>
+                          <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-neutral-500">{money.format(r.proceeds)}</td>
+                          <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-neutral-500">{money.format(r.costBasis)}</td>
                           <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
-                            <div className={`font-semibold ${up ? 'text-success-500' : 'text-danger-500'}`}>{formatCurrency(r.realized)}</div>
+                            <div className={`font-semibold ${up ? 'text-success-500' : 'text-danger-500'}`}>{money.format(r.realized)}</div>
                             <div className={`text-[11px] ${up ? 'text-success-500' : 'text-danger-500'}`}>{formatPercent(pct)}</div>
                           </td>
                         </tr>
@@ -194,8 +191,11 @@ export function ReportsPage() {
                       <th className="px-3 py-2 text-left font-medium">Activo</th>
                       <th className="px-3 py-2 text-left font-medium">Operación</th>
                       <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Cantidad</th>
-                      <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Precio</th>
-                      <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Monto USD</th>
+                      {/* "Precio" es el de la operacion, en la moneda en que se hizo.
+                          "Monto" es la valuacion, en la moneda de visualizacion: por eso
+                          el encabezado la nombra en vez de fijar "USD". */}
+                      <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Precio pagado</th>
+                      <th className="whitespace-nowrap px-3 py-2 text-right font-medium">Monto ({money.currency})</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -219,10 +219,10 @@ export function ReportsPage() {
                           </td>
                           <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{e.quantity}</td>
                           <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-neutral-500">
-                            {e.unitPrice} {e.priceCurrency}
+                            {formatCurrency(e.unitPrice, e.priceCurrency)}
                             {e.usdApprox && <span title="FX aproximado a la fecha" className="ml-1 text-neutral-400">≈</span>}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-2.5 text-right font-semibold tabular-nums">{formatCurrency(e.amountUsd)}</td>
+                          <td className="whitespace-nowrap px-3 py-2.5 text-right font-semibold tabular-nums">{money.format(e.amountUsd)}</td>
                         </tr>
                       )
                     })}
