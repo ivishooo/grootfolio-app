@@ -5,6 +5,7 @@
  */
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
+import db from '@adonisjs/lucid/services/db'
 import ContentSection from '#models/content_section'
 import ContentItem from '#models/content_item'
 import { writeAudit } from '#services/admin/admin_actions'
@@ -210,6 +211,11 @@ export default class AdminContentController {
     const label = item.title
     const id = item.id
     await item.delete()
+    // Las notificaciones apuntan al contenido por `data->>'contentItemId'`, que
+    // es jsonb y no tiene FK, asi que el borrado del item no las arrastra. Sin
+    // esto quedan en la campana de todos los usuarios enlazando a un contenido
+    // que ya no existe.
+    await db.from('notifications').whereRaw("data->>'contentItemId' = ?", [id]).delete()
     await writeAudit({
       actorId: currentUser.id,
       action: 'content.delete',
