@@ -41,6 +41,7 @@ router
     router.get('/holdings', '#controllers/holdings_controller.index') // GF-213
     router.get('/portfolio', '#controllers/portfolio_controller.summary') // GF-214
     router.get('/assets/search', '#controllers/assets_controller.search') // GF-248 (autocomplete)
+    router.get('/fx/rates', '#controllers/fx_controller.rates') // moneda base de visualizacion
     router.get('/reports/transactions', '#controllers/reports_controller.transactions') // GF-250
     router.get('/reports/summary', '#controllers/reports_controller.summary') // GF-250
     router.get('/quiz', '#controllers/quiz_controller.questions') // GF-2 (perfil)

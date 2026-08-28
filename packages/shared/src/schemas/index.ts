@@ -5,12 +5,16 @@ export const assetTypeSchema = z.enum(['crypto', 'stock', 'bond', 'currency'])
 export const riskProfileTypeSchema = z.enum(['conservative', 'moderate', 'aggressive'])
 
 export const loginInputSchema = z.object({
-  email: z.string().email('Email invalido'),
-  password: z.string().min(8, 'Minimo 8 caracteres'),
+  email: z.string().email('Ingresá un email válido'),
+  password: z.string().min(8, 'La contraseña necesita al menos 8 caracteres'),
 })
 
 export const registerInputSchema = loginInputSchema.extend({
-  fullName: z.string().min(2).max(80).optional(),
+  fullName: z
+    .string()
+    .min(2, 'El nombre necesita al menos 2 caracteres')
+    .max(80, 'El nombre no puede superar los 80 caracteres')
+    .optional(),
 })
 
 // Mismo shape para /auth/refresh y /auth/logout: ambos reciben el refresh token.
@@ -19,18 +23,21 @@ export const refreshInputSchema = z.object({
 })
 
 export const createTransactionInputSchema = z.object({
-  symbol: z.string().min(1).max(20),
+  symbol: z.string().min(1, 'Elegí un activo del catálogo').max(20, 'El símbolo no puede superar los 20 caracteres'),
   type: assetTypeSchema,
   kind: z.enum(['buy', 'sell']).default('buy'),
   quantity: z.number().positive('La cantidad debe ser mayor a 0'),
-  unitPrice: z.number().nonnegative('El precio no puede ser negativo'),
-  fee: z.number().nonnegative().default(0),
+  // Positivo, no solo "no negativo": una compra a precio 0 deja la posicion sin
+  // base de costo y toda la rentabilidad del portafolio pasa a ser el valor de
+  // mercado completo, que se lee como una ganancia infinita.
+  unitPrice: z.number().positive('El precio unitario debe ser mayor a 0'),
+  fee: z.number().nonnegative('La comisión no puede ser negativa').default(0),
   // Moneda en la que están expresados unitPrice y fee. Para crypto/stock/bond en
   // USD queda 'USD'; para divisas es la moneda con la que se pagó (ej. ARS). El
   // costo se normaliza a USD en la API usando el FX de esta moneda.
-  priceCurrency: z.string().length(3).default('USD'),
-  purchasedAt: z.string().datetime({ offset: true }),
-  notes: z.string().max(500).optional(),
+  priceCurrency: z.string().length(3, 'Moneda inválida').default('USD'),
+  purchasedAt: z.string().datetime({ offset: true, message: 'Elegí una fecha válida' }),
+  notes: z.string().max(500, 'Las notas no pueden superar los 500 caracteres').optional(),
 })
 
 // Edicion de una transaccion (GF-249, PATCH /transactions/:id). Todos los campos
@@ -39,11 +46,11 @@ export const createTransactionInputSchema = z.object({
 export const updateTransactionInputSchema = z.object({
   kind: z.enum(['buy', 'sell']).optional(),
   quantity: z.number().positive('La cantidad debe ser mayor a 0').optional(),
-  unitPrice: z.number().nonnegative('El precio no puede ser negativo').optional(),
-  fee: z.number().nonnegative().optional(),
-  priceCurrency: z.string().length(3).optional(),
-  purchasedAt: z.string().datetime({ offset: true }).optional(),
-  notes: z.string().max(500).nullable().optional(),
+  unitPrice: z.number().positive('El precio unitario debe ser mayor a 0').optional(),
+  fee: z.number().nonnegative('La comisión no puede ser negativa').optional(),
+  priceCurrency: z.string().length(3, 'Moneda inválida').optional(),
+  purchasedAt: z.string().datetime({ offset: true, message: 'Elegí una fecha válida' }).optional(),
+  notes: z.string().max(500, 'Las notas no pueden superar los 500 caracteres').nullable().optional(),
 })
 
 export const quizAnswerInputSchema = z.object({

@@ -5,7 +5,7 @@
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createTransactionInputSchema } from '@grootfolio/shared'
+import { createTransactionInputSchema, formatCurrency, dateInputToISO, isoToDateInput } from '@grootfolio/shared'
 import type { AssetSearchResult, AssetType } from '@grootfolio/shared'
 import { useCreateTransaction } from '@/lib/queries'
 import { useToast } from '@/components/ui/ToastProvider'
@@ -33,7 +33,10 @@ const TYPE_FORM: Record<AssetType, {
 
 const TYPE_ORDER: AssetType[] = ['crypto', 'stock', 'bond', 'currency']
 
-const emptyForm = { symbol: '', quantity: '', unitPrice: '', fee: '', priceCurrency: 'USD', purchasedAt: '', notes: '' }
+/** Hoy en hora local, para el default y el tope del campo de fecha. */
+const todayInput = () => isoToDateInput(new Date().toISOString())
+
+const emptyForm = { symbol: '', quantity: '', unitPrice: '', fee: '', priceCurrency: 'USD', purchasedAt: todayInput(), notes: '' }
 
 function TypeIcon({ type }: { type: AssetType }) {
   const { accent } = assetColor(type)
@@ -82,7 +85,9 @@ export function AddAssetPage() {
       unitPrice: parseFloat(form.unitPrice) || 0,
       fee: form.fee ? parseFloat(form.fee) : 0,
       priceCurrency: form.priceCurrency,
-      purchasedAt: form.purchasedAt ? new Date(form.purchasedAt).toISOString() : '',
+      // dateInputToISO ancla al mediodia local: `new Date('2026-08-01')` se parsea
+      // como medianoche UTC y en Argentina caia el dia anterior.
+      purchasedAt: form.purchasedAt ? dateInputToISO(form.purchasedAt) : '',
       notes: form.notes || undefined,
     }
     const result = createTransactionInputSchema.safeParse(parsed)
@@ -132,7 +137,7 @@ export function AddAssetPage() {
   const price = parseFloat(form.unitPrice) || 0
   const fee = parseFloat(form.fee) || 0
   const total = qty * price + fee
-  const fmt = (n: number) => `${cur === 'USD' ? 'US$ ' : cur + ' '}${(Math.round(n * 100) / 100).toLocaleString('es-AR', { maximumFractionDigits: 2 })}`
+  const fmt = (n: number) => formatCurrency(n, cur)
   const previewMark = form.symbol
     ? assetMark({ symbol: form.symbol })
     : ({ crypto: '₿', stock: 'A', bond: 'B', currency: '$' } as Record<AssetType, string>)[activeType]
@@ -214,12 +219,15 @@ export function AddAssetPage() {
               onSelect={handleSelectAsset}
             />
             <div className="grid gap-4 md:grid-cols-2">
-              <Input label={cfg.qtyLabel} placeholder={cfg.qtyPlaceholder} value={form.quantity} error={errors.quantity} onChange={(v) => updateField('quantity', v)} type="number" />
+              <Input label={cfg.qtyLabel} placeholder={cfg.qtyPlaceholder} value={form.quantity} error={errors.quantity} onChange={(v) => updateField('quantity', v)} type="number" required min={0} step="any" inputMode="decimal" />
               {cfg.showCurrency ? (
                 <div className="text-sm">
-                  <label htmlFor="unitPrice" className="mb-1 block font-medium">{cfg.priceLabel}</label>
+                  <label htmlFor="unitPrice" className="mb-1 block font-medium">
+                    {cfg.priceLabel}
+                    <span className="ml-0.5 text-danger-500" aria-hidden="true">*</span>
+                  </label>
                   <div className="flex gap-2">
-                    <input id="unitPrice" type="number" placeholder="0" value={form.unitPrice} onChange={(e) => updateField('unitPrice', e.target.value)} className={fieldCls} />
+                    <input id="unitPrice" type="number" placeholder="0" min={0} step="any" inputMode="decimal" aria-required="true" aria-invalid={errors.unitPrice ? true : undefined} value={form.unitPrice} onChange={(e) => updateField('unitPrice', e.target.value)} className={fieldCls} />
                     <select value={form.priceCurrency} onChange={(e) => updateField('priceCurrency', e.target.value)} aria-label="Moneda del precio" className="rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-sm dark:border-neutral-700 dark:bg-neutral-800">
                       {PRICE_CURRENCIES.map((cc) => <option key={cc} value={cc}>{cc}</option>)}
                     </select>
@@ -229,7 +237,7 @@ export function AddAssetPage() {
                   )}
                 </div>
               ) : (
-                <Input label={cfg.priceLabel} placeholder="50000" value={form.unitPrice} error={errors.unitPrice} onChange={(v) => updateField('unitPrice', v)} type="number" />
+                <Input label={cfg.priceLabel} placeholder="50000" value={form.unitPrice} error={errors.unitPrice} onChange={(v) => updateField('unitPrice', v)} type="number" required min={0} step="any" inputMode="decimal" hint={kind === 'buy' ? 'Lo que pagaste por unidad.' : 'Lo que cobraste por unidad.'} />
               )}
             </div>
             {cfg.help && (
@@ -239,8 +247,8 @@ export function AddAssetPage() {
               </div>
             )}
             <div className="grid gap-4 md:grid-cols-2">
-              <Input label={cfg.showCurrency ? `Comisión (${form.priceCurrency})` : 'Comisión (USD)'} placeholder="0" value={form.fee} error={errors.fee} onChange={(v) => updateField('fee', v)} type="number" />
-              <Input label="Fecha de compra" value={form.purchasedAt} error={errors.purchasedAt} onChange={(v) => updateField('purchasedAt', v)} type="date" />
+              <Input label={cfg.showCurrency ? `Comisión (${form.priceCurrency})` : 'Comisión (USD)'} placeholder="0" value={form.fee} error={errors.fee} onChange={(v) => updateField('fee', v)} type="number" min={0} step="any" inputMode="decimal" hint="Opcional. Dejalo en 0 si no pagaste comisión." />
+              <Input label={kind === 'buy' ? 'Fecha de compra' : 'Fecha de venta'} value={form.purchasedAt} error={errors.purchasedAt} onChange={(v) => updateField('purchasedAt', v)} type="date" required max={todayInput()} />
             </div>
             <Input label="Notas (opcional)" placeholder="Observaciones..." value={form.notes} error={errors.notes} onChange={(v) => updateField('notes', v)} multiline />
 

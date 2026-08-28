@@ -1,0 +1,48 @@
+# Recorre las seis pestañas y comprueba que cada una monta su pantalla.
+#
+# Selecciona por testID y no por el texto del tab: iOS expone los tabs como
+# "Activos, tab, 2 of 6", así que cualquier selector por texto se rompe con un
+# cambio de copy o de orden.
+appId: host.exp.Exponent
+tags: [smoke]
+---
+- runFlow: _login.yaml
+
+- tapOn:
+    id: 'tab-activos'
+- extendedWaitUntil:
+    visible:
+      id: 'screen-activos-title'
+    timeout: 20000
+
+- tapOn:
+    id: 'tab-reportes'
+- extendedWaitUntil:
+    visible: 'Reportes'
+    timeout: 20000
+
+- tapOn:
+    id: 'tab-contenidos'
+- extendedWaitUntil:
+    visible:
+      id: 'content-search'
+    timeout: 20000
+
+- tapOn:
+    id: 'tab-perfil'
+- extendedWaitUntil:
+    visible: 'Test de Perfil'
+    timeout: 20000
+
+- tapOn:
+    id: 'tab-ajustes'
+- extendedWaitUntil:
+    visible: 'Configuración'
+    timeout: 20000
+
+- tapOn:
+    id: 'tab-inicio'
+- extendedWaitUntil:
+    visible:
+      id: 'stat-valor-total'
+    timeout: 20000

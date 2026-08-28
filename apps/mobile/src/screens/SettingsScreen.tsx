@@ -9,6 +9,7 @@ import { formatCurrency } from '@grootfolio/shared'
 import { useDeleteAvatar, useUpdateProfile, useUploadAvatar } from '@/lib/queries'
 import { useToast } from '@/components/ui/ToastProvider'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
+import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 
 const CURRENCIES = ['USD', 'ARS', 'EUR'] as const
 const VIOLET = '#8B5CF6'
@@ -63,9 +64,9 @@ function ProfileCard() {
         </View>
       </View>
       <Text style={[s.label, { color: theme.text.primary }]}>Nombre visible</Text>
-      <TextInput value={name} onChangeText={setName} maxLength={40} style={{ borderWidth: 1, borderColor: theme.border.default, borderRadius: 10, padding: 12, color: theme.text.primary }} />
+      <TextInput testID="settings-nombre" value={name} onChangeText={setName} maxLength={40} style={{ borderWidth: 1, borderColor: theme.border.default, borderRadius: 10, padding: 12, color: theme.text.primary }} />
       <Text style={{ color: theme.text.muted, fontSize: 11 }}>{name.length}/40 · Debe cumplir las normas de la comunidad.</Text>
-      <TouchableOpacity onPress={saveName} disabled={updateProfile.isPending} style={{ alignSelf: 'flex-end', backgroundColor: theme.brand.solid, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 11 }}><Text style={{ color: theme.text.onBrand, fontWeight: '700' }}>{updateProfile.isPending ? 'Guardando…' : 'Guardar cambios'}</Text></TouchableOpacity>
+      <TouchableOpacity testID="settings-guardar" onPress={saveName} disabled={updateProfile.isPending} style={{ alignSelf: 'flex-end', backgroundColor: theme.brand.solid, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 11 }}><Text style={{ color: theme.text.onBrand, fontWeight: '700' }}>{updateProfile.isPending ? 'Guardando…' : 'Guardar cambios'}</Text></TouchableOpacity>
     </View>
   )
 }
@@ -81,7 +82,7 @@ export function SettingsScreen() {
   const cardStyle = [s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.background.canvas }} contentContainerStyle={{ padding: 16, gap: 16 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.background.canvas }} contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: ASSISTANT_SAFE_BOTTOM }}>
       <Text style={[s.title, { color: theme.text.primary }]}>Configuración</Text>
 
       <ProfileCard />
@@ -178,6 +179,7 @@ export function SettingsScreen() {
           onPress={() => logout()}
           accessibilityRole="button"
           accessibilityLabel="Cerrar sesión"
+          testID="settings-logout"
           style={[s.logout, { borderColor: theme.danger.solid }]}
         >
           <Text style={{ color: theme.danger.solid, fontWeight: '600' }}>Cerrar sesión</Text>

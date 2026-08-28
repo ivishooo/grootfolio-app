@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Assistant } from '@/components/assistant/Assistant'
 import { useTheme } from '@/theme/ThemeProvider'
@@ -7,6 +7,7 @@ import { useNotifications } from '@/lib/queries'
 import { UserMenu } from './UserMenu'
 import { Logo } from './Logo'
 import { NotificationBell } from './NotificationBell'
+import { useIsDesktop } from '@/lib/useMediaQuery'
 
 /* Iconos de línea del sidebar (rediseño GF). Heredan currentColor. */
 function Svg({ children }: { children: React.ReactNode }) {
@@ -125,6 +126,32 @@ export function AppLayout() {
   const unread = notif?.unreadCount ?? 0
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [sidebarMenuOpen, setSidebarMenuOpen] = useState(false)
+  const isDesktop = useIsDesktop()
+  // En mobile el drawer cerrado se corre fuera de pantalla con un translate,
+  // pero seguia siendo tabulable y visible para lectores de pantalla: se
+  // recorrian 9 links invisibles antes de llegar al contenido. `inert` lo saca
+  // del arbol de foco y de accesibilidad sin tocar la animacion.
+  const drawerHidden = !isDesktop && !drawerOpen
+
+  // Escape cierra el drawer, como cualquier panel superpuesto.
+  useEffect(() => {
+    if (!drawerOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [drawerOpen])
+
+  // Con el drawer abierto el fondo no debe scrollear detras del panel.
+  useEffect(() => {
+    if (!drawerOpen || isDesktop) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [drawerOpen, isDesktop])
 
   const handleLogout = async () => {
     await logout()
@@ -143,6 +170,8 @@ export function AppLayout() {
 
       {/* Sidebar */}
       <aside
+        inert={drawerHidden}
+        aria-label="Navegación principal"
         className={`fixed left-0 top-0 z-50 flex h-screen w-[240px] flex-col border-r border-neutral-200 bg-white transition-transform duration-200 dark:border-neutral-800 dark:bg-neutral-900 ${
           drawerOpen ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0`}
@@ -212,7 +241,7 @@ export function AppLayout() {
             <button
               className="grid h-8 w-8 place-items-center rounded-lg text-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 md:hidden"
               onClick={() => setDrawerOpen(true)}
-              aria-label="Abrir menu"
+              aria-label="Abrir menú"
             >
               ☰
             </button>
@@ -233,7 +262,9 @@ export function AppLayout() {
         </header>
 
         {/* Content */}
-        <main className="gf-app-main flex-1 p-4 transition-[padding] duration-200 md:p-6 lg:p-8">
+        {/* pb-24: la burbuja del asistente es `fixed` abajo a la derecha y quedaba
+            encima de la ultima fila de las tablas. El padding le da lugar propio. */}
+        <main className="gf-app-main flex-1 p-4 pb-24 transition-[padding] duration-200 md:p-6 md:pb-24 lg:p-8 lg:pb-24">
           <Outlet />
         </main>
 

@@ -51,6 +51,13 @@ export const publishContentValidator = vine.compile(
   vine.object({ notifyUsers: vine.boolean().optional() })
 )
 
+/**
+ * Perfil propio. Ambos campos son opcionales para que la pantalla de
+ * Configuracion pueda guardar solo el nombre, solo la moneda, o los dos.
+ */
 export const updateProfileValidator = vine.compile(
-  vine.object({ fullName: vine.string().trim().minLength(2).maxLength(40) })
+  vine.object({
+    fullName: vine.string().trim().minLength(2).maxLength(40).optional(),
+    baseCurrency: vine.enum(['USD', 'ARS', 'EUR']).optional(),
+  })
 )

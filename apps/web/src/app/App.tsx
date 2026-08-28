@@ -13,6 +13,7 @@ import { AdminContentPage } from '@/features/admin/AdminContentPage'
 import { AdminKbPage } from '@/features/admin/AdminKbPage'
 import { ContentLibraryPage } from '@/features/content/ContentLibraryPage'
 import { AccountSuspendedPage } from '@/features/auth/AccountSuspendedPage'
+import { NotFoundPage } from '@/features/errors/NotFoundPage'
 import { AppLayout } from '@/components/ui/AppLayout'
 import { ProtectedRoute } from '@/auth/ProtectedRoute'
 import { RequireAdmin } from '@/auth/RequireAdmin'
@@ -39,9 +40,9 @@ export function App() {
             <Route path="/admin/content" element={<AdminContentPage />} />
             <Route path="/admin/kb" element={<AdminKbPage />} />
           </Route>
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

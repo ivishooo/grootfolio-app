@@ -1,0 +1,20 @@
+# Biblioteca de contenidos: buscar algo que no existe tiene que dar un estado
+# de "sin resultados", no el de "todavía no hay material publicado".
+appId: host.exp.Exponent
+---
+- runFlow: _login.yaml
+- tapOn:
+    id: 'tab-contenidos'
+- extendedWaitUntil:
+    visible:
+      id: 'content-search'
+    timeout: 20000
+- tapOn:
+    id: 'content-search'
+- inputText: 'zzzz-no-existe'
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: 'Abrir'
+- eraseText
+- waitForAnimationToEnd:
+    timeout: 5000

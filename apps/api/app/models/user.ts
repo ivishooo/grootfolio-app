@@ -27,6 +27,13 @@ export default class User extends BaseModel {
   @column({ columnName: 'full_name' })
   declare fullName: string | null
 
+  /**
+   * Moneda en la que el usuario quiere ver los importes. Los datos se calculan
+   * en USD; esto es solo presentacion y se convierte al vuelo con el FX.
+   */
+  @column({ columnName: 'base_currency' })
+  declare baseCurrency: string
+
   @column({ columnName: 'risk_profile' })
   declare riskProfile: RiskProfileType | null
 

@@ -8,6 +8,7 @@ import { contentTypeLabels, formatFileSize } from '@grootfolio/shared'
 import type { ContentItem, ContentType } from '@grootfolio/shared'
 import { useContentItems, useContentSections, useMarkContentViewed } from '@/lib/queries'
 import { EmptyState } from '@/components/ui/States'
+import { Button } from '@/components/ui/Button'
 
 const TYPE_META: Record<ContentType, { color: string; icon: string; cta: string }> = {
   doc: { color: '#DC2626', icon: '▤', cta: 'Leer' },
@@ -30,6 +31,15 @@ export function ContentLibraryPage() {
 
   const featured = items.filter((i) => i.pinned)
   const rest = items.filter((i) => !i.pinned)
+
+  // "No hay material publicado" y "tu busqueda no encontro nada" son dos cosas
+  // distintas. Mostrar la primera cuando el usuario acaba de filtrar lo lleva a
+  // pensar que la seccion esta vacia, sin pista de que hay un filtro puesto.
+  const hasFilters = search.trim() !== '' || sectionId !== undefined
+  const clearFilters = () => {
+    setSearch('')
+    setSectionId(undefined)
+  }
 
   return (
     <div className="space-y-5">
@@ -55,7 +65,23 @@ export function ContentLibraryPage() {
       {isLoading ? (
         <p className="text-sm text-neutral-400">Cargando…</p>
       ) : items.length === 0 ? (
-        <EmptyState title="Sin material todavía" description="Cuando el equipo publique contenido, va a aparecer acá." />
+        hasFilters ? (
+          <EmptyState
+            title="No encontramos nada con ese filtro"
+            description={
+              search.trim()
+                ? `Ningún material coincide con “${search.trim()}”.`
+                : 'Esta categoría todavía no tiene material.'
+            }
+            action={
+              <Button variant="secondary" size="sm" onClick={clearFilters}>
+                Limpiar filtros
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState title="Sin material todavía" description="Cuando el equipo publique contenido, va a aparecer acá." />
+        )
       ) : (
         <>
           {featured.length > 0 && (

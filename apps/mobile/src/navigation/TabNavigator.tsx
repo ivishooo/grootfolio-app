@@ -1,3 +1,4 @@
+import { Text } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { useTheme } from '../theme/ThemeProvider'
 import { brand } from '@grootfolio/tokens'
@@ -22,6 +23,29 @@ export type TabParamList = {
 
 const Tab = createBottomTabNavigator<TabParamList>()
 
+/**
+ * Label del tab que se encoge en vez de cortarse.
+ *
+ * Con seis pestañas en 375 px cada una tiene ~62 px, y "Contenidos" (el label
+ * más largo) salía como "Contenid…" aunque el resto entrara. Bajar el tamaño
+ * global para el peor caso achica los cinco labels que sí entraban;
+ * `adjustsFontSizeToFit` lo resuelve por pestaña.
+ */
+function TabLabel({ label, color, testID }: { label: string; color: string; testID: string }) {
+  return (
+    <Text
+      testID={testID}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      minimumFontScale={0.8}
+      allowFontScaling={false}
+      style={{ fontSize: 10, fontWeight: '600', color, textAlign: 'center' }}
+    >
+      {label}
+    </Text>
+  )
+}
+
 export function TabNavigator() {
   const { theme } = useTheme()
   const { data: notif } = useNotifications()
@@ -37,10 +61,8 @@ export function TabNavigator() {
           backgroundColor: theme.background.surface,
           borderTopColor: theme.border.default,
         },
-        // Con seis pestañas, en 375 px cada una tiene ~62 px: a 11 px los
-        // labels largos ("Dashboard", "Contenidos") se cortaban. Y con el texto
-        // grande del sistema se cortaba cualquiera, de ahí el allowFontScaling.
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+        // El label lo renderiza <TabLabel/>, que se encoge por pestaña en vez de
+        // cortarse. Ver el comentario de ese componente.
         tabBarAllowFontScaling: false,
       }}
     >
@@ -48,7 +70,7 @@ export function TabNavigator() {
         name="Dashboard"
         component={DashboardScreen}
         options={{
-          tabBarLabel: 'Inicio',
+          tabBarLabel: ({ color }) => <TabLabel label="Inicio" color={color} testID="tab-inicio" />,
           tabBarIcon: ({ color, size }) => <DashboardIcon color={color} size={size} />,
         }}
       />
@@ -56,7 +78,7 @@ export function TabNavigator() {
         name="Assets"
         component={AssetsScreen}
         options={{
-          tabBarLabel: 'Activos',
+          tabBarLabel: ({ color }) => <TabLabel label="Activos" color={color} testID="tab-activos" />,
           tabBarIcon: ({ color, size }) => <AssetsIcon color={color} size={size} />,
         }}
       />
@@ -64,7 +86,7 @@ export function TabNavigator() {
         name="Reports"
         component={ReportsScreen}
         options={{
-          tabBarLabel: 'Reportes',
+          tabBarLabel: ({ color }) => <TabLabel label="Reportes" color={color} testID="tab-reportes" />,
           tabBarIcon: ({ color, size }) => <ReportsIcon color={color} size={size} />,
         }}
       />
@@ -72,7 +94,7 @@ export function TabNavigator() {
         name="Content"
         component={ContentLibraryScreen}
         options={{
-          tabBarLabel: 'Contenidos',
+          tabBarLabel: ({ color }) => <TabLabel label="Contenidos" color={color} testID="tab-contenidos" />,
           tabBarIcon: ({ color, size }) => <ContentIcon color={color} size={size} />,
           tabBarBadge: unread > 0 ? unread : undefined,
         }}
@@ -81,7 +103,7 @@ export function TabNavigator() {
         name="ProfileTest"
         component={ProfileTestScreen}
         options={{
-          tabBarLabel: 'Perfil',
+          tabBarLabel: ({ color }) => <TabLabel label="Perfil" color={color} testID="tab-perfil" />,
           tabBarIcon: ({ color, size }) => <QuizIcon color={color} size={size} />,
         }}
       />
@@ -89,7 +111,7 @@ export function TabNavigator() {
         name="Settings"
         component={SettingsScreen}
         options={{
-          tabBarLabel: 'Ajustes',
+          tabBarLabel: ({ color }) => <TabLabel label="Ajustes" color={color} testID="tab-ajustes" />,
           tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
         }}
       />

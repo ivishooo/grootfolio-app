@@ -1,0 +1,22 @@
+# Subflow: abre la app y espera a que termine de cargar, sin asumir si hay
+# sesion iniciada o no.
+#
+# En Expo Go hay que entrar por el deep link del proyecto; `launchApp` solo abre
+# Expo Go en su pantalla de inicio. Con un dev build alcanza `launchApp`.
+# Ver README.md > "Expo Go vs dev build" para las dos lineas a cambiar.
+appId: host.exp.Exponent
+---
+# Arrancar de proceso limpio. Sin esto, cualquier overlay de Expo Go que haya
+# quedado abierto (el dev menu, por ejemplo) sobrevive entre flows, y como no
+# figura en la jerarquia de accesibilidad los taps se pierden en silencio.
+- stopApp
+- openLink: exp://127.0.0.1:8082
+
+# "Cargada" significa que el RootNavigator ya resolvio /me y dejo de mostrar el
+# spinner. El selector es un regex a proposito: matchea el tab bar (con sesion)
+# o el formulario (sin sesion). Asumir uno solo rompia los flows de login, que
+# esperan lo contrario que el resto.
+- extendedWaitUntil:
+    visible:
+      id: 'tab-inicio|login-email'
+    timeout: 90000

@@ -16,7 +16,7 @@ export function LoadingState({ label = 'Cargando…' }: { label?: string }) {
 }
 
 export function ErrorState({
-  message = 'Algo salio mal.',
+  message = 'Algo salió mal.',
   onRetry,
 }: {
   message?: string

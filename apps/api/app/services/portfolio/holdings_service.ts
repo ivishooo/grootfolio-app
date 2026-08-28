@@ -83,7 +83,7 @@ export function aggregateHoldings(
       currentPrice: 0,
       value: 0,
       pnl: 0,
-      pnlPercent: 0,
+      pnlPercent: null,
     })
   }
 

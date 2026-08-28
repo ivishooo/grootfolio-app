@@ -30,8 +30,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [options, setOptions] = useState<ConfirmOptions | null>(null)
   const [loading, setLoading] = useState(false)
   const resolver = useRef<((value: boolean) => void) | null>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  // Quien tenia el foco antes de abrir, para devolverselo al cerrar.
+  const returnFocusTo = useRef<HTMLElement | null>(null)
 
   const confirm = useCallback((opts: ConfirmOptions) => {
+    returnFocusTo.current = document.activeElement as HTMLElement | null
     setOptions(opts)
     setLoading(false)
     return new Promise<boolean>((resolve) => {
@@ -44,6 +48,13 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     setLoading(false)
     resolver.current?.(result)
     resolver.current = null
+    // Sin esto el foco quedaba en <body>: quien navega con teclado perdia el
+    // lugar y tenia que tabular desde el principio del documento.
+    const target = returnFocusTo.current
+    returnFocusTo.current = null
+    if (target && document.contains(target)) {
+      requestAnimationFrame(() => target.focus())
+    }
   }, [])
 
   const handleConfirm = useCallback(async () => {
@@ -61,11 +72,32 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     }
   }, [options, close])
 
-  // Escape cancela (bloqueado mientras carga).
+  // Escape cancela (bloqueado mientras carga) y Tab queda atrapado adentro del
+  // dialogo: sin el trap, tabular sacaba el foco a la pagina de atras, que
+  // visualmente esta tapada por el backdrop.
   useEffect(() => {
     if (!options) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !loading) close(false)
+      if (e.key === 'Escape' && !loading) {
+        close(false)
+        return
+      }
+      if (e.key !== 'Tab') return
+      const panel = panelRef.current
+      if (!panel) return
+      const focusables = panel.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusables.length === 0) return
+      const first = focusables[0]!
+      const last = focusables[focusables.length - 1]!
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -86,6 +118,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           style={{ animation: 'gf-fade .15s ease' }}
         >
           <div
+            ref={panelRef}
             className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl dark:border-neutral-700 dark:bg-neutral-800"
             onClick={(e) => e.stopPropagation()}
             style={{ animation: 'gf-modal-in .2s cubic-bezier(.2,.7,.3,1)' }}
