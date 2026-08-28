@@ -8,7 +8,11 @@ const origins = envOrigins ? envOrigins.split(',').map((o) => o.trim()).filter(B
 const corsConfig = defineConfig({
   enabled: true,
   origin: origins,
-  methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
+  // PATCH es obligatorio: la API lo usa para TODA edicion parcial (perfil,
+  // transacciones, usuarios, secciones, contenidos y articulos de la KB). Sin
+  // el en esta lista el navegador rechaza el preflight y ninguna pantalla de
+  // edicion puede guardar, aunque el endpoint funcione perfecto por curl.
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
   headers: true,
   exposeHeaders: [],
   credentials: true,
