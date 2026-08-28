@@ -12,6 +12,9 @@ const WEB_URL = process.env.E2E_WEB_URL ?? 'http://localhost:5173'
 
 export default defineConfig({
   testDir: './e2e',
+  // La suite crea usuarios y contenidos descartables; sin esto se acumulan en la
+  // base de desarrollo hasta ensuciar cualquier demo (ISSUE-010 del QA).
+  globalTeardown: './e2e/global-teardown.ts',
   // Comparten el usuario dev y su estado; corremos en serie para evitar choques.
   fullyParallel: false,
   workers: 1,

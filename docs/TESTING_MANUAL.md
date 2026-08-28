@@ -438,16 +438,56 @@ pnpm --filter @grootfolio/web e2e     # terminal 2  (playwright test)
 
 Cubre: `login.spec.ts` (login dev → dashboard; credenciales inválidas →
 error), `add-asset.spec.ts` (alta de transacción → confirmación),
-`quiz.spec.ts` (completar quiz → resultado). **4 tests / 3 specs.**
+`quiz.spec.ts` (completar quiz → resultado), `content.spec.ts` (publicar y ver
+en la biblioteca) y `admin-users.spec.ts` (suspender/reactivar; redirección de
+no-admin).
+
+> **Limpieza automática.** La suite registra usuarios descartables y publica
+> contenidos. Un `globalTeardown` los borra al terminar (`e2e/global-teardown.ts`,
+> que llama a `db:clean-test-data`). Es best-effort: si falla, avisa y no tumba
+> la corrida, y se puede correr a mano (ver §7.3).
 
 > **Nota CI:** estos specs se excluyen de Vitest (`vite.config.ts` →
 > `exclude: [...configDefaults.exclude, 'e2e/**']`). No confundir `pnpm test`
 > (Vitest, unit) con `pnpm e2e` (Playwright). Ver GF-250 / PR #83.
 
 ### 7.2 Mobile — Maestro (GF-234)
-Flow en `apps/mobile/.maestro/login.yaml` (login → dashboard). Requiere Maestro
-instalado y la app corriendo en emulador/dispositivo. Ver
-`apps/mobile/.maestro/README.md` para el runner.
+Siete flows en `apps/mobile/.maestro/`: `login`, `login-invalido`, `navegacion`,
+`activos`, `contenidos`, `asistente` y `settings`, más tres subflows (`_abrir-app`,
+`_cerrar-sesion`, `_login`). Corren sobre **Expo Go** en el simulador, con Metro
+en el **puerto 8082**.
+
+**Leé `apps/mobile/.maestro/README.md` antes de tocar un flow.** Correr sobre
+Expo Go tiene cuatro trampas que se disfrazan de bugs de la app: `clearState` no
+cierra la sesión (los tokens están en el Keychain), los overlays de Expo Go no
+figuran en la jerarquía de accesibilidad pero se comen los taps, un elemento
+debajo del fold igual se reporta como visible, y iOS ofrece guardar la contraseña
+después de entrar. El síntoma común es un flow que "hace" cosas sin que la
+pantalla cambie nunca.
+
+### 7.3 Limpieza de datos de prueba
+
+Las suites y las pruebas manuales de este documento crean usuarios y contenidos
+descartables. Sin limpiarlos, la base de desarrollo se llena: en agosto de 2026
+llegó a tener 29 usuarios, de los cuales 27 eran fixtures, y los 6 items de la
+biblioteca de Contenidos se llamaban todos `E2E Guía <timestamp>`. Cualquier demo
+o QA visual arrancaba sobre esa basura (ISSUE-010 del pase de QA).
+
+```bash
+pnpm --filter @grootfolio/api exec node --import=ts-node-maintained/register/esm \
+  ace.js db:clean-test-data            # dry-run: dice qué borraría
+pnpm --filter @grootfolio/api exec node --import=ts-node-maintained/register/esm \
+  ace.js db:clean-test-data --commit   # borra
+```
+
+Borra usuarios de prueba (por patrón de email), contenidos con título `E2E %` y
+notificaciones que quedaron apuntando a contenidos borrados. Nunca toca
+`dev@grootfolio.test` ni `demo@grootfolio.app`, y aborta si detecta producción.
+
+**Convención para pruebas nuevas:** registrá los usuarios descartables bajo el
+dominio reservado `@e2e.grootfolio.test`. Los patrones históricos están
+enumerados uno por uno en el comando justamente para no tener que adivinar; con
+la convención nueva no hace falta tocarlo nunca más.
 
 ---
 
