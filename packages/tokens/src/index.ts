@@ -151,7 +151,12 @@ export const lightTheme: Theme = {
   },
   border: {
     default: neutral[200],
-    strong: neutral[300],
+    // WCAG 1.4.11 pide 3:1 para el limite visual de un control. neutral[300]
+    // daba 1,42:1 y era el borde de los inputs, los checkboxes y los radios:
+    // sobre fondo claro practicamente no se veian. neutral[500] da 4,34:1 en el
+    // peor fondo. `default` sigue en neutral[200] porque separa bloques, no
+    // delimita controles, y ahi la norma no aplica.
+    strong: neutral[500],
     focus: brand[500],
     disabled: neutral[200],
   },
@@ -203,7 +208,10 @@ export const darkTheme: Theme = {
   },
   border: {
     default: '#2A2B30',
-    strong: '#3F4046',
+    // Mismo motivo que en el tema claro: #3F4046 daba 1,72:1. #7C7D87 llega a
+    // 3,46:1 contra el peor fondo (background.muted) manteniendo la familia de
+    // grises del tema oscuro.
+    strong: '#7C7D87',
     focus: brand[500],
     disabled: '#2A2B30',
   },
