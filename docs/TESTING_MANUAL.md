@@ -118,6 +118,20 @@ pnpm dev:mobile   # Expo Metro (8081) + QR   (usa EXPO_PUBLIC_API_URL=http://loc
 > (`firstOrCreate`), pero solo los symbols conocidos por cada provider devuelven
 > precio (ej. crypto del mapa CoinGecko, stocks del whitelist Yahoo).
 
+- **Biblioteca de Contenidos** (`y_content_seeder`): las 4 secciones (Primeros
+  pasos, Cripto, Acciones y bonos, Impuestos) y **13 enlaces a fuentes
+  primarias** — CNV, BCRA, BYMA y ARCA. Uno queda fijado (`pinned`) para
+  ejercitar ese estado en la UI.
+
+  Idempotente por partes: las secciones por `slug`, los items por
+  `external_url`. Re-correr `db:seed` refresca título, descripción y sección
+  pero **no** pisa `published_at`, así el badge de NUEVO no reaparece para quien
+  ya vio el contenido.
+
+  Si alguno de los enlaces se cae con el tiempo, se corrige en el seeder y
+  `db:seed` lo actualiza. El prefijo `y_` del archivo es para que corra después
+  de los seeders de usuarios y pueda atribuir los contenidos a un admin.
+
 ---
 
 ## 4. Testing del Backend API (núcleo)
