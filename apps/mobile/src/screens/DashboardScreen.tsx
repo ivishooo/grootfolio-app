@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useTheme } from '@/theme/ThemeProvider'
 import { usePortfolio } from '@/lib/queries'
-import { formatCurrency, formatPercent, formatShare, assetTypeLabels, assetTypeLabel } from '@grootfolio/shared'
+import { formatPercent, formatShare, assetTypeLabels, assetTypeLabel } from '@grootfolio/shared'
 import type { AssetType } from '@grootfolio/shared'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
 import { Screen } from '@/components/ui/Screen'
@@ -16,8 +16,10 @@ import { assetColor } from '@/lib/asset-visual'
 import { BarChart } from '@/components/ui/BarChart'
 import { DashboardSkeleton } from './DashboardSkeleton'
 import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
+import { useMoney } from '@/lib/money'
 
 export function DashboardScreen() {
+  const money = useMoney()
   const { theme } = useTheme()
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const { data: p, isLoading, isError, error, refetch } = usePortfolio()
@@ -45,8 +47,8 @@ export function DashboardScreen() {
           <>
             {/* pnlPercent puede ser null (sin base de costo o sin cotizacion): en
                 ese caso el delta es "—" y no se pinta ni de verde ni de rojo. */}
-            <StatCard testID="stat-valor-total" deltaLabel="rentabilidad" label="Valor total" value={formatCurrency(p.totalValue)} delta={formatPercent(p.pnlPercent)} deltaColor={deltaColor(p.pnlPercent)} />
-            <StatCard testID="stat-pnl" deltaLabel="rentabilidad" label="Ganancia / Pérdida" value={formatCurrency(p.pnlAbsolute)} delta={formatPercent(p.pnlPercent)} deltaColor={p.pnlPercent === null ? theme.text.secondary : p.pnlAbsolute >= 0 ? theme.chart.positive : theme.chart.negative} />
+            <StatCard testID="stat-valor-total" deltaLabel="rentabilidad" label="Valor total" value={money.format(p.totalValue)} delta={formatPercent(p.pnlPercent)} deltaColor={deltaColor(p.pnlPercent)} />
+            <StatCard testID="stat-pnl" deltaLabel="rentabilidad" label="Ganancia / Pérdida" value={money.format(p.pnlAbsolute)} delta={formatPercent(p.pnlPercent)} deltaColor={p.pnlPercent === null ? theme.text.secondary : p.pnlAbsolute >= 0 ? theme.chart.positive : theme.chart.negative} />
             <StatCard testID="stat-mejor-activo" deltaLabel="rentabilidad" label="Mejor activo" value={p.bestAsset?.name ?? '—'} delta={p.bestAsset ? formatPercent(p.bestAsset.pnlPercent) : ''} deltaColor={deltaColor(p.bestAsset?.pnlPercent ?? null)} />
 
             <Card title="Distribución del Portafolio">
@@ -64,7 +66,7 @@ export function DashboardScreen() {
                       <View key={d.type} style={s.legendRow}>
                         <View style={[s.legendDot, { backgroundColor: chartColors[i % chartColors.length] }]} />
                         <Text style={{ color: theme.text.primary, flex: 1 }}>{assetTypeLabels[d.type as AssetType] ?? d.type}</Text>
-                        <Text style={{ color: theme.text.secondary }}>{formatCurrency(d.value)} ({pct(d.value, p.totalValue)}%)</Text>
+                        <Text style={{ color: theme.text.secondary }}>{money.format(d.value)} ({pct(d.value, p.totalValue)}%)</Text>
                       </View>
                     ))}
                   </View>
@@ -79,7 +81,7 @@ export function DashboardScreen() {
                 <BarChart
                   data={p.monthlyReturn.map((m) => ({ label: m.month, value: m.value }))}
                   color={theme.chart.series1}
-                  formatValue={formatCurrency}
+                  formatValue={money.format}
                 />
               )}
             </Card>
@@ -118,7 +120,7 @@ export function DashboardScreen() {
                           <Text style={[s.chip, { color: c.accent, backgroundColor: c.soft }]}>{h.asset.symbol}</Text>
                         </View>
                         <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 2 }}>
-                          {assetTypeLabel[h.asset.type as AssetType] ?? h.asset.type} · {formatCurrency(h.avgPrice)} → {formatCurrency(h.currentPrice)}
+                          {assetTypeLabel[h.asset.type as AssetType] ?? h.asset.type} · {money.format(h.avgPrice)} → {money.format(h.currentPrice)}
                         </Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
                           <View style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: theme.background.muted, overflow: 'hidden' }}>
@@ -128,8 +130,8 @@ export function DashboardScreen() {
                         </View>
                       </View>
                       <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{formatCurrency(h.value)}</Text>
-                        <Text style={{ color: pnlColor, fontSize: 12, fontWeight: '600' }}>{formatCurrency(h.pnl)}</Text>
+                        <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{money.format(h.value)}</Text>
+                        <Text style={{ color: pnlColor, fontSize: 12, fontWeight: '600' }}>{money.format(h.pnl)}</Text>
                         <Text style={{ color: pnlColor, fontSize: 11 }}>{formatPercent(h.pnlPercent)}</Text>
                       </View>
                     </View>

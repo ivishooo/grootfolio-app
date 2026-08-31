@@ -5,13 +5,14 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import * as ImagePicker from 'expo-image-picker'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
-import { formatCurrency } from '@grootfolio/shared'
+import { SUPPORTED_CURRENCIES, currencyLabels, formatCurrency } from '@grootfolio/shared'
+import type { SupportedCurrency } from '@grootfolio/shared'
 import { useDeleteAvatar, useUpdateProfile, useUploadAvatar } from '@/lib/queries'
+import { useMoney } from '@/lib/money'
 import { useToast } from '@/components/ui/ToastProvider'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
 import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 
-const CURRENCIES = ['USD', 'ARS', 'EUR'] as const
 const VIOLET = '#8B5CF6'
 
 function initials(name: string | null, email: string): string {
@@ -43,7 +44,7 @@ function ProfileCard() {
   }
   const saveName = () => {
     if (name.trim().length < 2) { toast('El nombre debe tener al menos 2 caracteres.', 'error'); return }
-    updateProfile.mutate(name.trim(), { onSuccess: (r) => { updateUser(r.user); toast('Cambios guardados', 'success') }, onError: (e) => toast(e instanceof Error ? e.message : 'Error', 'error') })
+    updateProfile.mutate({ fullName: name.trim() }, { onSuccess: (r) => { updateUser(r.user); toast('Cambios guardados', 'success') }, onError: (e) => toast(e instanceof Error ? e.message : 'Error', 'error') })
   }
 
   return (
@@ -73,11 +74,29 @@ function ProfileCard() {
 
 export function SettingsScreen() {
   const { theme, themeName, toggleTheme } = useTheme()
-  const { user, logout } = useAuth()
+  const { user, updateUser, logout } = useAuth()
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
-  // Preview de formato solamente; la moneda base real se define en la Fase F
-  // (persistencia de preferencia). Por ahora es estado local sin efecto global.
-  const [currency, setCurrency] = useState<(typeof CURRENCIES)[number]>('USD')
+  const { toast } = useToast()
+  const updateCurrency = useUpdateProfile()
+  const money = useMoney()
+  // La moneda vive en el perfil (`PATCH /me`) y se aplica en todas las
+  // pantallas via `useMoney`. Antes era un `useState` suelto: se elegia ARS, no
+  // pasaba nada, y al reabrir la app volvia a USD.
+  const currency = (user?.baseCurrency ?? 'USD') as SupportedCurrency
+
+  const changeCurrency = (next: SupportedCurrency) => {
+    if (next === currency) return
+    updateCurrency.mutate(
+      { baseCurrency: next },
+      {
+        onSuccess: (r) => {
+          updateUser(r.user)
+          toast('Moneda actualizada', 'success', { description: `Vas a ver los importes en ${next}.` })
+        },
+        onError: (e) => toast(e instanceof Error ? e.message : 'No se pudo cambiar la moneda.', 'error'),
+      }
+    )
+  }
 
   const cardStyle = [s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]
 
@@ -140,20 +159,25 @@ export function SettingsScreen() {
         <View style={s.row}>
           <View style={{ flex: 1 }}>
             <Text style={[s.label, { color: theme.text.primary }]}>Moneda base</Text>
-            <Text style={[s.hint, { color: theme.text.muted }]}>Preview: {formatCurrency(1234, currency)}</Text>
+            <Text style={[s.hint, { color: theme.text.muted }]}>
+              {formatCurrency(1234)} se muestra como {money.format(1234)}
+            </Text>
           </View>
           <View style={s.segment}>
-            {CURRENCIES.map((c) => {
+            {SUPPORTED_CURRENCIES.map((c) => {
               const active = c === currency
               return (
                 <TouchableOpacity
                   key={c}
-                  onPress={() => setCurrency(c)}
+                  testID={`moneda-${c}`}
+                  onPress={() => changeCurrency(c)}
+                  disabled={updateCurrency.isPending}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
+                  accessibilityState={{ selected: active, disabled: updateCurrency.isPending }}
+                  accessibilityLabel={`Ver los importes en ${currencyLabels[c]}`}
                   style={[
                     s.segmentItem,
-                    { backgroundColor: active ? theme.brand.solid : 'transparent' },
+                    { backgroundColor: active ? theme.brand.solid : 'transparent', opacity: updateCurrency.isPending ? 0.6 : 1 },
                   ]}
                 >
                   <Text style={{ color: active ? theme.text.onBrand : theme.text.secondary, fontWeight: '600', fontSize: 13 }}>{c}</Text>
@@ -162,6 +186,15 @@ export function SettingsScreen() {
             })}
           </View>
         </View>
+        <Text style={[s.hint, { color: theme.text.muted, marginTop: 10 }]}>
+          Tus operaciones se guardan siempre en USD. Esto sólo cambia cómo se muestran, usando la
+          cotización del día.
+        </Text>
+        {money.isFallback && (
+          <Text style={{ color: theme.warning.solid, fontSize: 12, marginTop: 8 }}>
+            No pudimos obtener la cotización de {money.preferred}; por ahora se muestra en USD.
+          </Text>
+        )}
       </View>
 
       {/* Cuenta */}
