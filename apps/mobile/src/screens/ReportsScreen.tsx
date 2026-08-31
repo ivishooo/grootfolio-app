@@ -8,7 +8,8 @@ import Svg, { Polyline } from 'react-native-svg'
 import { useTheme } from '@/theme/ThemeProvider'
 import { BarChart } from '@/components/ui/BarChart'
 import { useReportSummary, useReportLedger } from '@/lib/queries'
-import { formatCurrency, formatPercent, assetTypeLabel } from '@grootfolio/shared'
+import { formatPercent, assetTypeLabel } from '@grootfolio/shared'
+import { useMoney } from '@/lib/money'
 import type { AssetType } from '@grootfolio/shared'
 import { Screen } from '@/components/ui/Screen'
 import { Card } from '@/components/ui/Card'
@@ -23,6 +24,7 @@ function formatDate(iso: string): string {
 }
 
 export function ReportsScreen() {
+  const money = useMoney()
   const { theme } = useTheme()
   const summaryQ = useReportSummary()
   const ledgerQ = useReportLedger()
@@ -49,7 +51,7 @@ export function ReportsScreen() {
         ) : !s ? null : (
           <>
             <ReportStat icon="↗" iconColor="#16A34A" iconBg="rgba(34,197,94,0.13)" label="P&L Realizado"
-              value={formatCurrency(s.realizedTotal)} valueColor={s.realizedTotal >= 0 ? theme.chart.positive : theme.chart.negative}
+              value={money.format(s.realizedTotal)} valueColor={s.realizedTotal >= 0 ? theme.chart.positive : theme.chart.negative}
               sub="Sobre posiciones cerradas" />
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ flex: 1 }}>
@@ -78,7 +80,7 @@ export function ReportsScreen() {
                   data={s.historicalBalance.map((m) => ({ label: m.month, value: m.value }))}
                   // Mismo dato que el Dashboard (valor del portafolio): mismo color.
                   color={theme.chart.series1}
-                  formatValue={formatCurrency}
+                  formatValue={money.format}
                 />
               )}
             </Card>
@@ -101,11 +103,11 @@ export function ReportsScreen() {
                           <Text style={[st.chip, { color: c.accent, backgroundColor: c.soft }]}>{r.symbol}</Text>
                         </View>
                         <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 2 }}>
-                          {assetTypeLabel[r.type as AssetType] ?? r.type} · {r.quantitySold} vendidas · costo {formatCurrency(r.costBasis)}
+                          {assetTypeLabel[r.type as AssetType] ?? r.type} · {r.quantitySold} vendidas · costo {money.format(r.costBasis)}
                         </Text>
                       </View>
                       <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ color: pnlColor, fontWeight: '700' }}>{formatCurrency(r.realized)}</Text>
+                        <Text style={{ color: pnlColor, fontWeight: '700' }}>{money.format(r.realized)}</Text>
                         <Text style={{ color: pnlColor, fontSize: 11 }}>{formatPercent(pct)}</Text>
                       </View>
                     </View>
@@ -138,7 +140,7 @@ export function ReportsScreen() {
                         </View>
                       </View>
                       <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{formatCurrency(e.amountUsd)}</Text>
+                        <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{money.format(e.amountUsd)}</Text>
                         <Text style={{ color: theme.text.muted, fontSize: 11 }}>{formatDate(e.purchasedAt)}</Text>
                       </View>
                     </View>
@@ -183,6 +185,7 @@ function ReportStat({ icon, iconColor, iconBg, label, value, valueColor, sub }: 
 
 /** Línea de P&L acumulado con SVG normalizada a un viewBox 100x40. */
 function RealizedLine({ points, color }: { points: number[]; color: string }) {
+  const money = useMoney()
   const { theme } = useTheme()
   if (points.length === 0) return null
   const min = Math.min(...points, 0)
@@ -202,8 +205,8 @@ function RealizedLine({ points, color }: { points: number[]; color: string }) {
         <Polyline points={coords} fill="none" stroke={color} strokeWidth={1.2} strokeLinejoin="round" strokeLinecap="round" />
       </Svg>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ color: theme.text.muted, fontSize: 11 }}>{formatCurrency(min)}</Text>
-        <Text style={{ color: theme.text.muted, fontSize: 11 }}>{formatCurrency(max)}</Text>
+        <Text style={{ color: theme.text.muted, fontSize: 11 }}>{money.format(min)}</Text>
+        <Text style={{ color: theme.text.muted, fontSize: 11 }}>{money.format(max)}</Text>
       </View>
     </View>
   )

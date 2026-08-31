@@ -20,6 +20,7 @@ import type {
   CreateKbArticleInput,
   CreateTransactionInput,
   CreateUserInput,
+  FxRates,
   KbArticle,
   KbArticleListItem,
   KbStats,
@@ -56,6 +57,7 @@ export interface PickedFile {
 
 export const queryKeys = {
   portfolio: ['portfolio'] as const,
+  fxRates: ['fx', 'rates'] as const,
   holdings: ['holdings'] as const,
   transactions: ['transactions'] as const,
   quiz: ['quiz'] as const,
@@ -486,8 +488,26 @@ export function useMarkNotificationRead() {
 export function useUpdateProfile() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (fullName: string) => api.patch<{ user: User }>('/me', { fullName }),
+    // Mismo shape que en la web: `PATCH /me` acepta los dos campos por separado,
+    // asi que Configuracion puede guardar solo el nombre, solo la moneda o ambos.
+    mutationFn: (input: { fullName?: string; baseCurrency?: string }) =>
+      api.patch<{ user: User }>('/me', input),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['me'] }),
+  })
+}
+
+/**
+ * Cotizaciones para la moneda de visualizacion.
+ *
+ * `staleTime` alto a proposito: el backend ya cachea el FX con su propio TTL y
+ * la cotizacion no se mueve lo suficiente como para justificar un refetch en
+ * cada navegacion entre tabs.
+ */
+export function useFxRates() {
+  return useQuery({
+    queryKey: queryKeys.fxRates,
+    queryFn: () => api.get<FxRates>('/fx/rates'),
+    staleTime: 10 * 60_000,
   })
 }
 

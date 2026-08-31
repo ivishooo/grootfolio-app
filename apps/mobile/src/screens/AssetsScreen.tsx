@@ -10,7 +10,6 @@ import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import {
   assetTypeLabel,
-  formatCurrency,
   formatPercent,
   formatShare,
   updateTransactionInputSchema,
@@ -34,6 +33,7 @@ import { AssetAvatar } from '@/components/ui/AssetAvatar'
 import { assetColor } from '@/lib/asset-visual'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
+import { useMoney } from '@/lib/money'
 
 const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
 
@@ -61,6 +61,7 @@ function ddmmyyyyToIso(input: string): string {
 }
 
 export function AssetsScreen() {
+  const money = useMoney()
   const { theme } = useTheme()
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const { data: p, isLoading, isError, error, refetch } = usePortfolio()
@@ -116,7 +117,7 @@ export function AssetsScreen() {
             {p && p.holdings.length > 0 ? (
               <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
                 {p.holdings.length} posiciones · Valor total{' '}
-                <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{formatCurrency(total)}</Text>
+                <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{money.format(total)}</Text>
               </Text>
             ) : null}
           </View>
@@ -168,6 +169,7 @@ interface HoldingCardProps {
 }
 
 function HoldingCard({ holding, total, transactions, expanded, onToggle, onDeletePosition }: HoldingCardProps) {
+  const money = useMoney()
   const { theme } = useTheme()
   const c = assetColor(holding.asset.type)
   const pct = total > 0 ? (holding.value / total) * 100 : 0
@@ -195,9 +197,9 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
     `${holding.asset.name}, ${holding.asset.symbol}`,
     assetTypeLabel[holding.asset.type as AssetType] ?? holding.asset.type,
     `${holding.quantity} unidades`,
-    `valor ${formatCurrency(holding.value)}`,
+    `valor ${money.format(holding.value)}`,
     known
-      ? `rentabilidad ${formatPercent(holding.pnlPercent)}, ${formatCurrency(holding.pnl)}`
+      ? `rentabilidad ${formatPercent(holding.pnlPercent)}, ${money.format(holding.pnl)}`
       : 'rentabilidad sin dato',
     `${formatShare(pct)} de la cartera`,
   ].join('. ')
@@ -220,8 +222,8 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
           </View>
           <Text style={{ color: theme.text.secondary, fontSize: 12, marginTop: 4 }}>
             {holding.quantity} u · Compra{' '}
-            <Text style={{ color: theme.text.primary }}>{formatCurrency(holding.avgPrice)}</Text> → Actual{' '}
-            <Text style={{ color: theme.text.primary }}>{formatCurrency(holding.currentPrice)}</Text>
+            <Text style={{ color: theme.text.primary }}>{money.format(holding.avgPrice)}</Text> → Actual{' '}
+            <Text style={{ color: theme.text.primary }}>{money.format(holding.currentPrice)}</Text>
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
             <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: theme.background.muted, overflow: 'hidden' }}>
@@ -232,11 +234,11 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
         </View>
 
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ color: theme.text.primary, fontSize: 16, fontWeight: '800' }}>{formatCurrency(holding.value)}</Text>
+          <Text style={{ color: theme.text.primary, fontSize: 16, fontWeight: '800' }}>{money.format(holding.value)}</Text>
           <Text style={{ color: pnlColor, fontSize: 12, fontWeight: '700' }}>
             {known ? (up ? '▲ ' : '▼ ') : ''}{formatPercent(holding.pnlPercent)}
           </Text>
-          <Text style={{ color: pnlColor, fontSize: 12 }}>{formatCurrency(holding.pnl)}</Text>
+          <Text style={{ color: pnlColor, fontSize: 12 }}>{money.format(holding.pnl)}</Text>
         </View>
         </View>
       </View>
@@ -296,6 +298,9 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
 }
 
 function TransactionItem({ tx }: { tx: Transaction }) {
+  // Sin conversion a proposito: una transaccion se muestra en la moneda con la
+  // que se opero (`tx.priceCurrency`), que es el registro historico. Convertirla
+  // a la moneda de visualizacion falsearia lo que el usuario efectivamente pago.
   const { theme } = useTheme()
   const { toast } = useToast()
   const confirm = useConfirm()
