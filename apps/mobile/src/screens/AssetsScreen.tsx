@@ -185,6 +185,12 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
     posiciones eso son sesenta paradas para recorrer la pantalla. Agrupada, cada
     posicion es una sola parada con todo en orden de lectura.
   */
+  /** El boton dice explicitamente que se lleva puestas las transacciones. */
+  const etiquetaBorrado =
+    transactions.length === 1
+      ? 'Eliminar posición y su transacción'
+      : `Eliminar posición y sus ${transactions.length} transacciones`
+
   const resumen = [
     `${holding.asset.name}, ${holding.asset.symbol}`,
     assetTypeLabel[holding.asset.type as AssetType] ?? holding.asset.type,
@@ -199,19 +205,6 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
   return (
     <View style={[st.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default, padding: 0 }]}>
       <View style={{ flexDirection: 'row', gap: 12, padding: 16 }}>
-        <TouchableOpacity
-          onPress={onToggle}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel={`Detalle de ${holding.asset.name}`}
-          accessibilityState={{ expanded }}
-          style={{ minWidth: 24, minHeight: 44, justifyContent: 'center' }}
-        >
-          <Text accessibilityElementsHidden importantForAccessibility="no" style={{ color: theme.text.muted, fontSize: 12 }}>
-            {expanded ? '▾' : '▸'}
-          </Text>
-        </TouchableOpacity>
-
         <View accessible accessibilityLabel={resumen} style={{ flexDirection: 'row', gap: 12, flex: 1, minWidth: 0 }}>
         <AssetAvatar asset={holding.asset} size={44} />
 
@@ -248,9 +241,36 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
         </View>
       </View>
 
-      <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-        <Button testID="holding-eliminar" variant="secondary" size="sm" onPress={onDeletePosition}>Eliminar posición</Button>
-      </View>
+      {/*
+        La prominencia estaba invertida respecto de la frecuencia de uso: ver las
+        transacciones (frecuente) era un triangulo gris de 5px pegado al borde, y
+        "Eliminar posicion" (rarisimo y destructivo) era un boton de ancho
+        completo repetido en cada tarjeta. Ahora expandir es una fila entera
+        tocable que dice cuantas transacciones hay, y el borrado de la posicion
+        vive dentro del desplegable, junto a las acciones de sus transacciones.
+      */}
+      <TouchableOpacity
+        testID="holding-toggle"
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        accessibilityLabel={`${expanded ? 'Ocultar' : 'Ver'} las transacciones de ${holding.asset.name}`}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          minHeight: 44,
+          paddingHorizontal: 16,
+          paddingBottom: 12,
+        }}
+      >
+        <Text style={{ color: theme.brand.solid, fontSize: 13, fontWeight: '600' }}>
+          {transactions.length === 1 ? 'Ver 1 transacción' : `Ver ${transactions.length} transacciones`}
+        </Text>
+        <Text accessibilityElementsHidden importantForAccessibility="no" style={{ color: theme.brand.solid, fontSize: 13, fontWeight: '600' }}>
+          {expanded ? '▾' : '▸'}
+        </Text>
+      </TouchableOpacity>
 
       {expanded && (
         <View style={{ gap: 10, borderTopWidth: 1, borderTopColor: theme.border.default, backgroundColor: theme.background.muted, padding: 16 }}>
@@ -259,6 +279,16 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
           ) : (
             transactions.map((tx) => <TransactionItem key={tx.id} tx={tx} />)
           )}
+
+          {/*
+            Al pie y en rojo: borra la posicion entera y todas sus transacciones,
+            o sea mas que cualquier "Eliminar" de la lista de arriba. Antes era el
+            unico de los dos que NO se veia destructivo, con el peso visual justo
+            al reves del dano real.
+          */}
+          <Button testID="holding-eliminar" variant="destructive" size="sm" onPress={onDeletePosition}>
+            {etiquetaBorrado}
+          </Button>
         </View>
       )}
     </View>
