@@ -45,7 +45,9 @@ export function Input({
   const isPassword = type === 'password'
   const [revealed, setRevealed] = useState(false)
   const effectiveType = isPassword && revealed ? 'text' : type
-  const cls = `w-full rounded-lg border bg-neutral-50 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none dark:bg-neutral-800 ${isPassword ? 'pr-10' : ''} ${error ? 'border-danger-500' : 'border-neutral-200 dark:border-neutral-700'}`
+    // Fondo blanco (antes neutral-50) y borde mas marcado: el relleno gris
+  // hundia el contraste del placeholder por debajo del 4,5:1 de WCAG AA.
+  const cls = `w-full rounded-lg border bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none dark:bg-neutral-900 ${isPassword ? 'pr-10' : ''} ${error ? 'border-danger-500' : 'border-neutral-300 dark:border-neutral-700'}`
   const aria = {
     'aria-invalid': error ? true : undefined,
     'aria-describedby': error ? errorId : hint ? hintId : undefined,

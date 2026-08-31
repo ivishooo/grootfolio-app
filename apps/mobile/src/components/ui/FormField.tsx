@@ -38,9 +38,12 @@ export function FormField({ label, value, onChange, error, placeholder, multilin
             padding: 12,
             paddingRight: secureTextEntry ? 46 : 12,
             borderRadius: 10,
-            backgroundColor: theme.background.muted,
+            // El relleno gris era lo que hundia el contraste del placeholder.
+            // Con fondo de superficie y borde visible el campo se sigue leyendo
+            // como campo, y el placeholder cumple AA.
+            backgroundColor: theme.background.surface,
             color: theme.text.primary,
-            borderColor: error ? theme.danger.solid : 'transparent',
+            borderColor: error ? theme.danger.solid : theme.border.strong,
             borderWidth: 1,
             height: multiline ? 80 : undefined,
             textAlignVertical: multiline ? 'top' : undefined,

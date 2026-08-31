@@ -136,7 +136,11 @@ export const lightTheme: Theme = {
     primary: neutral[900],
     secondary: neutral[600],
     muted: neutral[500],
-    placeholder: neutral[400],
+    // neutral[400] daba 2,34:1 sobre el fondo de los inputs: muy por debajo del
+    // 4,5:1 que pide WCAG AA para texto normal. Con neutral[500] sobre un input
+    // blanco da 4,76:1 y sigue leyendose mas claro que el texto real, que es
+    // para lo que existe un placeholder.
+    placeholder: neutral[500],
     disabled: neutral[300],
     onBrand: neutral[0],
     onTip: neutral[0],
@@ -185,7 +189,10 @@ export const darkTheme: Theme = {
     primary: neutral[50],
     secondary: neutral[300],
     muted: neutral[400],
-    placeholder: neutral[500],
+    // neutral[500] daba 2,97:1 sobre background.muted. neutral[400] sube a
+    // 5,51:1 en el peor fondo y queda por debajo de secondary (neutral[300]),
+    // asi que la jerarquia se mantiene.
+    placeholder: neutral[400],
     disabled: neutral[600],
     onBrand: neutral[0],
     onTip: neutral[100],

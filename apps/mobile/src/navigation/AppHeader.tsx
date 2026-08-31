@@ -11,6 +11,11 @@ import { BellIcon } from '@/components/ui/icons'
 import { useNotifications } from '@/lib/queries'
 import type { RootStackParamList } from './RootNavigator'
 
+/** Minimo de area tactil recomendado por las HIG de Apple. */
+const TAP_MIN = 44
+/** El avatar se dibuja mas chico que su area tactil, para no engordar la barra. */
+const AVATAR_SIZE = 34
+
 export function AppHeader() {
   const { theme, themeName, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
@@ -42,18 +47,64 @@ export function AppHeader() {
           el tema y el avatar, y no se leía como "hablá con el asistente".
         */}
         <View style={styles.actions}>
-          <TouchableOpacity onPress={() => nav.navigate('Notifications')} style={[styles.iconBtn, { backgroundColor: theme.background.muted }]}>
+          {/*
+            Los tres botones de la barra son solo-ícono. Sin `accessibilityLabel`
+            un lector de pantalla no tiene nada que anunciar: la campana no
+            figuraba siquiera en la jerarquía de accesibilidad (el ícono es un
+            SVG sin texto), o sea que el acceso a Notificaciones no existía para
+            quien navega con VoiceOver. El tema se anunciaba "☀️" y el avatar,
+            las iniciales.
+          */}
+          <TouchableOpacity
+            onPress={() => nav.navigate('Notifications')}
+            accessibilityRole="button"
+            accessibilityLabel={
+              unread > 0
+                ? `Notificaciones, ${unread} sin leer`
+                : 'Notificaciones'
+            }
+            style={[styles.iconBtn, { backgroundColor: theme.background.muted }]}
+          >
             <BellIcon color={theme.text.primary} size={20} />
-            {unread > 0 && <View style={{ position: 'absolute', top: 7, right: 7, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' }} />}
+            {/* El punto rojo es decorativo: lo que cuenta va en el label. */}
+            {unread > 0 && (
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+                style={{ position: 'absolute', top: 7, right: 7, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' }}
+              />
+            )}
           </TouchableOpacity>
-          <TouchableOpacity onPress={toggleTheme} style={[styles.iconBtn, { backgroundColor: theme.background.muted }]}>
-            <Text style={{ fontSize: 18 }}>{themeName === 'light' ? '☀️' : '🌙'}</Text>
+          <TouchableOpacity
+            onPress={toggleTheme}
+            accessibilityRole="button"
+            accessibilityLabel="Cambiar tema"
+            accessibilityValue={{ text: themeName === 'light' ? 'Claro' : 'Oscuro' }}
+            accessibilityHint="Alterna entre el modo claro y el oscuro"
+            style={[styles.iconBtn, { backgroundColor: theme.background.muted }]}
+          >
+            <Text accessibilityElementsHidden importantForAccessibility="no" style={{ fontSize: 18 }}>
+              {themeName === 'light' ? '☀️' : '🌙'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setMenuOpen(true)} style={styles.avatarBtn}>
+          <TouchableOpacity
+            onPress={() => setMenuOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Cuenta de ${displayName}`}
+            accessibilityHint="Abre el menú de la cuenta"
+            style={styles.avatarBtn}
+          >
             {user?.avatarUrl ? (
-              <Image source={{ uri: user.avatarUrl }} style={{ width: 34, height: 34, borderRadius: 17 }} />
+              <Image
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+                source={{ uri: user.avatarUrl }}
+                style={{ width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2 }}
+              />
             ) : (
-              <Text style={styles.avatarText}>{initials}</Text>
+              <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.avatarText}>
+                {initials}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -86,8 +137,9 @@ const styles = StyleSheet.create({
   logoText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   title: { fontSize: 18, fontWeight: '700' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  iconBtn: { height: 36, width: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  avatarBtn: { height: 34, width: 34, borderRadius: 17, backgroundColor: brand[500], alignItems: 'center', justifyContent: 'center' },
+  // 44x44 es el minimo de las Human Interface Guidelines. Estaban en 36 y 34.
+  iconBtn: { height: TAP_MIN, width: TAP_MIN, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  avatarBtn: { height: TAP_MIN, width: TAP_MIN, borderRadius: TAP_MIN / 2, backgroundColor: brand[500], alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 100, paddingRight: 16 },
   menu: { width: 220, borderRadius: 14, borderWidth: 1, padding: 16 },
