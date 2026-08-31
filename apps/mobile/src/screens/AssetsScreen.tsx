@@ -98,8 +98,14 @@ export function AssetsScreen() {
             <Text style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
               Los precios de mercado se actualizan cada 15 minutos.
             </Text>
-            <TouchableOpacity onPress={() => setBannerOpen(false)} hitSlop={8}>
-              <Text style={{ color: theme.text.muted }}>✕</Text>
+            <TouchableOpacity
+              onPress={() => setBannerOpen(false)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar el aviso"
+              style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text accessibilityElementsHidden importantForAccessibility="no" style={{ color: theme.text.muted }}>✕</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -172,13 +178,41 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
   const up = holding.pnl >= 0
   const pnlColor = !known ? theme.text.muted : up ? theme.chart.positive : theme.chart.negative
 
+  /*
+    Sin agrupar, cada posicion se anunciaba como diez fragmentos sueltos: el
+    nombre, el simbolo, el tipo, la cantidad, los dos precios, la participacion,
+    el valor, el porcentaje y el P&L, cada uno como un elemento aparte. Con seis
+    posiciones eso son sesenta paradas para recorrer la pantalla. Agrupada, cada
+    posicion es una sola parada con todo en orden de lectura.
+  */
+  const resumen = [
+    `${holding.asset.name}, ${holding.asset.symbol}`,
+    assetTypeLabel[holding.asset.type as AssetType] ?? holding.asset.type,
+    `${holding.quantity} unidades`,
+    `valor ${formatCurrency(holding.value)}`,
+    known
+      ? `rentabilidad ${formatPercent(holding.pnlPercent)}, ${formatCurrency(holding.pnl)}`
+      : 'rentabilidad sin dato',
+    `${formatShare(pct)} de la cartera`,
+  ].join('. ')
+
   return (
     <View style={[st.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default, padding: 0 }]}>
       <View style={{ flexDirection: 'row', gap: 12, padding: 16 }}>
-        <TouchableOpacity onPress={onToggle} hitSlop={6} style={{ paddingTop: 6 }}>
-          <Text style={{ color: theme.text.muted, fontSize: 12 }}>{expanded ? '▾' : '▸'}</Text>
+        <TouchableOpacity
+          onPress={onToggle}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={`Detalle de ${holding.asset.name}`}
+          accessibilityState={{ expanded }}
+          style={{ minWidth: 24, minHeight: 44, justifyContent: 'center' }}
+        >
+          <Text accessibilityElementsHidden importantForAccessibility="no" style={{ color: theme.text.muted, fontSize: 12 }}>
+            {expanded ? '▾' : '▸'}
+          </Text>
         </TouchableOpacity>
 
+        <View accessible accessibilityLabel={resumen} style={{ flexDirection: 'row', gap: 12, flex: 1, minWidth: 0 }}>
         <AssetAvatar asset={holding.asset} size={44} />
 
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -210,6 +244,7 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
             {known ? (up ? '▲ ' : '▼ ') : ''}{formatPercent(holding.pnlPercent)}
           </Text>
           <Text style={{ color: pnlColor, fontSize: 12 }}>{formatCurrency(holding.pnl)}</Text>
+        </View>
         </View>
       </View>
 

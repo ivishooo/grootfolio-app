@@ -45,9 +45,9 @@ export function DashboardScreen() {
           <>
             {/* pnlPercent puede ser null (sin base de costo o sin cotizacion): en
                 ese caso el delta es "—" y no se pinta ni de verde ni de rojo. */}
-            <StatCard testID="stat-valor-total" label="Valor total" value={formatCurrency(p.totalValue)} delta={formatPercent(p.pnlPercent)} deltaColor={deltaColor(p.pnlPercent)} />
-            <StatCard testID="stat-pnl" label="Ganancia / Pérdida" value={formatCurrency(p.pnlAbsolute)} delta={formatPercent(p.pnlPercent)} deltaColor={p.pnlPercent === null ? theme.text.secondary : p.pnlAbsolute >= 0 ? theme.chart.positive : theme.chart.negative} />
-            <StatCard testID="stat-mejor-activo" label="Mejor activo" value={p.bestAsset?.name ?? '—'} delta={p.bestAsset ? formatPercent(p.bestAsset.pnlPercent) : ''} deltaColor={deltaColor(p.bestAsset?.pnlPercent ?? null)} />
+            <StatCard testID="stat-valor-total" deltaLabel="rentabilidad" label="Valor total" value={formatCurrency(p.totalValue)} delta={formatPercent(p.pnlPercent)} deltaColor={deltaColor(p.pnlPercent)} />
+            <StatCard testID="stat-pnl" deltaLabel="rentabilidad" label="Ganancia / Pérdida" value={formatCurrency(p.pnlAbsolute)} delta={formatPercent(p.pnlPercent)} deltaColor={p.pnlPercent === null ? theme.text.secondary : p.pnlAbsolute >= 0 ? theme.chart.positive : theme.chart.negative} />
+            <StatCard testID="stat-mejor-activo" deltaLabel="rentabilidad" label="Mejor activo" value={p.bestAsset?.name ?? '—'} delta={p.bestAsset ? formatPercent(p.bestAsset.pnlPercent) : ''} deltaColor={deltaColor(p.bestAsset?.pnlPercent ?? null)} />
 
             <Card title="Distribución del Portafolio">
               {p.distribution.length === 0 ? (

@@ -58,7 +58,7 @@ export function ContentLibraryScreen() {
               placeholderTextColor={theme.text.placeholder}
               value={search}
               onChangeText={setSearch}
-              style={{ height: 44, borderRadius: 10, backgroundColor: theme.background.muted, color: theme.text.primary, paddingHorizontal: 12 }}
+              style={{ height: 44, borderRadius: 10, backgroundColor: theme.background.surface, borderWidth: 1, borderColor: theme.border.strong, color: theme.text.primary, paddingHorizontal: 12 }}
             />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               <Chip label="Todos" active={!sectionId} onPress={() => setSectionId(undefined)} />
@@ -69,10 +69,19 @@ export function ContentLibraryScreen() {
               <View style={{ gap: 8 }}>
                 <Text style={{ color: theme.text.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>DESTACADOS</Text>
                 {featured.map((it) => (
-                  <TouchableOpacity key={it.id} onPress={() => open(it)} style={{ flexDirection: 'row', gap: 12, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(249,115,22,0.26)', backgroundColor: 'rgba(249,115,22,0.06)', padding: 14 }}>
+                  // Mismo criterio que las tarjetas de la lista: un solo
+                  // elemento, y la estrella se dice "Destacado" en vez de
+                  // leerse como glifo.
+                  <TouchableOpacity
+                    key={it.id}
+                    onPress={() => open(it)}
+                    accessibilityRole="link"
+                    accessibilityLabel={['Destacado.', it.title, it.description ?? ''].filter(Boolean).join(' ')}
+                    accessibilityHint={`${TYPE_META[it.type].cta} en el navegador`}
+                    style={{ flexDirection: 'row', gap: 12, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(249,115,22,0.26)', backgroundColor: 'rgba(249,115,22,0.06)', padding: 14 }}>
                     <TypeBadge type={it.type} size={44} />
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: theme.text.primary, fontWeight: '700' }} numberOfLines={1}>★ {it.title}</Text>
+                      <Text style={{ color: theme.text.primary, fontWeight: '700' }} numberOfLines={2}>★ {it.title}</Text>
                       {it.description ? <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{it.description}</Text> : null}
                       <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 4 }}>{meta(it)}</Text>
                     </View>
@@ -84,11 +93,28 @@ export function ContentLibraryScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => open(item)} style={{ flexDirection: 'row', gap: 12, borderRadius: 16, borderWidth: 1, borderColor: theme.border.default, backgroundColor: theme.background.surface, padding: 14 }}>
+          /*
+            Sin agrupar, cada tarjeta se leia como una ristra de fragmentos:
+            "⇗", el titulo, "NUEVO", la descripcion y el CTA por separado. El
+            glifo de la flecha no aporta nada hablado.
+          */
+          <TouchableOpacity
+            onPress={() => open(item)}
+            accessibilityRole="link"
+            accessibilityLabel={[
+              item.isNew ? 'Nuevo.' : '',
+              item.title,
+              item.description ?? '',
+            ].filter(Boolean).join(' ')}
+            accessibilityHint={`${TYPE_META[item.type].cta} en el navegador`}
+            style={{ flexDirection: 'row', gap: 12, borderRadius: 16, borderWidth: 1, borderColor: theme.border.default, backgroundColor: theme.background.surface, padding: 14 }}>
             <TypeBadge type={item.type} size={44} />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ color: theme.text.primary, fontWeight: '700', flex: 1 }} numberOfLines={1}>{item.title}</Text>
+                {/* Dos lineas: los titulos de fuentes oficiales son largos y a
+                    una sola quedaban en "Alicuotas del Impuesto sobre l...", que
+                    no alcanza para saber de que se trata. */}
+                <Text style={{ color: theme.text.primary, fontWeight: '700', flex: 1 }} numberOfLines={2}>{item.title}</Text>
                 {item.isNew && <Text style={{ color: '#fff', backgroundColor: ORANGE, fontSize: 10, fontWeight: '800', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, overflow: 'hidden' }}>NUEVO</Text>}
               </View>
               {item.description ? <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{item.description}</Text> : null}
@@ -109,8 +135,19 @@ export function ContentLibraryScreen() {
 
 function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   const { theme } = useTheme()
+  /*
+    El chip activo solo se distinguia por color. Con `accessibilityState.selected`
+    el lector anuncia cual esta aplicado, que es la unica pista de por que la
+    lista esta filtrada. `minHeight` de 44 por el minimo tactil de las HIG:
+    estaban en 36.
+  */
   return (
-    <TouchableOpacity onPress={onPress} style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: active ? ORANGE : theme.border.default, backgroundColor: active ? 'rgba(249,115,22,0.1)' : 'transparent' }}>
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={`Filtrar por ${label}`}
+      style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: active ? ORANGE : theme.border.default, backgroundColor: active ? 'rgba(249,115,22,0.1)' : 'transparent' }}>
       <Text style={{ color: active ? ORANGE : theme.text.secondary, fontWeight: '600', fontSize: 13 }}>{label}</Text>
     </TouchableOpacity>
   )

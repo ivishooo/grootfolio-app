@@ -64,10 +64,11 @@ export function AssetAutocomplete({
         style={{
           padding: 12,
           borderRadius: 10,
-          backgroundColor: theme.background.muted,
+          // Ver FormField: el relleno gris hundia el contraste del placeholder.
+          backgroundColor: theme.background.surface,
           color: theme.text.primary,
-          borderColor: error ? theme.danger.solid : 'transparent',
           borderWidth: 1,
+          borderColor: error ? theme.danger.solid : theme.border.strong,
         }}
       />
       {showList && (

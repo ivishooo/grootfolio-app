@@ -28,6 +28,7 @@ export function Button({ variant = 'primary', size = 'md', fullWidth, disabled, 
     <TouchableOpacity
       testID={testID}
       accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
       onPress={onPress}
       disabled={disabled}
       style={[
@@ -44,5 +45,12 @@ export function Button({ variant = 'primary', size = 'md', fullWidth, disabled, 
 }
 
 const s = StyleSheet.create({
-  base: { borderRadius: 10, alignItems: 'center' },
+  /*
+    `minHeight` de 44 porque es el minimo tactil de las Human Interface
+    Guidelines. Con solo padding los botones quedaban en 36 (size sm), 43 (md) y
+    49 (lg): "Cargar activo", "Guardar cambios", "Eliminar posicion" y "Subir"
+    estaban todos por debajo. `justifyContent` centra el texto ahora que la
+    altura la fija el minimo y no el contenido.
+  */
+  base: { borderRadius: 10, alignItems: 'center', justifyContent: 'center', minHeight: 44 },
 })
