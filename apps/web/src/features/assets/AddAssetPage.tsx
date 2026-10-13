@@ -26,7 +26,7 @@ const TYPE_FORM: Record<AssetType, {
   help?: string
 }> = {
   crypto: { label: 'Cripto', symbolLabel: 'Nombre del activo', symbolPlaceholder: 'Ej: Bitcoin, Ethereum...', qtyLabel: 'Cantidad', qtyPlaceholder: '0.5', priceLabel: 'Precio unitario (USD)', showCurrency: false },
-  stock: { label: 'Acciones', symbolLabel: 'Nombre del activo', symbolPlaceholder: 'Ej: Apple, GGAL.BA...', qtyLabel: 'Cantidad', qtyPlaceholder: '10', priceLabel: 'Precio unitario', showCurrency: true, help: 'Elegí la moneda del precio (ej. ARS para acciones .BA).' },
+  stock: { label: 'Acciones', symbolLabel: 'Nombre del activo', symbolPlaceholder: 'Ej: Apple, GGAL.BA...', qtyLabel: 'Cantidad', qtyPlaceholder: '10', priceLabel: 'Precio unitario', showCurrency: true, help: 'Si compraste un CEDEAR, elegí el ticker terminado en .BA y cargá el precio en pesos. Las acciones de EE. UU. van en dólares.' },
   bond: { label: 'Bonos', symbolLabel: 'Nombre del activo', symbolPlaceholder: 'Ej: US-T, AL30...', qtyLabel: 'Cantidad', qtyPlaceholder: '10', priceLabel: 'Precio unitario', showCurrency: true, help: 'Los bonos aún no tienen precio en vivo (valuación manual).' },
   currency: { label: 'Divisas', symbolLabel: 'Moneda que compraste', symbolPlaceholder: 'Ej: USD, EUR', qtyLabel: 'Cantidad comprada', qtyPlaceholder: '50', priceLabel: 'Precio pagado por unidad', showCurrency: true, help: 'Ej: compraste 50 USD pagando 1450 ARS cada uno.' },
 }
@@ -75,6 +75,19 @@ export function AddAssetPage() {
   const handleSubmit = () => {
     if (activeType === 'currency' && form.priceCurrency.toUpperCase() === form.symbol.trim().toUpperCase()) {
       setErrors({ priceCurrency: 'La moneda con la que pagás no puede ser la misma que comprás.' })
+      return
+    }
+    // Espejo de la regla del backend (TX_CURRENCY_MISMATCH). Una acción de
+    // Nasdaq no tiene precio en pesos: si pagaste en pesos compraste el CEDEAR,
+    // y anotarlo contra el ticker del subyacente daba rentabilidades de +4.000%.
+    if (
+      activeType === 'stock' &&
+      form.priceCurrency.toUpperCase() === 'ARS' &&
+      !form.symbol.trim().toUpperCase().endsWith('.BA')
+    ) {
+      setErrors({
+        priceCurrency: 'Las acciones de EE. UU. cotizan en dólares. Si compraste el CEDEAR en pesos, buscá el ticker terminado en .BA.',
+      })
       return
     }
     const parsed = {

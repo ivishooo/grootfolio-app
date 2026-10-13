@@ -36,6 +36,7 @@ import { assetColor } from '@/lib/asset-visual'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 
 const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
+type PriceCurrency = (typeof PRICE_CURRENCIES)[number]
 
 export function AssetsPage() {
   const { data: p, isLoading, isError, error, refetch } = usePortfolio()
@@ -145,8 +146,17 @@ function HoldingRow({ holding, total, transactions, expanded, onToggle, onDelete
   const money = useMoney()
   const c = assetColor(holding.asset.type)
   const pct = total > 0 ? (holding.value / total) * 100 : 0
+  // Sin cotización el backend devuelve currentPrice/value/pnl en 0 y pnlPercent
+  // null. Mostrarlo como "US$ 0 ▲" lo hacía pasar por una posición que vale
+  // cero y encima en verde (0 >= 0): el usuario no podía distinguir "no vale
+  // nada" de "no lo sabemos". Va en gris y con guiones.
+  const sinCotizacion = holding.currentPrice <= 0
   const up = holding.pnl >= 0
-  const pnlColor = up ? 'text-success-500' : 'text-danger-500'
+  const pnlColor = sinCotizacion
+    ? 'text-neutral-400'
+    : up
+      ? 'text-success-500'
+      : 'text-danger-500'
 
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
@@ -176,7 +186,9 @@ function HoldingRow({ holding, total, transactions, expanded, onToggle, onDelete
           <p className="mt-1.5 text-xs text-neutral-500">
             {holding.quantity} unidades · Compra{' '}
             <span className="font-medium text-neutral-600 dark:text-neutral-300">{money.format(holding.avgPrice)}</span> → Actual{' '}
-            <span className="font-medium text-neutral-600 dark:text-neutral-300">{money.format(holding.currentPrice)}</span>
+            <span className="font-medium text-neutral-600 dark:text-neutral-300">
+              {sinCotizacion ? '—' : money.format(holding.currentPrice)}
+            </span>
           </p>
           <div className="mt-2.5 flex max-w-[340px] items-center gap-2.5">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
@@ -187,11 +199,17 @@ function HoldingRow({ holding, total, transactions, expanded, onToggle, onDelete
         </div>
 
         <div className="flex min-w-[130px] flex-col items-end gap-0.5">
-          <span className="text-lg font-bold tabular-nums">{money.format(holding.value)}</span>
-          <span className={`text-xs font-semibold tabular-nums ${pnlColor}`}>
-            {up ? '▲' : '▼'} {formatPercent(holding.pnlPercent)}
-          </span>
-          <span className={`text-xs font-medium tabular-nums ${pnlColor}`}>{money.format(holding.pnl)}</span>
+          <span className="text-lg font-bold tabular-nums">{sinCotizacion ? '—' : money.format(holding.value)}</span>
+          {sinCotizacion ? (
+            <span className="text-xs font-semibold text-neutral-400">Sin cotización</span>
+          ) : (
+            <>
+              <span className={`text-xs font-semibold tabular-nums ${pnlColor}`}>
+                {up ? '▲' : '▼'} {formatPercent(holding.pnlPercent)}
+              </span>
+              <span className={`text-xs font-medium tabular-nums ${pnlColor}`}>{money.format(holding.pnl)}</span>
+            </>
+          )}
           <Button variant="secondary" size="sm" className="mt-2" onClick={onDeletePosition}>
             Eliminar posición
           </Button>
@@ -269,7 +287,7 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
   const [kind, setKind] = useState<'buy' | 'sell'>(tx.kind)
   const [quantity, setQuantity] = useState(String(tx.quantity))
   const [unitPrice, setUnitPrice] = useState(String(tx.unitPrice))
-  const [priceCurrency, setPriceCurrency] = useState(tx.priceCurrency)
+  const [priceCurrency, setPriceCurrency] = useState(tx.priceCurrency as PriceCurrency)
   const [fee, setFee] = useState(String(tx.fee))
   const [purchasedAt, setPurchasedAt] = useState(isoToDateInput(tx.purchasedAt))
   const [notes, setNotes] = useState(tx.notes ?? '')
@@ -329,7 +347,7 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
             />
             <select
               value={priceCurrency}
-              onChange={(e) => setPriceCurrency(e.target.value)}
+              onChange={(e) => setPriceCurrency(e.target.value as PriceCurrency)}
               aria-label="Moneda del precio"
               className="rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-sm dark:border-neutral-700 dark:bg-neutral-800"
             >
