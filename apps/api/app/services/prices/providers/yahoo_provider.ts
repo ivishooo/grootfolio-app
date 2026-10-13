@@ -1,22 +1,27 @@
 /**
  * yahoo_provider (GF-218). Cliente Yahoo Finance via `yahoo-finance2`.
  *
- * Yahoo no requiere API key y tolera ~100 req/min. La libreria valida el
- * response con Zod por defecto; cuando Yahoo cambia el shape de respuesta
- * podriamos necesitar `validateResult: false` puntual — por ahora confiamos
- * en los defaults.
+ * Yahoo no requiere API key y tolera ~100 req/min. Devuelve `{price, currency}`
+ * tal cual viene; la normalizacion a USD la hace el orquestador (price_service):
+ * los tickers .BA vienen como `{price: ..., currency: 'ARS'}` y desde GF-219 se
+ * convierten a USD via fx_service.
  *
- * Devuelve `{price, currency}` tal cual viene de Yahoo. La normalizacion a USD
- * la hace el orquestador (price_service): los tickers .BA vienen como
- * `{price: ..., currency: 'ARS'}` y desde GF-219 se convierten a USD via
- * fx_service en vez de marcarse `unsupported`.
+ * Resiliencia por symbol (fix 2026-10). Antes esto pedia todas las cotizaciones
+ * en un unico `quote()` con la validacion de schema por defecto: alcanzaba con
+ * UN ticker que Yahoo devolviera incompleto para que la libreria tirara
+ * `FailedYahooValidationError` y el orquestador se quedara sin precio para
+ * TODAS las acciones del usuario (reproducido con `BRK.B`, que ademas estaba en
+ * la whitelist del propio repo: una cartera V+MA+PG+BRK.B daba totalValue 0).
  *
- * Symbols fuera del whitelist (`YAHOO_KNOWN_SYMBOLS`) se devuelven null sin
- * gastar request, igual que CoinGecko con su mapeo.
+ * La validacion de la libreria no nos aporta: ya chequeamos el shape que
+ * consumimos (`regularMarketPrice` numerico + `currency`) antes de usarlo, y
+ * cualquier entrada que no lo cumpla cae a null. Asi que pedimos con
+ * `validateResult: false` y filtramos nosotros, symbol por symbol. Un ticker
+ * roto se marca `unsupported` y los demas cotizan igual.
  */
 import YahooFinance from 'yahoo-finance2'
 import type { AssetRef, PriceProvider, ProviderQuote } from './types.js'
-import { YAHOO_KNOWN_SYMBOLS } from './yahoo_symbol_map.js'
+import { toYahooSymbol } from './yahoo_symbol_map.js'
 
 interface YahooQuoteShape {
   symbol?: string
@@ -32,12 +37,16 @@ interface YahooQuoteShape {
  * solo lo que consumimos (`quote`) y construimos por ese contrato, sin depender
  * de esa resolucion. En runtime el default ES la clase.
  */
+type QuoteOptions = Record<string, unknown>
 type YahooClient = {
-  quote(symbols: string[]): Promise<unknown>
+  quote(symbols: string[], queryOptions?: QuoteOptions, moduleOptions?: QuoteOptions): Promise<unknown>
   search(query: string): Promise<unknown>
 }
-const YahooFinanceCtor = YahooFinance as unknown as new () => YahooClient
-const yahooFinance = new YahooFinanceCtor()
+const YahooFinanceCtor = YahooFinance as unknown as new (opts?: QuoteOptions) => YahooClient
+const yahooFinance = new YahooFinanceCtor({ suppressNotices: ['yahooSurvey'] })
+
+/** Ver el comentario de cabecera: validamos nosotros, no la libreria. */
+const NO_SCHEMA_VALIDATION = { validateResult: false } as const
 
 export interface StockSearchHit {
   symbol: string
@@ -45,12 +54,25 @@ export interface StockSearchHit {
   currency: string
 }
 
+/** Sufijo de BYMA: donde cotizan los CEDEARs y las acciones argentinas. */
+const BYMA_SUFFIX = '.BA'
+
 /**
  * Busqueda de acciones/ETFs via Yahoo `search` (GF-248 D.2). Filtra a
  * EQUITY/ETF y arma symbol+name+currency. Yahoo no siempre devuelve `currency`
  * en la busqueda: para tickers `.BA` asumimos ARS (convencion del catalogo),
  * el resto default USD. Ante cualquier error devolvemos lista vacia (el caller
  * degrada a lo local).
+ *
+ * CEDEARs (2026-10): el `search` de Yahoo NO los devuelve —buscar "Adobe" trae
+ * ADBE, ADB.DE, ADBE.MX, pero nunca ADBE.BA— aunque `quote` si los cotiza. Como
+ * para un usuario argentino el CEDEAR suele ser lo que efectivamente tiene, los
+ * sondeamos nosotros: por cada ticker sin sufijo de mercado probamos su `.BA` y
+ * lo agregamos ARRIBA del subyacente si Yahoo lo cotiza.
+ *
+ * Esto es lo que evita el bug que reporto el usuario: cargar el CEDEAR contra
+ * el ticker de Nasdaq comparaba un costo en pesos por CEDEAR contra el precio
+ * del subyacente en dolares, y daba rendimientos de +4.000%.
  */
 export async function searchStocks(query: string): Promise<StockSearchHit[]> {
   const raw = await yahooFinance.search(query)
@@ -58,53 +80,93 @@ export async function searchStocks(query: string): Promise<StockSearchHit[]> {
     (raw as { quotes?: Array<{ symbol?: string; shortname?: string; longname?: string; quoteType?: string; currency?: string }> })
       .quotes ?? []
 
-  const out: StockSearchHit[] = []
+  const found: StockSearchHit[] = []
   for (const q of quotes) {
     const symbol = q.symbol?.toUpperCase()
     if (!symbol) continue
     if (q.quoteType !== 'EQUITY' && q.quoteType !== 'ETF') continue
-    const currency = q.currency?.toUpperCase() ?? (symbol.endsWith('.BA') ? 'ARS' : 'USD')
-    out.push({ symbol, name: q.longname ?? q.shortname ?? symbol, currency })
+    const currency = q.currency?.toUpperCase() ?? (symbol.endsWith(BYMA_SUFFIX) ? 'ARS' : 'USD')
+    found.push({ symbol, name: q.longname ?? q.shortname ?? symbol, currency })
+  }
+
+  return withCedears(found)
+}
+
+/**
+ * Intercala el CEDEAR de cada ticker que tenga uno. Un solo `quote` para todos
+ * los candidatos; si falla, devolvemos la lista original (el CEDEAR es un
+ * agregado, no puede romper la busqueda).
+ */
+async function withCedears(hits: StockSearchHit[]): Promise<StockSearchHit[]> {
+  // Solo tickers "pelados": los que ya traen sufijo de mercado (.MX, .DE, .BA)
+  // no son el subyacente de un CEDEAR.
+  const bases = hits.filter((h) => !h.symbol.includes('.'))
+  if (bases.length === 0) return hits
+
+  let priced: Set<string>
+  try {
+    const raw = await yahooFinance.quote(
+      bases.map((h) => `${h.symbol}${BYMA_SUFFIX}`),
+      {},
+      NO_SCHEMA_VALIDATION
+    )
+    const quotes: YahooQuoteShape[] = Array.isArray(raw) ? (raw as YahooQuoteShape[]) : [raw as YahooQuoteShape]
+    priced = new Set(quotes.filter((q) => toQuote(q) !== null).map((q) => q.symbol!.toUpperCase()))
+  } catch {
+    return hits
+  }
+
+  const out: StockSearchHit[] = []
+  for (const hit of hits) {
+    const cedear = `${hit.symbol}${BYMA_SUFFIX}`
+    // El CEDEAR primero: es lo que compra alguien que opera en pesos.
+    if (priced.has(cedear)) {
+      out.push({ symbol: cedear, name: `${hit.name} (CEDEAR)`, currency: 'ARS' })
+    }
+    out.push(hit)
   }
   return out
+}
+
+/** Unica lectura del shape de Yahoo: lo que no cumpla el contrato es null. */
+function toQuote(raw: YahooQuoteShape | undefined): ProviderQuote | null {
+  if (!raw) return null
+  const { regularMarketPrice: price, currency } = raw
+  if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) return null
+  if (!currency) return null
+  return { price, currency: currency.toUpperCase() }
 }
 
 export const yahooProvider: PriceProvider = {
   name: 'yahoo',
   async fetchQuotes(assets: AssetRef[]): Promise<Record<string, ProviderQuote | null>> {
     const out: Record<string, ProviderQuote | null> = {}
-    const toQuery: string[] = []
+    // symbol de Yahoo -> symbol del catalogo, para devolver con la clave que el
+    // orquestador espera aunque hayamos consultado con otra grafia (BRK.B/BRK-B).
+    const catalogBySymbol = new Map<string, string>()
 
     for (const a of assets) {
       const symbol = a.symbol.toUpperCase()
       if (symbol in out) continue
-      if (!YAHOO_KNOWN_SYMBOLS.has(symbol)) {
-        out[symbol] = null
-        continue
-      }
-      toQuery.push(symbol)
+      out[symbol] = null // default: si Yahoo no lo devuelve, queda sin cotizacion
+      catalogBySymbol.set(toYahooSymbol(symbol), symbol)
     }
 
-    if (toQuery.length === 0) return out
+    if (catalogBySymbol.size === 0) return out
 
-    const raw = await yahooFinance.quote(toQuery)
+    const raw = await yahooFinance.quote([...catalogBySymbol.keys()], {}, NO_SCHEMA_VALIDATION)
     const quotes: YahooQuoteShape[] = Array.isArray(raw)
       ? (raw as YahooQuoteShape[])
       : [raw as YahooQuoteShape]
 
-    const seen = new Set<string>()
     for (const q of quotes) {
-      const sym = q.symbol?.toUpperCase()
-      if (!sym) continue
-      seen.add(sym)
-      const price = q.regularMarketPrice
-      const currency = q.currency
-      out[sym] =
-        typeof price === 'number' && currency ? { price, currency: currency.toUpperCase() } : null
+      const yahooSymbol = q.symbol?.toUpperCase()
+      if (!yahooSymbol) continue
+      const catalogSymbol = catalogBySymbol.get(yahooSymbol)
+      if (!catalogSymbol) continue
+      out[catalogSymbol] = toQuote(q)
     }
-    for (const s of toQuery) {
-      if (!seen.has(s)) out[s] = null
-    }
+
     return out
   },
 }
