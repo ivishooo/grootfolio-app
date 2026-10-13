@@ -20,13 +20,16 @@ interface AssetBucket {
 }
 
 /**
- * @param fxRates mapa `{ MONEDA: rateToUsd }` para normalizar el costo a USD.
- *   unitPrice y fee vienen en `tx.priceCurrency`; se multiplican por su tasa
- *   antes de acumular. Sin tasa (o priceCurrency='USD') se asume factor 1.
+ * @param rateFor devuelve el `rateToUsd` de cada transaccion (segun su
+ *   `priceCurrency` y la FECHA de la operacion) para normalizar el costo a USD.
+ *   unitPrice y fee vienen en `tx.priceCurrency` y se multiplican por esa tasa
+ *   antes de acumular; en USD es siempre 1. Lo resuelve `resolveTxRates`, el
+ *   mismo helper que usa el ledger de Reportes, para que la base de costo de un
+ *   activo sea identica en todas las pantallas.
  */
 export function aggregateHoldings(
   transactions: Transaction[],
-  fxRates: Record<string, number> = {}
+  rateFor: (tx: Transaction) => number = () => 1
 ): Holding[] {
   const byAsset = new Map<string, AssetBucket>()
   for (const tx of transactions) {
@@ -46,7 +49,7 @@ export function aggregateHoldings(
     let totalCost = 0
     for (const tx of txs) {
       // Normalización a USD: unitPrice y fee están en tx.priceCurrency.
-      const rate = tx.priceCurrency === 'USD' ? 1 : (fxRates[tx.priceCurrency] ?? 1)
+      const rate = tx.priceCurrency === 'USD' ? 1 : rateFor(tx)
       if (tx.kind === 'buy') {
         qty += tx.quantity
         totalCost += tx.quantity * tx.unitPrice * rate + tx.fee * rate

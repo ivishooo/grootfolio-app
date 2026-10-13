@@ -15,7 +15,7 @@ import { aggregateHoldings } from '#services/portfolio/holdings_service'
 import { aggregatePortfolio } from '#services/portfolio/portfolio_service'
 import { computeMonthlyReturn } from '#services/portfolio/monthly_return'
 import { getPrices } from '#services/prices/price_service'
-import { getRateToUsd } from '#services/prices/fx/fx_service'
+import { resolveTxRates } from '#services/prices/fx/tx_rates'
 
 export default class PortfolioController {
   async summary({ currentUser, response }: HttpContext) {
@@ -25,16 +25,11 @@ export default class PortfolioController {
       .preload('asset')
       .orderBy('purchased_at', 'asc')
 
-    // FX de las monedas de precio (priceCurrency) para normalizar el costo a USD
-    // base en la agregación. Mismo rateToUsd (cacheado) que usa getPrices.
-    const fxRates: Record<string, number> = {}
-    for (const currency of new Set(transactions.map((t) => t.priceCurrency))) {
-      if (currency === 'USD' || fxRates[currency] !== undefined) continue
-      const rate = await getRateToUsd(currency)
-      if (rate !== null) fxRates[currency] = rate
-    }
+    // FX de cada transaccion a la fecha en que se opero, para normalizar el
+    // costo a USD base. Mismo helper que el ledger de Reportes.
+    const { rateFor } = await resolveTxRates(transactions)
 
-    const holdings = aggregateHoldings(transactions, fxRates)
+    const holdings = aggregateHoldings(transactions, rateFor)
     const assetRefs = holdings.map((h) => ({
       id: h.assetId,
       symbol: h.asset.symbol,

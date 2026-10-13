@@ -15,6 +15,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { AssetSearchResult, AssetType } from '@grootfolio/shared/types'
 import Asset from '#models/asset'
 import { searchExternalAssets } from '#services/assets/asset_search_external'
+import { sortCedearsFirst } from '#services/assets/cedear_rule'
 
 const ASSET_TYPES: readonly AssetType[] = ['crypto', 'stock', 'bond', 'currency']
 
@@ -61,7 +62,7 @@ export default class AssetsController {
 
     // Suficiente localmente, o sin `type` para rutear el proveedor: solo local.
     if (!type || local.length >= LOCAL_ENOUGH) {
-      return response.status(200).send({ results: local })
+      return response.status(200).send({ results: sortCedearsFirst(local) })
     }
 
     const external = await searchExternalAssets(type, q)
@@ -86,7 +87,9 @@ export default class AssetsController {
       )
     }
 
-    const results = [...local, ...fresh].slice(0, 10)
+    // El CEDEAR arriba de su subyacente ANTES de cortar en 10: si no, el par
+    // puede quedar partido y el usuario solo ve el ticker en dolares.
+    const results = sortCedearsFirst([...local, ...fresh]).slice(0, 10)
     return response.status(200).send({ results })
   }
 }

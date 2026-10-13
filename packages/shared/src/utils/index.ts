@@ -34,6 +34,19 @@ export const currencyLabels: Record<SupportedCurrency, string> = {
 }
 
 /**
+ * Monedas con las que se puede PAGAR una operacion (`priceCurrency`), que no es
+ * lo mismo que la moneda en la que se lee la app aunque hoy coincidan.
+ *
+ * El limite importa: la API normaliza el costo a USD con el tipo de cambio de
+ * la moneda, y si no tiene cotizacion para ella toma el importe 1:1 contra el
+ * dolar. Una compra de 500.000 CLP se convertia en US$ 500.000 de base de
+ * costo. Aceptar solo lo que fx_service sabe cotizar cierra ese agujero en la
+ * puerta de entrada, y es exactamente lo que los formularios ya ofrecian.
+ */
+export const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
+export type PriceCurrency = (typeof PRICE_CURRENCIES)[number]
+
+/**
  * Cuantos decimales tiene sentido mostrar para un importe.
  *
  * Con `maximumFractionDigits: 0` fijo, un activo que cotiza a US$ 0,45 se

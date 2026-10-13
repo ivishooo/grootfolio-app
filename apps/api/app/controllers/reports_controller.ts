@@ -17,42 +17,10 @@ import type { AssetRef } from '#services/prices/price_service'
 import { computeRealizedPnl } from '#services/portfolio/reports_service'
 import { computeMonthlyReturn } from '#services/portfolio/monthly_return'
 import { getPrices } from '#services/prices/price_service'
-import { getRateToUsdAt } from '#services/prices/fx/fx_service'
+import { resolveTxRates } from '#services/prices/fx/tx_rates'
 import type { LedgerEntry, ReportSummary } from '@grootfolio/shared/types'
 
 const round2 = (n: number) => Number(n.toFixed(2))
-
-/**
- * Resuelve el rateToUsd (y si es aproximado) de cada transaccion segun su
- * priceCurrency y la fecha de la operacion. Cachea por (moneda, fecha) para no
- * repetir requests de FX historico.
- */
-async function resolveTxRates(transactions: Transaction[]) {
-  const byKey = new Map<string, { rate: number; approx: boolean }>()
-  for (const tx of transactions) {
-    if (tx.priceCurrency === 'USD') continue
-    const date = tx.purchasedAt.toISODate() ?? ''
-    const key = `${tx.priceCurrency}@${date}`
-    if (byKey.has(key)) continue
-    const resolved = await getRateToUsdAt(tx.priceCurrency, date)
-    byKey.set(key, resolved ?? { rate: 1, approx: true })
-  }
-
-  const rateByTx = new Map<string, number>()
-  const approxByTx = new Map<string, boolean>()
-  for (const tx of transactions) {
-    if (tx.priceCurrency === 'USD') {
-      rateByTx.set(tx.id, 1)
-      approxByTx.set(tx.id, false)
-      continue
-    }
-    const date = tx.purchasedAt.toISODate() ?? ''
-    const resolved = byKey.get(`${tx.priceCurrency}@${date}`) ?? { rate: 1, approx: true }
-    rateByTx.set(tx.id, resolved.rate)
-    approxByTx.set(tx.id, resolved.approx)
-  }
-  return { rateByTx, approxByTx }
-}
 
 export default class ReportsController {
   /** GET /reports/transactions — ledger valuado en USD, mas reciente primero. */
@@ -111,8 +79,8 @@ export default class ReportsController {
       return response.status(200).send({ summary: empty })
     }
 
-    const { rateByTx } = await resolveTxRates(txs)
-    const realized = computeRealizedPnl(txs, (tx) => rateByTx.get(tx.id) ?? 1)
+    const { rateFor } = await resolveTxRates(txs)
+    const realized = computeRealizedPnl(txs, rateFor)
 
     // Balance historico mark-to-market: reutiliza computeMonthlyReturn (crypto-only).
     const cryptoRefs = new Map<string, AssetRef>()

@@ -19,6 +19,7 @@ import type { AssetType } from '@grootfolio/shared/types'
 import Asset from '#models/asset'
 import Transaction from '#models/transaction'
 import { createTransactionValidator, updateTransactionValidator } from '#validators/transaction'
+import { cedearMismatch, quoteCurrencyFor } from '#services/assets/cedear_rule'
 
 const PROVIDER_BY_TYPE: Record<AssetType, string> = {
   crypto: 'coingecko',
@@ -59,13 +60,20 @@ export default class TransactionsController {
     }
 
     const symbol = payload.symbol.toUpperCase()
+    const priceCurrency = (payload.priceCurrency ?? 'USD').toUpperCase()
+
+    const mismatch = cedearMismatch(symbol, payload.type, priceCurrency)
+    if (mismatch) return response.status(422).send(mismatch)
+
     const asset = await Asset.firstOrCreate(
       { symbol, type: payload.type },
       {
         symbol,
         type: payload.type,
         name: symbol,
-        currency: 'USD',
+        // Un `.BA` cotiza en pesos: marcarlo USD dejaba el catalogo mintiendo
+        // cuando el alta no pasaba por el buscador.
+        currency: quoteCurrencyFor(symbol, payload.type),
         preferredProvider: PROVIDER_BY_TYPE[payload.type],
       }
     )
@@ -77,7 +85,7 @@ export default class TransactionsController {
       quantity: payload.quantity,
       unitPrice: payload.unitPrice,
       fee: payload.fee ?? 0,
-      priceCurrency: (payload.priceCurrency ?? 'USD').toUpperCase(),
+      priceCurrency,
       purchasedAt,
       notes: payload.notes ?? null,
     })
@@ -106,6 +114,18 @@ export default class TransactionsController {
     }
 
     const payload = await request.validateUsing(updateTransactionValidator)
+
+    // Misma regla de CEDEARs que en el alta: editar la moneda no puede dejar
+    // una accion de Nasdaq con el precio en pesos.
+    if (payload.priceCurrency !== undefined) {
+      await transaction.load('asset')
+      const mismatch = cedearMismatch(
+        transaction.asset.symbol,
+        transaction.asset.type,
+        payload.priceCurrency
+      )
+      if (mismatch) return response.status(422).send(mismatch)
+    }
 
     if (payload.purchasedAt !== undefined) {
       const purchasedAt = DateTime.fromISO(payload.purchasedAt)

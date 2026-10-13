@@ -36,6 +36,7 @@ import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 import { useMoney } from '@/lib/money'
 
 const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
+type PriceCurrency = (typeof PRICE_CURRENCIES)[number]
 
 function isoToDdmmyyyy(iso: string): string {
   const d = new Date(iso)
@@ -177,6 +178,10 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
   // costo o sin cotizacion). Ni flecha ni color: un triangulo verde al lado de
   // "—" afirma que subio, que es justo lo que no sabemos.
   const known = holding.pnlPercent !== null
+  // Sin cotización el backend manda currentPrice/value/pnl en 0: mostrarlos
+  // formateados los hace pasar por una posición que vale cero, que no es lo
+  // mismo que una que no sabemos cuánto vale.
+  const sinCotizacion = holding.currentPrice <= 0
   const up = holding.pnl >= 0
   const pnlColor = !known ? theme.text.muted : up ? theme.chart.positive : theme.chart.negative
 
@@ -197,7 +202,7 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
     `${holding.asset.name}, ${holding.asset.symbol}`,
     assetTypeLabel[holding.asset.type as AssetType] ?? holding.asset.type,
     `${holding.quantity} unidades`,
-    `valor ${money.format(holding.value)}`,
+    sinCotizacion ? 'sin cotización' : `valor ${money.format(holding.value)}`,
     known
       ? `rentabilidad ${formatPercent(holding.pnlPercent)}, ${money.format(holding.pnl)}`
       : 'rentabilidad sin dato',
@@ -223,7 +228,9 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
           <Text style={{ color: theme.text.secondary, fontSize: 12, marginTop: 4 }}>
             {holding.quantity} u · Compra{' '}
             <Text style={{ color: theme.text.primary }}>{money.format(holding.avgPrice)}</Text> → Actual{' '}
-            <Text style={{ color: theme.text.primary }}>{money.format(holding.currentPrice)}</Text>
+            <Text style={{ color: theme.text.primary }}>
+              {sinCotizacion ? '—' : money.format(holding.currentPrice)}
+            </Text>
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
             <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: theme.background.muted, overflow: 'hidden' }}>
@@ -234,11 +241,19 @@ function HoldingCard({ holding, total, transactions, expanded, onToggle, onDelet
         </View>
 
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ color: theme.text.primary, fontSize: 16, fontWeight: '800' }}>{money.format(holding.value)}</Text>
-          <Text style={{ color: pnlColor, fontSize: 12, fontWeight: '700' }}>
-            {known ? (up ? '▲ ' : '▼ ') : ''}{formatPercent(holding.pnlPercent)}
+          <Text style={{ color: theme.text.primary, fontSize: 16, fontWeight: '800' }}>
+            {sinCotizacion ? '—' : money.format(holding.value)}
           </Text>
-          <Text style={{ color: pnlColor, fontSize: 12 }}>{money.format(holding.pnl)}</Text>
+          {sinCotizacion ? (
+            <Text style={{ color: theme.text.muted, fontSize: 12, fontWeight: '700' }}>Sin cotización</Text>
+          ) : (
+            <>
+              <Text style={{ color: pnlColor, fontSize: 12, fontWeight: '700' }}>
+                {known ? (up ? '▲ ' : '▼ ') : ''}{formatPercent(holding.pnlPercent)}
+              </Text>
+              <Text style={{ color: pnlColor, fontSize: 12 }}>{money.format(holding.pnl)}</Text>
+            </>
+          )}
         </View>
         </View>
       </View>
@@ -356,7 +371,7 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
   const [kind, setKind] = useState<'buy' | 'sell'>(tx.kind)
   const [quantity, setQuantity] = useState(String(tx.quantity))
   const [unitPrice, setUnitPrice] = useState(String(tx.unitPrice))
-  const [priceCurrency, setPriceCurrency] = useState(tx.priceCurrency)
+  const [priceCurrency, setPriceCurrency] = useState(tx.priceCurrency as PriceCurrency)
   const [fee, setFee] = useState(String(tx.fee))
   const [purchasedAt, setPurchasedAt] = useState(isoToDdmmyyyy(tx.purchasedAt))
   const [notes, setNotes] = useState(tx.notes ?? '')

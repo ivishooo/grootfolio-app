@@ -6,8 +6,8 @@
  * Es data de referencia: corre en todos los entornos. Convenciones:
  * - crypto  -> currency USD, provider coingecko
  * - stock US -> currency USD, provider yahoo
- * - stock .BA (argentina) -> currency ARS (el orquestador convierte a USD via
- *   FX, GF-219), provider yahoo
+ * - stock .BA (acciones argentinas y CEDEARs) -> currency ARS (el orquestador
+ *   convierte a USD via FX, GF-219), provider yahoo
  * - currency -> currency USD (par contra USD), provider frankfurter
  * - bond -> provider manual (aun sin precio en vivo)
  */
@@ -35,6 +35,24 @@ const stockUs = (symbol: string, name: string): SeedAsset => ({
   name,
   type: 'stock',
   currency: 'USD',
+  preferredProvider: 'yahoo',
+})
+/**
+ * CEDEAR: el instrumento con el que un inversor argentino accede a una accion
+ * extranjera. Cotiza en pesos en BYMA y representa una fraccion de la accion,
+ * asi que NO se puede cargar contra el ticker del subyacente — ver ADR-0005.
+ * El nombre lleva el sufijo "(CEDEAR)" para distinguirlo en el autocomplete.
+ *
+ * Todos los symbols de esta lista estan verificados contra Yahoo: devuelven
+ * precio en ARS y la razon social de la empresa correcta. Atencion al agregar
+ * mas: `XXX.BA` no siempre es el CEDEAR de `XXX`. `BAC.BA`, por ejemplo, es el
+ * CEDEAR de Boeing en su serie en dolares, no el de Bank of America.
+ */
+const cedear = (symbol: string, name: string): SeedAsset => ({
+  symbol,
+  name: `${name} (CEDEAR)`,
+  type: 'stock',
+  currency: 'ARS',
   preferredProvider: 'yahoo',
 })
 const stockAr = (symbol: string, name: string): SeedAsset => ({
@@ -139,6 +157,55 @@ const ASSETS: SeedAsset[] = [
   stockAr('BBAR.BA', 'Banco BBVA Argentina S.A.'),
   stockAr('LOMA.BA', 'Loma Negra C.I.A.S.A.'),
   stockAr('MIRG.BA', 'Mirgor S.A.C.I.F.I.A.'),
+
+  // --- CEDEARs (acciones y ETFs extranjeros que cotizan en pesos en BYMA) ---
+  cedear('AAPL.BA', 'Apple Inc.'),
+  cedear('MSFT.BA', 'Microsoft Corporation'),
+  cedear('AMZN.BA', 'Amazon.com Inc.'),
+  cedear('GOOGL.BA', 'Alphabet Inc.'),
+  cedear('META.BA', 'Meta Platforms Inc.'),
+  cedear('TSLA.BA', 'Tesla Inc.'),
+  cedear('NVDA.BA', 'NVIDIA Corporation'),
+  cedear('AMD.BA', 'Advanced Micro Devices Inc.'),
+  cedear('INTC.BA', 'Intel Corporation'),
+  cedear('ADBE.BA', 'Adobe Inc.'),
+  cedear('ORCL.BA', 'Oracle Corporation'),
+  cedear('CRM.BA', 'Salesforce Inc.'),
+  cedear('QCOM.BA', 'QUALCOMM Incorporated'),
+  cedear('NFLX.BA', 'Netflix Inc.'),
+  cedear('BABA.BA', 'Alibaba Group Holding Limited'),
+  cedear('MELI.BA', 'MercadoLibre Inc.'),
+  cedear('GLOB.BA', 'Globant S.A.'),
+  cedear('VIST.BA', 'Vista Energy'),
+  cedear('TXR.BA', 'Ternium S.A.'),
+  cedear('PBR.BA', 'Petroleo Brasileiro S.A.'),
+  cedear('VALE.BA', 'Vale S.A.'),
+  cedear('KO.BA', 'The Coca-Cola Company'),
+  cedear('MCD.BA', 'McDonalds Corporation'),
+  cedear('SBUX.BA', 'Starbucks Corporation'),
+  cedear('NKE.BA', 'NIKE Inc.'),
+  cedear('PG.BA', 'Procter & Gamble'),
+  cedear('WMT.BA', 'Walmart Inc.'),
+  cedear('HD.BA', 'The Home Depot Inc.'),
+  cedear('JNJ.BA', 'Johnson & Johnson'),
+  cedear('PFE.BA', 'Pfizer Inc.'),
+  cedear('UNH.BA', 'UnitedHealth Group'),
+  cedear('V.BA', 'Visa Inc.'),
+  cedear('MA.BA', 'Mastercard Incorporated'),
+  cedear('JPM.BA', 'JPMorgan Chase & Co.'),
+  cedear('C.BA', 'Citigroup Inc.'),
+  cedear('GS.BA', 'The Goldman Sachs Group Inc.'),
+  cedear('BRKB.BA', 'Berkshire Hathaway Inc.'),
+  cedear('XOM.BA', 'Exxon Mobil Corporation'),
+  cedear('CAT.BA', 'Caterpillar Inc.'),
+  cedear('MMM.BA', '3M Company'),
+  cedear('BA.BA', 'The Boeing Company'),
+  cedear('T.BA', 'AT&T Inc.'),
+  cedear('VZ.BA', 'Verizon Communications Inc.'),
+  cedear('SPY.BA', 'SPDR S&P 500 ETF Trust'),
+  cedear('QQQ.BA', 'Invesco QQQ Trust'),
+  cedear('DIA.BA', 'SPDR Dow Jones Industrial Average ETF'),
+  cedear('EEM.BA', 'iShares MSCI Emerging Markets ETF'),
 
   // --- Divisas (par contra USD) ---
   currency('USD', 'Dolar estadounidense'),

@@ -9,6 +9,18 @@
  */
 import vine from '@vinejs/vine'
 
+/**
+ * Monedas con las que se puede pagar una operacion. Espejo de PRICE_CURRENCIES
+ * de `@grootfolio/shared` (misma convencion que DISPLAY_CURRENCIES en
+ * FxController): la API no importa el barrel de shared, solo sus subpaths de
+ * tipos.
+ *
+ * Antes esto era `fixedLength(3)`, o sea cualquier codigo de tres letras. Si
+ * fx_service no sabe cotizar la moneda, el costo se toma 1:1 contra el dolar:
+ * una compra de 500.000 CLP entraba como US$ 500.000 de base de costo.
+ */
+const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
+
 export const createTransactionValidator = vine.compile(
   vine.object({
     symbol: vine.string().trim().minLength(1).maxLength(20),
@@ -17,7 +29,7 @@ export const createTransactionValidator = vine.compile(
     quantity: vine.number().positive(),
     unitPrice: vine.number().min(0),
     fee: vine.number().min(0).optional(),
-    priceCurrency: vine.string().trim().fixedLength(3).optional(),
+    priceCurrency: vine.enum(PRICE_CURRENCIES).optional(),
     purchasedAt: vine.string().trim(),
     notes: vine.string().trim().maxLength(500).optional(),
   })
@@ -34,7 +46,7 @@ export const updateTransactionValidator = vine.compile(
     quantity: vine.number().positive().optional(),
     unitPrice: vine.number().min(0).optional(),
     fee: vine.number().min(0).optional(),
-    priceCurrency: vine.string().trim().fixedLength(3).optional(),
+    priceCurrency: vine.enum(PRICE_CURRENCIES).optional(),
     purchasedAt: vine.string().trim().optional(),
     notes: vine.string().trim().maxLength(500).nullable().optional(),
   })

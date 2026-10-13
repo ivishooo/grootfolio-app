@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PRICE_CURRENCIES } from '../utils'
 
 export const assetTypeSchema = z.enum(['crypto', 'stock', 'bond', 'currency'])
 
@@ -35,7 +36,7 @@ export const createTransactionInputSchema = z.object({
   // Moneda en la que están expresados unitPrice y fee. Para crypto/stock/bond en
   // USD queda 'USD'; para divisas es la moneda con la que se pagó (ej. ARS). El
   // costo se normaliza a USD en la API usando el FX de esta moneda.
-  priceCurrency: z.string().length(3, 'Moneda inválida').default('USD'),
+  priceCurrency: z.enum(PRICE_CURRENCIES, { message: 'Moneda no soportada' }).default('USD'),
   purchasedAt: z.string().datetime({ offset: true, message: 'Elegí una fecha válida' }),
   notes: z.string().max(500, 'Las notas no pueden superar los 500 caracteres').optional(),
 })
@@ -48,7 +49,7 @@ export const updateTransactionInputSchema = z.object({
   quantity: z.number().positive('La cantidad debe ser mayor a 0').optional(),
   unitPrice: z.number().positive('El precio unitario debe ser mayor a 0').optional(),
   fee: z.number().nonnegative('La comisión no puede ser negativa').optional(),
-  priceCurrency: z.string().length(3, 'Moneda inválida').optional(),
+  priceCurrency: z.enum(PRICE_CURRENCIES, { message: 'Moneda no soportada' }).optional(),
   purchasedAt: z.string().datetime({ offset: true, message: 'Elegí una fecha válida' }).optional(),
   notes: z.string().max(500, 'Las notas no pueden superar los 500 caracteres').nullable().optional(),
 })
