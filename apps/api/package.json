@@ -51,7 +51,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@adonisjs/assembler": "^7.8.2",
+    "@adonisjs/assembler": "^8.5.0",
     "@swc/core": "^1.15.32",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/luxon": "^3.4.2",
