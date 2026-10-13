@@ -100,11 +100,16 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
   if (candidates.length === 0) return out
 
   // Paso 2: snapshot persistente con TTL
+  // `is_historical` fuera: esos snapshots son cierres mensuales que persiste
+  // price_history (GF-246) con fetched_at en el pasado. Sin este filtro, un
+  // fallo de provider (que cae al snapshot mas reciente SIN TTL) podia servir
+  // el cierre de un mes viejo como si fuera la cotizacion de hoy.
   const snapshots = await PriceSnapshot.query()
     .whereIn(
       'asset_id',
       candidates.map((c) => c.asset.id)
     )
+    .where('is_historical', false)
     .orderBy('fetched_at', 'desc')
 
   const latestByAssetId = new Map<string, PriceSnapshot>()
