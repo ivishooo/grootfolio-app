@@ -93,9 +93,46 @@ export async function searchStocks(query: string): Promise<StockSearchHit[]> {
 }
 
 /**
+ * Palabras que no identifican a una empresa: formas societarias, articulos y
+ * el ruido que BYMA mete en el nombre de los CEDEARs ("CEDEAR EACH 24 REP 1").
+ */
+const RUIDO_RAZON_SOCIAL: ReadonlySet<string> = new Set([
+  'INC', 'CORP', 'CORPORATION', 'COMPANY', 'THE', 'LTD', 'LIMITED', 'PLC', 'GROUP',
+  'HOLDING', 'HOLDINGS', 'TRUST', 'CEDEAR', 'EACH', 'REP', 'SAB', 'ADR',
+])
+
+/** Tokens significativos de una razon social, para comparar dos nombres. */
+export function _tokensRazonSocial(nombre: string): Set<string> {
+  return new Set(
+    nombre
+      .toUpperCase()
+      .split(/[^A-Z0-9]+/)
+      .filter((t) => t.length >= 3 && !RUIDO_RAZON_SOCIAL.has(t))
+  )
+}
+
+/**
+ * Si dos razones sociales son de la misma empresa. Alcanza con que compartan un
+ * token significativo: "Adobe Inc." y "Adobe Inc." obviamente, pero tambien
+ * "The Coca-Cola Company" con cualquier variante de Coca-Cola.
+ */
+export function mismaEmpresa(a: string, b: string): boolean {
+  const ta = _tokensRazonSocial(a)
+  for (const t of _tokensRazonSocial(b)) if (ta.has(t)) return true
+  return false
+}
+
+/**
  * Intercala el CEDEAR de cada ticker que tenga uno. Un solo `quote` para todos
  * los candidatos; si falla, devolvemos la lista original (el CEDEAR es un
  * agregado, no puede romper la busqueda).
+ *
+ * Ojo con asumir que `XXX.BA` es el CEDEAR de `XXX`: BYMA reasigna tickers y
+ * ademas lista series en dolares de la misma especie. `BAC.BA` NO es Bank of
+ * America: es el CEDEAR de Boeing en su serie en dolares ("BOEING CO CEDEAR
+ * EACH 24 REP 1", US$ 7,81 = los $ 12.550 de BA.BA al CCL). Por eso validamos
+ * que el nombre que devuelve Yahoo para el `.BA` sea de la misma empresa que el
+ * subyacente, en vez de confiar en el ticker.
  */
 async function withCedears(hits: StockSearchHit[]): Promise<StockSearchHit[]> {
   // Solo tickers "pelados": los que ya traen sufijo de mercado (.MX, .DE, .BA)
@@ -103,25 +140,36 @@ async function withCedears(hits: StockSearchHit[]): Promise<StockSearchHit[]> {
   const bases = hits.filter((h) => !h.symbol.includes('.'))
   if (bases.length === 0) return hits
 
-  let priced: Set<string>
+  const porSymbol = new Map<string, StockSearchHit>()
   try {
     const raw = await yahooFinance.quote(
       bases.map((h) => `${h.symbol}${BYMA_SUFFIX}`),
       {},
       NO_SCHEMA_VALIDATION
     )
-    const quotes: YahooQuoteShape[] = Array.isArray(raw) ? (raw as YahooQuoteShape[]) : [raw as YahooQuoteShape]
-    priced = new Set(quotes.filter((q) => toQuote(q) !== null).map((q) => q.symbol!.toUpperCase()))
+    const quotes = (Array.isArray(raw) ? raw : [raw]) as Array<
+      YahooQuoteShape & { longName?: string; shortName?: string }
+    >
+    for (const q of quotes) {
+      const symbol = q.symbol?.toUpperCase()
+      const quote = toQuote(q)
+      if (!symbol || !quote) continue
+      porSymbol.set(symbol, {
+        symbol,
+        name: q.longName ?? q.shortName ?? symbol,
+        currency: quote.currency,
+      })
+    }
   } catch {
     return hits
   }
 
   const out: StockSearchHit[] = []
   for (const hit of hits) {
-    const cedear = `${hit.symbol}${BYMA_SUFFIX}`
+    const cedear = porSymbol.get(`${hit.symbol}${BYMA_SUFFIX}`)
     // El CEDEAR primero: es lo que compra alguien que opera en pesos.
-    if (priced.has(cedear)) {
-      out.push({ symbol: cedear, name: `${hit.name} (CEDEAR)`, currency: 'ARS' })
+    if (cedear && mismaEmpresa(hit.name, cedear.name)) {
+      out.push({ symbol: cedear.symbol, name: `${hit.name} (CEDEAR)`, currency: cedear.currency })
     }
     out.push(hit)
   }
