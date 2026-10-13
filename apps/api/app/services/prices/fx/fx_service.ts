@@ -19,6 +19,7 @@
 import logger from '@adonisjs/core/services/logger'
 import env from '#start/env'
 import {
+  fetchArsRateToUsdAt,
   fetchCclRateToUsd,
   fetchFrankfurterRates,
   fetchFrankfurterRatesAt,
@@ -99,14 +100,40 @@ export async function getRateToUsd(currency: string): Promise<number | null> {
 // asi que no tiene TTL: se guarda para siempre en el proceso.
 const historicalCache = new Map<string, number>()
 
+/** Tasas historicas: nombre de la fuente que resolvio, para no recalcular approx. */
+const historicalApprox = new Map<string, boolean>()
+
 /**
- * `rateToUsd` de `currency` en una fecha `isoDate` (yyyy-MM-dd), para reportes
- * historicos (GF-250). Devuelve `{ rate, approx }`:
- *  - Frankfurter soporta fecha exacta -> approx=false.
- *  - ARS / desconocidas no tienen historico confiable aca -> se degrada a la
- *    tasa ACTUAL (`getRateToUsd`) y approx=true.
+ * Tasa historica real de una moneda, o null si la fuente no la tiene.
+ * Frankfurter cubre EUR/GBP/BRL/...; ARS sale de argentinadatos (misma casa de
+ * dolar que el valor de hoy, para no mezclar CCL con oficial dentro del mismo
+ * calculo).
+ */
+async function fetchHistoricalRate(currency: string, date: string): Promise<number | null> {
+  if (currency === 'ARS') {
+    const casa = arsSource() === 'oficial' ? 'oficial' : 'contadoconliqui'
+    return fetchArsRateToUsdAt(date, casa)
+  }
+  if (FRANKFURTER_KNOWN.has(currency)) {
+    const rates = await fetchFrankfurterRatesAt(date, [currency])
+    return rates[currency] ?? null
+  }
+  return null
+}
+
+/**
+ * `rateToUsd` de `currency` en una fecha `isoDate` (yyyy-MM-dd), para la base de
+ * costo y los reportes historicos (GF-250). Devuelve `{ rate, approx }`:
+ *  - Frankfurter (EUR, GBP, ...) y ARS (argentinadatos) soportan fecha exacta
+ *    -> approx=false.
+ *  - Monedas sin fuente historica, fecha fuera de la serie, o fallo de red ->
+ *    se degrada a la tasa ACTUAL y approx=true.
  *  - Sin ninguna tasa disponible -> null.
  * USD siempre 1 (approx=false).
+ *
+ * Que ARS tenga historico importa mas que para un reporte: la base de costo de
+ * una compra en pesos se convertia al dolar de HOY, asi que una posicion vieja
+ * media devaluacion en vez de rentabilidad.
  */
 export async function getRateToUsdAt(
   currency: string,
@@ -118,25 +145,24 @@ export async function getRateToUsdAt(
   const date = isoDate.slice(0, 10)
   const key = `${cur}@${date}`
   const hit = historicalCache.get(key)
-  if (hit !== undefined) return { rate: hit, approx: !FRANKFURTER_KNOWN.has(cur) }
+  if (hit !== undefined) return { rate: hit, approx: historicalApprox.get(key) ?? true }
 
-  if (FRANKFURTER_KNOWN.has(cur)) {
-    try {
-      const rates = await fetchFrankfurterRatesAt(date, [cur])
-      const rate = rates[cur]
-      if (rate !== undefined && rate > 0) {
-        historicalCache.set(key, rate)
-        return { rate, approx: false }
-      }
-    } catch (err) {
-      logger.warn({ err, currency: cur, date }, 'FX historico fallo; degrado a tasa actual')
+  try {
+    const rate = await fetchHistoricalRate(cur, date)
+    if (rate !== null && rate > 0) {
+      historicalCache.set(key, rate)
+      historicalApprox.set(key, false)
+      return { rate, approx: false }
     }
+  } catch (err) {
+    logger.warn({ err, currency: cur, date }, 'FX historico fallo; degrado a tasa actual')
   }
 
-  // ARS, desconocidas, o fallo de Frankfurter: degradamos a la tasa actual.
+  // Sin fuente historica, fecha fuera de la serie, o fallo: tasa actual.
   const current = await getRateToUsd(cur)
   if (current === null) return null
   historicalCache.set(key, current)
+  historicalApprox.set(key, true)
   return { rate: current, approx: true }
 }
 
@@ -144,4 +170,5 @@ export async function getRateToUsdAt(
 export function _resetFxCache(): void {
   cache.clear()
   historicalCache.clear()
+  historicalApprox.clear()
 }

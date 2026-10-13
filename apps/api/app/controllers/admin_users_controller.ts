@@ -14,7 +14,7 @@ import { revokeAllForUser } from '#services/auth/token_service'
 import { aggregateHoldings } from '#services/portfolio/holdings_service'
 import { aggregatePortfolio } from '#services/portfolio/portfolio_service'
 import { getPrices } from '#services/prices/price_service'
-import { getRateToUsd } from '#services/prices/fx/fx_service'
+import { resolveTxRates } from '#services/prices/fx/tx_rates'
 import {
   computeSuspendedUntil,
   createNotification,
@@ -218,13 +218,8 @@ export default class AdminUsersController {
 
     let portfolioValue = 0
     if (transactions.length > 0) {
-      const fxRates: Record<string, number> = {}
-      for (const currency of new Set(transactions.map((t) => t.priceCurrency))) {
-        if (currency === 'USD' || fxRates[currency] !== undefined) continue
-        const rate = await getRateToUsd(currency)
-        if (rate !== null) fxRates[currency] = rate
-      }
-      const holdings = aggregateHoldings(transactions, fxRates)
+      const { rateFor } = await resolveTxRates(transactions)
+      const holdings = aggregateHoldings(transactions, rateFor)
       const assetRefs = holdings.map((h) => ({ id: h.assetId, symbol: h.asset.symbol, type: h.asset.type }))
       const prices = assetRefs.length > 0 ? await getPrices(assetRefs) : {}
       portfolioValue = aggregatePortfolio(holdings, prices).totalValue
