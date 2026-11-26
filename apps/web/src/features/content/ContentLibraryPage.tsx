@@ -109,7 +109,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
     <button
       onClick={onClick}
       className="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
-      style={active ? { borderColor: '#F97316', background: 'rgba(249,115,22,0.1)', color: '#F97316' } : { borderColor: 'rgb(212 212 216 / 1)' }}
+      style={active ? { borderColor: '#F97316', background: 'var(--tk-brand-tint)', color: 'var(--tk-brand-ink)' } : { borderColor: 'rgb(212 212 216 / 1)' }}
     >
       {label}
     </button>
@@ -132,7 +132,7 @@ function FeaturedCard({ item, onOpen }: { item: ContentItem; onOpen: () => void 
     >
       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-lg font-bold" style={{ color: m.color, background: `${m.color}22` }}>{m.icon}</span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 font-semibold"><span style={{ color: '#F97316' }}>★</span>{item.title}</div>
+        <div className="flex items-center gap-1.5 font-semibold"><span className="text-brand-ink">★</span>{item.title}</div>
         {item.description && <p className="mt-0.5 line-clamp-2 text-sm text-neutral-500">{item.description}</p>}
         <p className="mt-1.5 text-xs text-neutral-400">{meta(item)}</p>
       </div>
@@ -152,7 +152,7 @@ function ItemCard({ item, onOpen }: { item: ContentItem; onOpen: () => void }) {
       {item.description && <p className="mt-0.5 line-clamp-2 flex-1 text-sm text-neutral-500">{item.description}</p>}
       <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 dark:border-neutral-800">
         <span className="text-xs text-neutral-400">{meta(item)}</span>
-        <button onClick={onOpen} className="inline-flex items-center gap-1 text-sm font-semibold" style={{ color: '#F97316' }}>
+        <button onClick={onOpen} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink">
           {m.cta} →
         </button>
       </div>

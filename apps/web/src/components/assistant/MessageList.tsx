@@ -34,11 +34,11 @@ function dayLabel(iso: string): string | null {
 function DaySeparator({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-1" role="separator" aria-label={label}>
-      <span className="h-px flex-1 bg-[color:var(--gf-line)]" />
-      <span className="text-[10.5px] uppercase tracking-wide text-[color:var(--gf-ink-3)]">
+      <span className="h-px flex-1 bg-line" />
+      <span className="text-[10.5px] uppercase tracking-wide text-ink-3">
         {label}
       </span>
-      <span className="h-px flex-1 bg-[color:var(--gf-line)]" />
+      <span className="h-px flex-1 bg-line" />
     </div>
   )
 }

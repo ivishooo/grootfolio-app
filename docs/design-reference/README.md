@@ -53,17 +53,25 @@ Hay **dos formas** de consultar el diseño, en orden de fidelidad:
 
 ## Assets de marca — `brand/`
 
-Estos son los **archivos reales** para integrar (no referencia, sino producto):
-- `icon-app.svg` — 1024², fondo naranja + gato blanco con cara (nariz + boca,
-  **sin ojos ni bigotes**). Base de app icons y splash.
-- `favicon.svg` — 64², silueta sólida.
-- `mark-solid.svg` — silueta en `currentColor` (recoloreable: sidebar/header).
-- `logo-lockup.svg` — imagotipo horizontal (chip + wordmark GrootFolio).
+Estos son los **archivos reales** para integrar (no referencia, sino producto).
+Logo v2 (rediseño 2026-11, ADR-0006): el gato es la cabeza de Groot, la misma
+geometría del avatar pero quieta, sobre el naranja `#F97316` de siempre.
+- `icon-app.svg` — 1024², degradé naranja + Groot con bigotes, collar y chapita.
+  Base de los app icons y el splash.
+- `adaptive-icon.svg` — lo mismo sobre un círculo, para el ícono adaptativo de Android.
+- `mark-chip.svg` — chip naranja con la cabeza (sidebar, header, tamaños medianos).
+- `mark-solid.svg` — silueta de la cabeza en `currentColor` (recoloreable).
+- `favicon.svg` — 64², silueta sólida para 16–32 px.
 
-Destinos en el repo (ver plan §2):
-- Web → `apps/web/public/` (favicon, icon-app) + `Logo.tsx` que usa `mark-solid`.
-- Mobile → PNGs derivados de `icon-app.svg` en `apps/mobile/assets/images/`
-  (`icon`, `adaptive-icon`, `splash`) referenciados en `app.json`.
+El imagotipo (chip + wordmark «GrootFolio») ya no es un SVG suelto: lo arma el
+componente `Logo` (`variant="lockup"`) en web y mobile.
+
+Destinos en el repo:
+- Web → `apps/web/public/` (`favicon.svg`, `icon-app.svg`, `apple-touch-icon.png`)
+  + `apps/web/src/components/ui/Logo.tsx` (variantes `mark`, `lockup`, `icon`, `solid`).
+- Mobile → PNGs exportados de `icon-app.svg`, `adaptive-icon.svg` y `favicon.svg`
+  en `apps/mobile/assets/images/` (`icon`, `adaptive-icon`, `splash-icon`,
+  `favicon`), referenciados en `app.json`, + `apps/mobile/src/components/ui/Logo.tsx`.
 
 ## Regla de oro
 

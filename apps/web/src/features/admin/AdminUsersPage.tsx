@@ -24,9 +24,10 @@ import { useToast } from '@/components/ui/ToastProvider'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/States'
 
-const VIOLET = '#8B5CF6'
-const GREEN = '#16A34A'
-const RED = '#DC2626'
+// Violeta de identidad del rol admin (SPEC: #7C3AED sobre rgba(139,92,246,.14)).
+const VIOLET = '#7C3AED'
+const GREEN = 'var(--tk-pos)'
+const RED = 'var(--tk-neg)'
 const AMBER = '#D97706'
 
 function initials(name: string | null, email: string): string {
@@ -145,7 +146,7 @@ export function AdminUsersPage() {
         <Metric label="Total" value={stats?.total} color="#64748B" icon="◎" />
         <Metric label="Activos" value={stats?.active} color={GREEN} icon="✓" />
         <Metric label="Suspendidos" value={stats?.suspended} color={RED} icon="⊘" />
-        <Metric label="Nuevos (30 d)" value={stats?.newLast30d} color="#F97316" icon="✦" />
+        <Metric label="Nuevos (30 d)" value={stats?.newLast30d} color="var(--tk-brand-ink)" icon="✦" />
       </div>
 
       {/* Filtros */}

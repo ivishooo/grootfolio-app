@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/ToastProvider'
 import { Input } from '@/components/ui/Input'
 import { AssetAutocomplete } from '@/components/ui/AssetAutocomplete'
 import { assetColor, assetMark } from '@/lib/asset-visual'
+import { success, danger } from '@grootfolio/tokens'
 
 const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
 
@@ -206,7 +207,7 @@ export function AddAssetPage() {
                 type="button"
                 onClick={() => setKind('buy')}
                 className="flex-1 rounded-lg border-[1.5px] border-neutral-300 py-2.5 text-sm font-semibold transition-colors dark:border-neutral-700"
-                style={kind === 'buy' ? { borderColor: '#16A34A', background: '#16A34A', color: '#fff' } : undefined}
+                style={kind === 'buy' ? { borderColor: success[700], background: success[700], color: '#fff' } : undefined}
               >
                 ↓ Compra
               </button>
@@ -214,7 +215,7 @@ export function AddAssetPage() {
                 type="button"
                 onClick={() => setKind('sell')}
                 className="flex-1 rounded-lg border-[1.5px] border-neutral-300 py-2.5 text-sm font-semibold transition-colors dark:border-neutral-700"
-                style={kind === 'sell' ? { borderColor: '#DC2626', background: '#DC2626', color: '#fff' } : undefined}
+                style={kind === 'sell' ? { borderColor: danger[700], background: danger[700], color: '#fff' } : undefined}
               >
                 ↑ Venta
               </button>
@@ -297,7 +298,7 @@ export function AddAssetPage() {
             </div>
           </div>
           <div className="mt-4 space-y-2.5 text-sm">
-            <div className="flex justify-between"><span className="text-neutral-500">Operación</span><span className="font-semibold" style={{ color: kind === 'buy' ? '#16A34A' : '#DC2626' }}>{kind === 'buy' ? 'Compra' : 'Venta'}</span></div>
+            <div className="flex justify-between"><span className="text-neutral-500">Operación</span><span className="font-semibold" style={{ color: kind === 'buy' ? 'var(--tk-pos)' : 'var(--tk-neg)' }}>{kind === 'buy' ? 'Compra' : 'Venta'}</span></div>
             <div className="flex justify-between"><span className="text-neutral-500">Cantidad</span><span className="font-medium tabular-nums">{qty ? qty.toLocaleString('es-AR') : '—'}</span></div>
             <div className="flex justify-between"><span className="text-neutral-500">Precio unitario</span><span className="font-medium tabular-nums">{price ? fmt(price) : '—'}</span></div>
             <div className="flex justify-between"><span className="text-neutral-500">Comisión</span><span className="font-medium tabular-nums">{fee ? fmt(fee) : '—'}</span></div>

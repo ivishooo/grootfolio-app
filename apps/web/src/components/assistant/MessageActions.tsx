@@ -40,7 +40,7 @@ function ActionButton({
       className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
         active
           ? 'bg-[color:var(--gf-accent-soft)] text-[color:var(--gf-accent-ink)]'
-          : 'text-[color:var(--gf-ink-3)] hover:bg-[color:var(--gf-line)] hover:text-[color:var(--gf-ink-2)]'
+          : 'text-ink-3 hover:bg-line hover:text-ink-2'
       }`}
     >
       {children}
@@ -107,7 +107,7 @@ export function MessageActions({ messageId, content, onRetry }: Props) {
       </ActionButton>
 
       {vote !== null && (
-        <span className="ml-1 text-[10.5px] text-[color:var(--gf-ink-3)]">Gracias</span>
+        <span className="ml-1 text-[10.5px] text-ink-3">Gracias</span>
       )}
     </div>
   )

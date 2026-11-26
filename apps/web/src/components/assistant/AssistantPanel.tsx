@@ -42,7 +42,7 @@ function IconButton({
       aria-label={label}
       title={label}
       // 44px de área de toque aunque el ícono sea de 20: regla dura del spec.
-      className="flex h-11 w-11 items-center justify-center rounded-[var(--gf-r-icon)] text-[color:var(--gf-ink-3)] transition-colors hover:bg-[color:var(--gf-line)] hover:text-[color:var(--gf-ink)] sm:h-9 sm:w-9"
+      className="flex h-11 w-11 items-center justify-center rounded-[var(--gf-r-icon)] text-ink-3 transition-colors hover:bg-line hover:text-ink sm:h-9 sm:w-9"
     >
       {children}
     </button>
@@ -123,7 +123,7 @@ export function AssistantPanel({
         aria-modal={isExpanded || undefined}
         data-expanded={isExpanded}
       >
-        <header className="flex items-center gap-3 border-b border-[color:var(--gf-line)] px-4 py-3">
+        <header className="flex items-center gap-3 border-b border-line px-4 py-3">
           <div
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--gf-accent-soft)] text-sm font-bold text-[color:var(--gf-accent-ink)]"
             aria-hidden="true"
@@ -132,10 +132,10 @@ export function AssistantPanel({
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-[color:var(--gf-ink)]">
+            <p className="truncate text-sm font-semibold text-ink">
               Asistente GrootFolio
             </p>
-            <p className="flex items-center gap-1.5 text-xs text-[color:var(--gf-ink-3)]">
+            <p className="flex items-center gap-1.5 text-xs text-ink-3">
               <i className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" aria-hidden="true" />
               En línea
             </p>

@@ -51,17 +51,17 @@ export function SuggestionCards({ onPick }: { onPick: (question: string) => void
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <h3 className="text-base font-semibold text-[color:var(--gf-ink)]">
+        <h3 className="text-base font-semibold text-ink">
           {firstName ? `Hola ${firstName}` : 'Hola'}
         </h3>
-        <p className="text-sm leading-relaxed text-[color:var(--gf-ink-2)]">
+        <p className="text-sm leading-relaxed text-ink-2">
           Puedo ayudarte con el uso de GrootFolio y con los temas de inversión que documentamos.
           Si algo no está documentado, te lo digo — no lo invento.
         </p>
       </div>
 
       <div className="space-y-2">
-        <p className="text-[10.5px] font-medium uppercase tracking-wide text-[color:var(--gf-ink-3)]">
+        <p className="text-[10.5px] font-medium uppercase tracking-wide text-ink-3">
           Empezá por acá
         </p>
         {SUGGESTIONS.map((suggestion) => (
@@ -69,14 +69,14 @@ export function SuggestionCards({ onPick }: { onPick: (question: string) => void
             key={suggestion.question}
             type="button"
             onClick={() => onPick(suggestion.question)}
-            className="flex w-full items-center gap-3 rounded-[12px] border border-[color:var(--gf-border)] bg-[color:var(--gf-surface)] px-3 py-2.5 text-left transition-colors hover:border-[color:var(--gf-accent)]"
+            className="flex w-full items-center gap-3 rounded-[12px] border border-line bg-surface px-3 py-2.5 text-left transition-colors hover:border-[color:var(--gf-accent)]"
           >
             <SuggestionIcon kind={suggestion.icon} />
             <span className="min-w-0">
-              <strong className="block truncate text-sm font-medium text-[color:var(--gf-ink)]">
+              <strong className="block truncate text-sm font-medium text-ink">
                 {suggestion.question}
               </strong>
-              <small className="block truncate text-xs text-[color:var(--gf-ink-3)]">
+              <small className="block truncate text-xs text-ink-3">
                 {suggestion.hint}
               </small>
             </span>
