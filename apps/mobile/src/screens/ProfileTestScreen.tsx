@@ -31,7 +31,7 @@ const OPTION_SOFT = 'rgba(249,115,22,0.10)'
 
 export function ProfileTestScreen() {
   const { theme } = useTheme()
-  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Main'>>()
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, 'ProfileTest'>>()
   const result = useQuizResult()
   const { data: questions, isLoading, isError, error, refetch } = useQuiz()
   const submitQuiz = useSubmitQuiz()
@@ -76,7 +76,7 @@ export function ProfileTestScreen() {
               {result.data.description}
             </Text>
           </View>
-          <TouchableOpacity style={[s.btnPrimary, { backgroundColor: theme.brand.solid }]} onPress={() => nav.getParent()?.navigate('ProfileResult')}>
+          <TouchableOpacity style={[s.btnPrimary, { backgroundColor: theme.brand.solid }]} onPress={() => nav.navigate('ProfileResult')}>
             <Text style={{ color: theme.text.onBrand, fontWeight: '700' }}>Ver detalle</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -106,7 +106,7 @@ export function ProfileTestScreen() {
     }
     const answers = questions.map((q) => ({ questionId: q.id, optionId: selected[q.id]! }))
     submitQuiz.mutate(answers, {
-      onSuccess: () => nav.getParent()?.navigate('ProfileResult'),
+      onSuccess: () => nav.navigate('ProfileResult'),
     })
   }
 

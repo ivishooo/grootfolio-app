@@ -11,19 +11,13 @@ appId: host.exp.Exponent
 - runFlow:
     when:
       visible:
-        id: 'tab-ajustes'
+        id: 'header-cuenta'
     commands:
+      # «Cerrar sesión» está en el menú de la cuenta (avatar del header).
       - tapOn:
-          id: 'tab-ajustes'
-      # "Cerrar sesión" vive al fondo de Configuración, debajo del fold en un
-      # iPhone 17 Pro: hay que scrollear, no basta con esperarlo.
-      - scrollUntilVisible:
-          element:
-            id: 'settings-logout'
-          direction: DOWN
-          timeout: 20000
+          id: 'header-cuenta'
       - tapOn:
-          id: 'settings-logout'
+          id: 'menu-salir'
 - extendedWaitUntil:
     visible:
       id: 'login-email'

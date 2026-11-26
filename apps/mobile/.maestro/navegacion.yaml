@@ -1,7 +1,8 @@
-# Recorre las seis pestañas y comprueba que cada una monta su pantalla.
+# Recorre las 5 pestañas (Inicio, Activos, Cargar, Reportes, Aprender) y el
+# menú de la cuenta, y comprueba que cada destino monta su pantalla.
 #
 # Selecciona por testID y no por el texto del tab: iOS expone los tabs como
-# "Activos, tab, 2 of 6", así que cualquier selector por texto se rompe con un
+# "Activos, tab, 2 of 5", así que cualquier selector por texto se rompe con un
 # cambio de copy o de orden.
 appId: host.exp.Exponent
 tags: [smoke]
@@ -22,23 +23,42 @@ tags: [smoke]
     timeout: 20000
 
 - tapOn:
-    id: 'tab-contenidos'
+    id: 'tab-aprender'
 - extendedWaitUntil:
     visible:
       id: 'content-search'
     timeout: 20000
 
+# «Cargar» no es una pantalla de las tabs: abre AddAsset en el stack.
 - tapOn:
-    id: 'tab-perfil'
+    id: 'tab-cargar'
+- extendedWaitUntil:
+    visible: 'Cargar activo'
+    timeout: 20000
+# En iOS `back` no hace nada: se vuelve con el botón de la pantalla.
+- tapOn:
+    id: 'addasset-volver'
+
+# Perfil de inversor y Configuración se abren desde el menú del avatar.
+- tapOn:
+    id: 'header-cuenta'
+- tapOn:
+    id: 'menu-perfil'
 - extendedWaitUntil:
     visible: 'Test de Perfil'
     timeout: 20000
+- tapOn:
+    id: 'header-volver'
 
 - tapOn:
-    id: 'tab-ajustes'
+    id: 'header-cuenta'
+- tapOn:
+    id: 'menu-ajustes'
 - extendedWaitUntil:
     visible: 'Configuración'
     timeout: 20000
+- tapOn:
+    id: 'header-volver'
 
 - tapOn:
     id: 'tab-inicio'

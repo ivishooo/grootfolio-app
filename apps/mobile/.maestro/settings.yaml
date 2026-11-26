@@ -7,8 +7,11 @@ appId: host.exp.Exponent
 tags: [smoke]
 ---
 - runFlow: _login.yaml
+# Configuración ya no es una tab: se abre desde el menú del avatar.
 - tapOn:
-    id: 'tab-ajustes'
+    id: 'header-cuenta'
+- tapOn:
+    id: 'menu-ajustes'
 - extendedWaitUntil:
     visible: 'Configuración'
     timeout: 20000
@@ -20,19 +23,22 @@ tags: [smoke]
     direction: DOWN
     timeout: 20000
 # Scrollear hasta el título de la sección deja el control debajo del fold: la
-# jerarquía igual lo reporta, así que el tap "funciona" pero cae sobre el tab
-# bar y termina cambiando de pestaña. `centerElement` lo trae al medio.
+# jerarquía igual lo reporta, así que el tap "funciona" pero cae fuera de
+# pantalla. `centerElement` lo trae al medio.
 - scrollUntilVisible:
-    element: 'Cambiar tema'
+    element:
+      id: 'tema-dark'
     direction: DOWN
     centerElement: true
     timeout: 20000
-# El toggle de tema es idempotente: lo tocamos dos veces para dejar la app como
-# estaba y no ensuciar el estado de los flows que corran después.
-- tapOn: 'Cambiar tema'
+# Pasamos a Oscuro y volvemos a Sistema (el default) para no ensuciar el estado
+# de los flows que corran después.
+- tapOn:
+    id: 'tema-dark'
 - waitForAnimationToEnd:
     timeout: 4000
-- tapOn: 'Cambiar tema'
+- tapOn:
+    id: 'tema-system'
 - waitForAnimationToEnd:
     timeout: 4000
 

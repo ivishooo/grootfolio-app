@@ -11,13 +11,18 @@ import { AdminContentScreen } from '@/screens/AdminContentScreen'
 import { AdminKbScreen } from '@/screens/AdminKbScreen'
 import { NotificationsScreen } from '@/screens/NotificationsScreen'
 import { AccountSuspendedScreen } from '@/screens/AccountSuspendedScreen'
+import { ProfileTestScreen } from '@/screens/ProfileTestScreen'
+import { SettingsScreen } from '@/screens/SettingsScreen'
 import { Assistant } from '@/components/assistant/Assistant'
 import { TabNavigator } from './TabNavigator'
+import { AppHeader } from './AppHeader'
 
 export type RootStackParamList = {
   Login: undefined
   Main: undefined
   ProfileResult: undefined
+  ProfileTest: undefined
+  Settings: undefined
   AddAsset: undefined
   AdminUsers: undefined
   AdminUserDetail: { id: string }
@@ -32,7 +37,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>()
 /**
  * Las tabs con el launcher del asistente encima. Va acá y no dentro de una
  * pantalla para que la burbuja acompañe a todas las tabs, y no aparezca en
- * pantallas empujadas como "Cargar activo".
+ * pantallas empujadas como "Cargar activo". Perfil de inversor y Configuración
+ * ya no son tabs (ADR-0006): se abren desde el menú del avatar.
  */
 function MainWithAssistant() {
   return (
@@ -65,10 +71,16 @@ export function RootNavigator() {
           <Stack.Screen name="Main" component={MainWithAssistant} />
           <Stack.Screen name="ProfileResult" component={ProfileResultScreen} />
           <Stack.Screen name="AddAsset" component={AddAssetScreen} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: true, title: 'Notificaciones' }} />
-          <Stack.Screen name="AdminUsers" component={AdminUsersScreen} options={{ headerShown: true, title: 'Usuarios' }} />
-          <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} options={{ headerShown: true, title: 'Detalle' }} />
-          <Stack.Screen name="AdminContent" component={AdminContentScreen} options={{ headerShown: true, title: 'Gestión de contenidos' }} />
+          {/* Pantallas secundarias: header de la app con «‹ {pantalla anterior}». */}
+          <Stack.Group screenOptions={{ headerShown: true, header: () => <AppHeader back /> }}>
+            <Stack.Screen name="ProfileTest" component={ProfileTestScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+            <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} />
+            <Stack.Screen name="AdminContent" component={AdminContentScreen} />
+          </Stack.Group>
+          {/* Sin título propio en la pantalla: conserva el header nativo con título. */}
           <Stack.Screen name="AdminKb" component={AdminKbScreen} options={{ headerShown: true, title: 'Base de conocimiento' }} />
         </>
       ) : (

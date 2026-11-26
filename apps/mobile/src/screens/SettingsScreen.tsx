@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import * as ImagePicker from 'expo-image-picker'
-import { useTheme } from '@/theme/ThemeProvider'
+import { useTheme, type ThemePreference } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
 import { SUPPORTED_CURRENCIES, currencyLabels, formatCurrency } from '@grootfolio/shared'
 import type { SupportedCurrency } from '@grootfolio/shared'
@@ -72,8 +72,49 @@ function ProfileCard() {
   )
 }
 
+const THEME_OPTIONS: ReadonlyArray<{ value: ThemePreference; label: string }> = [
+  { value: 'light', label: 'Claro' },
+  { value: 'dark', label: 'Oscuro' },
+  { value: 'system', label: 'Sistema' },
+]
+
+/** Segmentado del SPEC: contenedor muted, padding 3, radio 10; la opción activa en surface. */
+function ThemeSegmented() {
+  const { theme, preference, setPreference } = useTheme()
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel="Tema" style={{ flexDirection: 'row', gap: 3, padding: 3, borderRadius: 10, backgroundColor: theme.background.muted, marginTop: 10 }}>
+      {THEME_OPTIONS.map(({ value, label }) => {
+        const on = preference === value
+        return (
+          <TouchableOpacity
+            key={value}
+            testID={`tema-${value}`}
+            onPress={() => setPreference(value)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: on }}
+            style={{
+              flex: 1,
+              height: 42,
+              borderRadius: 8,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: on ? theme.background.surface : 'transparent',
+              shadowColor: '#0F172A',
+              shadowOpacity: on ? 0.12 : 0,
+              shadowRadius: 1,
+              shadowOffset: { width: 0, height: 1 },
+            }}
+          >
+            <Text style={{ color: on ? theme.text.primary : theme.text.muted, fontSize: 14, fontWeight: '600' }}>{label}</Text>
+          </TouchableOpacity>
+        )
+      })}
+    </View>
+  )
+}
+
 export function SettingsScreen() {
-  const { theme, themeName, toggleTheme } = useTheme()
+  const { theme } = useTheme()
   const { user, updateUser, logout } = useAuth()
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const { toast } = useToast()
@@ -137,20 +178,10 @@ export function SettingsScreen() {
         <View style={s.row}>
           <View style={{ flex: 1 }}>
             <Text style={[s.label, { color: theme.text.primary }]}>Tema</Text>
-            <Text style={[s.hint, { color: theme.text.muted }]}>Elegí el modo visual de la aplicación</Text>
+            <Text style={[s.hint, { color: theme.text.muted }]}>«Sistema» sigue la configuración del teléfono.</Text>
           </View>
-          <TouchableOpacity
-            onPress={toggleTheme}
-            accessibilityRole="button"
-            accessibilityLabel="Cambiar tema"
-            accessibilityState={{ selected: themeName === 'dark' }}
-            style={[s.pill, { borderColor: theme.border.default }]}
-          >
-            <Text style={{ color: theme.text.primary, fontWeight: '600' }}>
-              {themeName === 'light' ? '☀ Claro' : '☾ Oscuro'}
-            </Text>
-          </TouchableOpacity>
         </View>
+        <ThemeSegmented />
       </View>
 
       {/* Preferencias */}

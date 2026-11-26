@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTheme } from '@/theme/ThemeProvider'
+import { useTheme, type ThemePreference } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
 import { SUPPORTED_CURRENCIES, currencyLabels, formatCurrency } from '@grootfolio/shared'
 import type { SupportedCurrency } from '@grootfolio/shared'
@@ -163,8 +163,39 @@ function CurrencySection() {
   )
 }
 
+const THEME_OPTIONS: ReadonlyArray<{ value: ThemePreference; label: string }> = [
+  { value: 'light', label: 'Claro' },
+  { value: 'dark', label: 'Oscuro' },
+  { value: 'system', label: 'Sistema' },
+]
+
+/** Segmentado del SPEC: contenedor muted, padding 3, radio 10; la opción activa en surface. */
+function ThemeSegmented() {
+  const { preference, setPreference } = useTheme()
+  return (
+    <div role="radiogroup" aria-labelledby="theme-label" className="flex gap-[3px] rounded-[10px] bg-muted p-[3px]">
+      {THEME_OPTIONS.map(({ value, label }) => {
+        const on = preference === value
+        return (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => setPreference(value)}
+            className={`h-[34px] rounded-lg px-3.5 text-[13px] font-semibold transition-colors ${
+              on ? 'bg-surface text-ink shadow-[0_1px_2px_rgba(15,23,42,.12)]' : 'text-ink-3 hover:text-ink'
+            }`}
+          >
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function SettingsPage() {
-  const { theme: themeName, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -182,19 +213,12 @@ export function SettingsPage() {
       {/* Apariencia */}
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <h3 className="text-lg font-semibold mb-4">Apariencia</h3>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium">Tema</p>
-            <p className="text-xs text-neutral-500">Seleccioná el modo visual de la aplicación</p>
+            <p id="theme-label" className="text-sm font-medium">Tema</p>
+            <p className="text-xs text-ink-3">«Sistema» sigue la configuración de tu dispositivo.</p>
           </div>
-          <button
-            onClick={toggleTheme}
-            aria-label="Cambiar tema"
-            aria-pressed={themeName === 'dark'}
-            className="flex items-center gap-2 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-          >
-            {themeName === 'light' ? '☀ Claro' : '☾ Oscuro'}
-          </button>
+          <ThemeSegmented />
         </div>
       </section>
 

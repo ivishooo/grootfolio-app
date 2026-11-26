@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Assistant } from '@/components/assistant/Assistant'
-import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
 import { useNotifications } from '@/lib/queries'
 import { UserMenu } from './UserMenu'
@@ -9,12 +8,26 @@ import { Logo } from './Logo'
 import { NotificationBell } from './NotificationBell'
 import { useIsDesktop } from '@/lib/useMediaQuery'
 
-/* Iconos de línea del sidebar (rediseño GF). Heredan currentColor. */
-function Svg({ children }: { children: React.ReactNode }) {
+/* Iconos de línea del sidebar (rediseño v2). Heredan currentColor. Las paths
+   son las del prototipo (`P` en GrootFolio Rediseño.dc.html). */
+const ICON_PATHS = {
+  inicio: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
+  activos: 'M3 6h18v13H3zM3 10h18M15.4 13.5a1.1 1.1 0 1 0 2.2 0a1.1 1.1 0 1 0-2.2 0',
+  reportes: 'M4 20h16M6 11h3v7H6zM10.5 7h3v11h-3zM15 13h3v5h-3z',
+  aprender: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  perfil: 'M5 4h14v17H5zM9 4h6v2.5H9zM8.8 13l1.8 1.8L14 11.2',
+  ajustes:
+    'M4 8h9M13.8 8a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0-4.4 0M4 16h4M8.8 16a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0-4.4 0M15 16h5',
+  usuarios: 'M5.8 8a3.2 3.2 0 1 0 6.4 0a3.2 3.2 0 1 0-6.4 0M3.5 20a5.5 5.5 0 0 1 11 0M16 5.2a3 3 0 0 1 0 5.6M17.5 20a5.5 5.5 0 0 0-3-4.9',
+  subir: 'M12 15V4M8 8l4-4 4 4M5 19h14',
+  kb: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z',
+} as const
+
+function NavIcon({ name, size = 18 }: { name: keyof typeof ICON_PATHS; size?: number }) {
   return (
     <svg
-      width="18"
-      height="18"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -22,106 +35,61 @@ function Svg({ children }: { children: React.ReactNode }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className="shrink-0"
+      aria-hidden="true"
     >
-      {children}
+      <path d={ICON_PATHS[name]} />
     </svg>
   )
 }
 
-const DashboardIcon = () => (
-  <Svg>
-    <rect x="3" y="3" width="7" height="7" rx="1.5" />
-    <rect x="14" y="3" width="7" height="7" rx="1.5" />
-    <rect x="3" y="14" width="7" height="7" rx="1.5" />
-    <rect x="14" y="14" width="7" height="7" rx="1.5" />
-  </Svg>
-)
-const AssetsIcon = () => (
-  <Svg>
-    <rect x="3" y="6" width="18" height="13" rx="2" />
-    <path d="M3 10h18" />
-    <circle cx="16.5" cy="13.5" r="1.1" />
-  </Svg>
-)
-const ReportsIcon = () => (
-  <Svg>
-    <path d="M4 20h16" />
-    <rect x="6" y="11" width="3" height="7" rx="1" />
-    <rect x="10.5" y="7" width="3" height="11" rx="1" />
-    <rect x="15" y="13" width="3" height="5" rx="1" />
-  </Svg>
-)
-const QuizIcon = () => (
-  <Svg>
-    <rect x="5" y="4" width="14" height="17" rx="2" />
-    <path d="M9 4h6v2.5H9z" />
-    <path d="M8.8 13l1.8 1.8L14 11.2" />
-  </Svg>
-)
-const SettingsIcon = () => (
-  <Svg>
-    <path d="M4 8h9" />
-    <circle cx="16" cy="8" r="2.2" />
-    <path d="M4 16h4" />
-    <circle cx="11" cy="16" r="2.2" />
-    <path d="M15 16h5" />
-  </Svg>
-)
+type NavItem = { to: string; label: string; icon: keyof typeof ICON_PATHS }
 
-const UsersIcon = () => (
-  <Svg>
-    <circle cx="9" cy="8" r="3.2" />
-    <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
-    <path d="M16 5.2a3 3 0 0 1 0 5.6" />
-    <path d="M17.5 20a5.5 5.5 0 0 0-3-4.9" />
-  </Svg>
-)
-const UploadIcon = () => (
-  <Svg>
-    <path d="M12 15V4" />
-    <path d="M8 8l4-4 4 4" />
-    <path d="M5 19h14" />
-  </Svg>
-)
+const NAV_MAIN: readonly NavItem[] = [
+  { to: '/dashboard', label: 'Inicio', icon: 'inicio' },
+  { to: '/assets', label: 'Activos', icon: 'activos' },
+  { to: '/reports', label: 'Reportes', icon: 'reportes' },
+  { to: '/content', label: 'Aprender', icon: 'aprender' },
+]
 
-const ContentIcon = () => (
-  <Svg>
-    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-  </Svg>
-)
+const NAV_SECONDARY: readonly NavItem[] = [
+  { to: '/profile-test', label: 'Perfil de inversor', icon: 'perfil' },
+  { to: '/settings', label: 'Configuración', icon: 'ajustes' },
+]
 
-const KbIcon = () => (
-  <Svg>
-    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-  </Svg>
-)
+const NAV_ADMIN: readonly NavItem[] = [
+  { to: '/admin/users', label: 'Usuarios', icon: 'usuarios' },
+  { to: '/admin/content', label: 'Gestión de contenidos', icon: 'subir' },
+  { to: '/admin/kb', label: 'Base de conocimiento', icon: 'kb' },
+]
 
-const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', Icon: DashboardIcon },
-  { to: '/assets', label: 'Activos', Icon: AssetsIcon },
-  { to: '/reports', label: 'Reportes', Icon: ReportsIcon },
-  { to: '/content', label: 'Contenidos', Icon: ContentIcon },
-  { to: '/profile-test', label: 'Test de Perfil', Icon: QuizIcon },
-  { to: '/settings', label: 'Configuración', Icon: SettingsIcon },
-] as const
+/** Nombre de cada ruta para la miga del header («Inicio / Activos»). */
+const CRUMBS: ReadonlyArray<[prefix: string, label: string]> = [
+  ['/assets/new', 'Cargar activo'],
+  ['/assets', 'Activos'],
+  ['/reports', 'Reportes'],
+  ['/content', 'Aprender'],
+  ['/profile-test', 'Perfil de inversor'],
+  ['/settings', 'Configuración'],
+  ['/admin/users', 'Usuarios'],
+  ['/admin/content', 'Gestión de contenidos'],
+  ['/admin/kb', 'Base de conocimiento'],
+]
 
-const ADMIN_ITEMS = [
-  { to: '/admin/users', label: 'Usuarios', Icon: UsersIcon },
-  { to: '/admin/content', label: 'Gestión de contenidos', Icon: UploadIcon },
-  { to: '/admin/kb', label: 'Base de conocimiento', Icon: KbIcon },
-] as const
+function crumbFor(pathname: string): string {
+  const hit = CRUMBS.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+  return hit ? `Inicio  /  ${hit[1]}` : 'Inicio'
+}
 
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
-    isActive
-      ? 'bg-brand-500 font-medium text-white'
-      : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800'
-  }`
+// Ítem activo: fondo brand.subtle y texto brand.ink en 600 (ya no naranja sólido).
+const navLinkClass = (secondary: boolean) => ({ isActive }: { isActive: boolean }) =>
+  `flex items-center gap-[11px] rounded-[9px] px-3 transition-colors ${
+    secondary ? 'h-[38px] text-[13.5px]' : 'h-10 text-sm'
+  } ${isActive ? 'bg-brand-subtle font-semibold text-brand-ink' : 'font-medium text-ink-2 hover:bg-muted'}`
 
 export function AppLayout() {
-  const { theme: themeName, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { data: notif } = useNotifications()
   const unread = notif?.unreadCount ?? 0
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -158,71 +126,72 @@ export function AppLayout() {
     navigate('/login')
   }
 
-  return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      {/* Backdrop (mobile drawer) */}
-      {drawerOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setDrawerOpen(false)}
-        />
+  const closeDrawer = () => setDrawerOpen(false)
+  const renderItem = ({ to, label, icon }: NavItem, secondary = false) => (
+    <NavLink key={to} to={to} onClick={closeDrawer} className={navLinkClass(secondary)}>
+      <NavIcon name={icon} size={secondary ? 17 : 18} />
+      <span className="flex-1">{label}</span>
+      {to === '/content' && unread > 0 && (
+        <span
+          className="grid h-5 min-w-5 place-items-center rounded-[10px] bg-brand-500 px-1.5 text-[11px] font-bold text-white"
+          aria-label={`${unread} sin leer`}
+        >
+          {unread}
+        </span>
       )}
+    </NavLink>
+  )
 
-      {/* Sidebar */}
+  return (
+    <div className="min-h-screen bg-canvas">
+      {/* Backdrop (mobile drawer) */}
+      {drawerOpen && <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={closeDrawer} />}
+
+      {/* Sidebar · 240 px */}
       <aside
         inert={drawerHidden}
         aria-label="Navegación principal"
-        className={`fixed left-0 top-0 z-50 flex h-screen w-[240px] flex-col border-r border-neutral-200 bg-white transition-transform duration-200 dark:border-neutral-800 dark:bg-neutral-900 ${
+        className={`fixed left-0 top-0 z-50 flex h-screen w-[240px] flex-col border-r border-line bg-surface transition-transform duration-200 ${
           drawerOpen ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0`}
       >
-        {/* Logo */}
-        <div className="flex items-center px-5 py-4">
-          <Logo variant="lockup" size={28} />
+        <div className="flex items-center px-5 pb-3.5 pt-[18px]">
+          <Logo variant="lockup" size={30} />
         </div>
 
-        {/* Nav */}
-        <nav className="mt-2 flex-1 space-y-1 overflow-y-auto px-3">
-          {NAV_ITEMS.map(({ to, label, Icon }) => (
-            <NavLink key={to} to={to} onClick={() => setDrawerOpen(false)} className={navLinkClass}>
-              <Icon />
-              <span className="flex-1">{label}</span>
-              {to === '/content' && unread > 0 && (
-                <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white" style={{ background: '#F97316' }}>
-                  {unread}
-                </span>
-              )}
-            </NavLink>
-          ))}
+        <div className="px-3 pb-3 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              closeDrawer()
+              navigate('/assets/new')
+            }}
+            className="flex h-10 w-full items-center justify-center gap-[7px] rounded-[10px] bg-brand-500 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Cargar activo
+          </button>
+        </div>
+
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3">
+          {NAV_MAIN.map((item) => renderItem(item))}
+          <div className="mx-1 my-2.5 h-px bg-line" />
+          {NAV_SECONDARY.map((item) => renderItem(item, true))}
 
           {user?.role === 'admin' && (
-            <div className="pt-4">
-              <p
-                className="px-3 pb-1.5 font-semibold uppercase text-neutral-400"
-                style={{ fontSize: '10.5px', letterSpacing: '0.09em' }}
-              >
+            <>
+              <p className="px-3 pb-1.5 pt-3.5 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-ink-3">
                 Administración
               </p>
-              {ADMIN_ITEMS.map(({ to, label, Icon }) => (
-                <NavLink key={to} to={to} onClick={() => setDrawerOpen(false)} className={navLinkClass}>
-                  <Icon />
-                  {label}
-                </NavLink>
-              ))}
-            </div>
+              {NAV_ADMIN.map((item) => renderItem(item, true))}
+            </>
           )}
         </nav>
 
-        {/* User info at bottom with menu */}
-        <div className="relative border-t border-neutral-200 px-4 py-3 dark:border-neutral-700">
-          {user?.role === 'admin' && (
-            <span
-              className="mb-2 inline-block rounded-md px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide"
-              style={{ color: '#8B5CF6', background: 'rgba(139,92,246,0.14)' }}
-            >
-              Admin
-            </span>
-          )}
+        {/* El usuario, abajo. El menú tiene «Cerrar sesión». */}
+        <div className="relative border-t border-line px-4 py-3">
           <UserMenu
             user={user}
             open={sidebarMenuOpen}
@@ -235,30 +204,18 @@ export function AppLayout() {
 
       {/* Main area */}
       <div className="flex min-h-screen flex-col md:ml-[240px]">
-        {/* Header */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-neutral-200 bg-white/80 px-4 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/80 md:px-8">
-          <div className="flex items-center gap-3">
-            <button
-              className="grid h-8 w-8 place-items-center rounded-lg text-xl hover:bg-neutral-100 dark:hover:bg-neutral-800 md:hidden"
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Abrir menú"
-            >
-              ☰
-            </button>
-            <h1 className="text-lg font-bold">GrootFolio</h1>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <NotificationBell />
-            <button
-              onClick={toggleTheme}
-              className="grid h-8 w-8 place-items-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
-              aria-label="Cambiar tema"
-              aria-pressed={themeName === 'dark'}
-            >
-              {themeName === 'light' ? '☀' : '☾'}
-            </button>
-          </div>
+        {/* Header · 60 px: miga a la izquierda, campana a la derecha. El tema
+            vive en Configuración. */}
+        <header className="sticky top-0 z-30 flex h-[60px] items-center gap-3 border-b border-line bg-surface px-4 md:px-7">
+          <button
+            className="grid h-10 w-10 place-items-center rounded-[10px] text-xl hover:bg-muted md:hidden"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Abrir menú"
+          >
+            ☰
+          </button>
+          <p className="min-w-0 flex-1 truncate whitespace-pre text-[13px] text-ink-3">{crumbFor(pathname)}</p>
+          <NotificationBell />
         </header>
 
         {/* Content */}
