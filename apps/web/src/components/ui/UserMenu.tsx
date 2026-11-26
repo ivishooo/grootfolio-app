@@ -33,14 +33,16 @@ export function UserMenu({ user, open, onToggle, onLogout, position = 'bottom' }
     <div ref={ref} className="relative">
       <button
         onClick={onToggle}
-        className="flex w-full items-center gap-2 rounded-lg px-1 py-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+        aria-expanded={open}
+        aria-label={`Cuenta de ${displayName}`}
+        className="flex w-full items-center gap-2.5 rounded-lg px-1 py-1 hover:bg-muted"
       >
-        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-600 dark:bg-brand-500/20 dark:text-brand-400">
+        <div className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full bg-brand-subtle text-[13px] font-bold text-brand-ink">
           {initials}
         </div>
         <div className="min-w-0 text-left">
-          <p className="truncate text-sm font-medium">{displayName}</p>
-          <p className="truncate text-xs text-neutral-500">{user?.email ?? ''}</p>
+          <p className="truncate text-[13px] font-semibold">{displayName}</p>
+          <p className="truncate text-[11.5px] text-ink-3">{user?.email ?? ''}</p>
         </div>
       </button>
 
@@ -57,7 +59,7 @@ export function UserMenu({ user, open, onToggle, onLogout, position = 'bottom' }
             onClick={onLogout}
             className="w-full rounded-md px-2 py-1.5 text-left text-sm text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-500/15"
           >
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </div>
       )}

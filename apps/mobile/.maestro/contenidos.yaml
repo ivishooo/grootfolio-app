@@ -4,7 +4,7 @@ appId: host.exp.Exponent
 ---
 - runFlow: _login.yaml
 - tapOn:
-    id: 'tab-contenidos'
+    id: 'tab-aprender'
 - extendedWaitUntil:
     visible:
       id: 'content-search'

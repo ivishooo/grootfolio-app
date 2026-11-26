@@ -21,9 +21,9 @@ tags: [smoke]
 # diálogo del sistema: tapa la app y se come los taps hasta que se responde.
 - runFlow:
     when:
-      visible: '¿Guardar contraseña?'
+      visible: '¿Guardar contraseña\?|Save Password\?'
     commands:
-      - tapOn: 'Ahora no'
+      - tapOn: 'Ahora no|Not Now'
 # El Dashboard no está listo cuando aparece el título, sino cuando llegaron los
 # datos del portafolio: por eso esperamos la tarjeta, no el encabezado.
 - extendedWaitUntil:

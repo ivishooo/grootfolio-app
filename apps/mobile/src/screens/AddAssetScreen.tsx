@@ -148,10 +148,10 @@ export function AddAssetScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Screen>
+      <Screen safeTop>
         <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: ASSISTANT_SAFE_BOTTOM }} keyboardShouldPersistTaps="handled">
           <View>
-            <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={6}>
+            <TouchableOpacity testID="addasset-volver" onPress={() => navigation.goBack()} hitSlop={6}>
               <Text style={{ color: theme.text.secondary, fontSize: 13 }}>← Volver</Text>
             </TouchableOpacity>
             <Text style={{ color: theme.text.primary, fontSize: 22, fontWeight: '800', marginTop: 6 }}>Cargar activo</Text>

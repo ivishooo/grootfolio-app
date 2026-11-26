@@ -9,11 +9,11 @@ nativo configurado ni `expo prebuild` para iterar, y funciona bien con Expo.
 | --- | --- |
 | `login.yaml` | Login del usuario dev hasta ver el Dashboard con datos. |
 | `login-invalido.yaml` | Credenciales incorrectas: se queda en el login y explica el error. |
-| `navegacion.yaml` | Las seis pestañas montan su pantalla. |
+| `navegacion.yaml` | Las 5 pestañas y el menú de la cuenta montan su pantalla. |
 | `activos.yaml` | Lista de posiciones + alta y cancelación. |
 | `contenidos.yaml` | Búsqueda sin resultados en la biblioteca. |
 | `asistente.yaml` | La burbuja del asistente abre el panel. |
-| `settings.yaml` | Perfil, toggle de tema y cierre de sesión. |
+| `settings.yaml` | Perfil, tema (Claro / Oscuro / Sistema) y cierre de sesión. |
 
 Los archivos que empiezan con `_` son subflows, no tests:
 

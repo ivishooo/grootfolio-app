@@ -23,9 +23,9 @@ appId: host.exp.Exponent
       # Ver login.yaml: el diálogo del Llavero de iOS tapa la app tras entrar.
       - runFlow:
           when:
-            visible: '¿Guardar contraseña?'
+            visible: '¿Guardar contraseña\?|Save Password\?'
           commands:
-            - tapOn: 'Ahora no'
+            - tapOn: 'Ahora no|Not Now'
 - extendedWaitUntil:
     visible:
       id: 'tab-inicio'

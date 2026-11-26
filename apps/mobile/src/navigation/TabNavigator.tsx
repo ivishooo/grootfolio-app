@@ -1,53 +1,77 @@
-import { Text } from 'react-native'
+import { Text, View } from 'react-native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import Svg, { Path } from 'react-native-svg'
 import { useTheme } from '../theme/ThemeProvider'
-import { brand } from '@grootfolio/tokens'
 import { useNotifications } from '@/lib/queries'
 import { DashboardScreen } from '../screens/DashboardScreen'
 import { AssetsScreen } from '../screens/AssetsScreen'
 import { ReportsScreen } from '../screens/ReportsScreen'
 import { ContentLibraryScreen } from '../screens/ContentLibraryScreen'
-import { ProfileTestScreen } from '../screens/ProfileTestScreen'
-import { SettingsScreen } from '../screens/SettingsScreen'
-import { DashboardIcon, AssetsIcon, ReportsIcon, ContentIcon, QuizIcon, SettingsIcon } from '../components/ui/icons'
+import { DashboardIcon, AssetsIcon, ReportsIcon, ContentIcon } from '../components/ui/icons'
 import { AppHeader } from './AppHeader'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { RootStackParamList } from './RootNavigator'
 
+/**
+ * Navegación de 5 destinos (ADR-0006): Inicio, Activos, Cargar, Reportes y
+ * Aprender. Perfil de inversor, Configuración y Administración se abren desde
+ * el menú del avatar (`AppHeader`) y viven en el stack de `RootNavigator`.
+ */
 export type TabParamList = {
   Dashboard: undefined
   Assets: undefined
+  /** No es una pantalla: el tab central abre `AddAsset` en el stack. */
+  AddAssetTab: undefined
   Reports: undefined
   Content: undefined
-  ProfileTest: undefined
-  Settings: undefined
 }
 
 const Tab = createBottomTabNavigator<TabParamList>()
 
-/**
- * Label del tab que se encoge en vez de cortarse.
- *
- * Con seis pestañas en 375 px cada una tiene ~62 px, y "Contenidos" (el label
- * más largo) salía como "Contenid…" aunque el resto entrara. Bajar el tamaño
- * global para el peor caso achica los cinco labels que sí entraban;
- * `adjustsFontSizeToFit` lo resuelve por pestaña.
- */
+/** El tab «Cargar» nunca se muestra: tocarlo navega a `AddAsset`. */
+function Empty() {
+  return <View />
+}
+
+/** Label de 11 / 600. Con 5 tabs en 375 px entran todos sin achicarse. */
 function TabLabel({ label, color, testID }: { label: string; color: string; testID: string }) {
   return (
-    <Text
-      testID={testID}
-      numberOfLines={1}
-      adjustsFontSizeToFit
-      minimumFontScale={0.8}
-      allowFontScaling={false}
-      style={{ fontSize: 10, fontWeight: '600', color, textAlign: 'center' }}
-    >
+    <Text testID={testID} numberOfLines={1} allowFontScaling={false} style={{ fontSize: 11, fontWeight: '600', color, textAlign: 'center' }}>
       {label}
     </Text>
   )
 }
 
+/** Botón central: 44×44, radio 14, «+» blanco de trazo 2,4, levantado 14 px. */
+function CargarIcon({ solid }: { solid: string }) {
+  return (
+    <View
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        marginTop: -14,
+        backgroundColor: solid,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#F97316',
+        shadowOpacity: 0.4,
+        shadowRadius: 7,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 6,
+      }}
+    >
+      <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+        <Path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth={2.4} strokeLinecap="round" />
+      </Svg>
+    </View>
+  )
+}
+
 export function TabNavigator() {
   const { theme } = useTheme()
+  const insets = useSafeAreaInsets()
   const { data: notif } = useNotifications()
   const unread = notif?.unreadCount ?? 0
 
@@ -55,14 +79,15 @@ export function TabNavigator() {
     <Tab.Navigator
       screenOptions={{
         header: () => <AppHeader />,
-        tabBarActiveTintColor: brand[500],
+        tabBarActiveTintColor: theme.brand.ink,
         tabBarInactiveTintColor: theme.text.muted,
         tabBarStyle: {
           backgroundColor: theme.background.surface,
           borderTopColor: theme.border.default,
+          // 84 px en un iPhone con home indicator (50 + 34 de safe area).
+          height: 50 + insets.bottom,
+          paddingTop: 6,
         },
-        // El label lo renderiza <TabLabel/>, que se encoge por pestaña en vez de
-        // cortarse. Ver el comentario de ese componente.
         tabBarAllowFontScaling: false,
       }}
     >
@@ -70,49 +95,59 @@ export function TabNavigator() {
         name="Dashboard"
         component={DashboardScreen}
         options={{
-          tabBarLabel: ({ color }) => <TabLabel label="Inicio" color={color} testID="tab-inicio" />,
-          tabBarIcon: ({ color, size }) => <DashboardIcon color={color} size={size} />,
+          tabBarButtonTestID: 'tab-inicio',
+          tabBarAccessibilityLabel: 'Inicio',
+          tabBarLabel: ({ color }) => <TabLabel label="Inicio" color={color} testID="tab-inicio-label" />,
+          tabBarIcon: ({ color }) => <DashboardIcon color={color} size={24} />,
         }}
       />
       <Tab.Screen
         name="Assets"
         component={AssetsScreen}
         options={{
-          tabBarLabel: ({ color }) => <TabLabel label="Activos" color={color} testID="tab-activos" />,
-          tabBarIcon: ({ color, size }) => <AssetsIcon color={color} size={size} />,
+          tabBarButtonTestID: 'tab-activos',
+          tabBarAccessibilityLabel: 'Activos',
+          tabBarLabel: ({ color }) => <TabLabel label="Activos" color={color} testID="tab-activos-label" />,
+          tabBarIcon: ({ color }) => <AssetsIcon color={color} size={24} />,
+        }}
+      />
+      <Tab.Screen
+        name="AddAssetTab"
+        component={Empty}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault()
+            // `AddAsset` vive en el stack padre (RootNavigator), no en las tabs.
+            navigation.getParent<NativeStackNavigationProp<RootStackParamList>>()?.navigate('AddAsset')
+          },
+        })}
+        options={{
+          tabBarButtonTestID: 'tab-cargar',
+          tabBarAccessibilityLabel: 'Cargar activo',
+          tabBarLabel: ({ color }) => <TabLabel label="Cargar" color={color} testID="tab-cargar-label" />,
+          tabBarIcon: () => <CargarIcon solid={theme.brand.solid} />,
         }}
       />
       <Tab.Screen
         name="Reports"
         component={ReportsScreen}
         options={{
-          tabBarLabel: ({ color }) => <TabLabel label="Reportes" color={color} testID="tab-reportes" />,
-          tabBarIcon: ({ color, size }) => <ReportsIcon color={color} size={size} />,
+          tabBarButtonTestID: 'tab-reportes',
+          tabBarAccessibilityLabel: 'Reportes',
+          tabBarLabel: ({ color }) => <TabLabel label="Reportes" color={color} testID="tab-reportes-label" />,
+          tabBarIcon: ({ color }) => <ReportsIcon color={color} size={24} />,
         }}
       />
       <Tab.Screen
         name="Content"
         component={ContentLibraryScreen}
         options={{
-          tabBarLabel: ({ color }) => <TabLabel label="Contenidos" color={color} testID="tab-contenidos" />,
-          tabBarIcon: ({ color, size }) => <ContentIcon color={color} size={size} />,
+          tabBarButtonTestID: 'tab-aprender',
+          tabBarAccessibilityLabel: unread > 0 ? `Aprender, ${unread} sin leer` : 'Aprender',
+          tabBarLabel: ({ color }) => <TabLabel label="Aprender" color={color} testID="tab-aprender-label" />,
+          tabBarIcon: ({ color }) => <ContentIcon color={color} size={24} />,
           tabBarBadge: unread > 0 ? unread : undefined,
-        }}
-      />
-      <Tab.Screen
-        name="ProfileTest"
-        component={ProfileTestScreen}
-        options={{
-          tabBarLabel: ({ color }) => <TabLabel label="Perfil" color={color} testID="tab-perfil" />,
-          tabBarIcon: ({ color, size }) => <QuizIcon color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          tabBarLabel: ({ color }) => <TabLabel label="Ajustes" color={color} testID="tab-ajustes" />,
-          tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} />,
+          tabBarBadgeStyle: { backgroundColor: theme.brand.solid, color: '#fff', fontSize: 11, fontWeight: '700' },
         }}
       />
     </Tab.Navigator>

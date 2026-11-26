@@ -59,11 +59,14 @@ export function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label="Notificaciones"
-        className="relative grid h-8 w-8 place-items-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+        aria-label={unread > 0 ? `Notificaciones, ${unread} sin leer` : 'Notificaciones'}
+        aria-expanded={open}
+        className="relative grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-line bg-surface text-ink transition-colors hover:bg-muted"
       >
         <BellIcon />
-        {unread > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />}
+        {unread > 0 && (
+          <span className="absolute right-2 top-[7px] h-2 w-2 rounded-full border-2 border-surface bg-[#EF4444]" aria-hidden="true" />
+        )}
       </button>
 
       {open && (
@@ -74,7 +77,7 @@ export function NotificationBell() {
           <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
             <span className="font-semibold">Notificaciones</span>
             {unread > 0 && (
-              <button className="text-xs font-semibold text-brand-500 hover:underline" onClick={() => markAll.mutate()}>
+              <button className="text-xs font-semibold text-brand-ink hover:underline" onClick={() => markAll.mutate()}>
                 Marcar todas leídas
               </button>
             )}
