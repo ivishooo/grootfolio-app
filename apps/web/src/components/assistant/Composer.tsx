@@ -48,9 +48,9 @@ export function Composer({ onSend, isStreaming }: Props) {
   }
 
   return (
-    <footer className="border-t border-[color:var(--gf-line)] px-3 pb-3 pt-2">
+    <footer className="border-t border-line px-3 pb-3 pt-2">
       <form
-        className="flex items-end gap-2 rounded-[var(--gf-r-composer)] border border-[color:var(--gf-border)] bg-[color:var(--gf-surface)] p-1.5 focus-within:ring-2 focus-within:ring-brand-500/25"
+        className="flex items-end gap-2 rounded-[var(--gf-r-composer)] border border-line bg-surface p-1.5 focus-within:ring-2 focus-within:ring-brand-500/25"
         onSubmit={(e) => {
           e.preventDefault()
           submit()
@@ -71,7 +71,7 @@ export function Composer({ onSend, isStreaming }: Props) {
           placeholder="Preguntá sobre GrootFolio…"
           aria-label="Mensaje para el asistente"
           maxLength={1000}
-          className="max-h-[120px] flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-5 text-[color:var(--gf-ink)] placeholder:text-[color:var(--gf-ink-3)] focus:outline-none"
+          className="max-h-[120px] flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-5 text-ink placeholder:text-ink-3 focus:outline-none"
         />
 
         <button
@@ -79,7 +79,7 @@ export function Composer({ onSend, isStreaming }: Props) {
           disabled={!canSend}
           aria-label="Enviar mensaje"
           title="Enviar"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[color:var(--gf-accent-strong)] text-white transition-colors hover:bg-[color:var(--gf-accent-strong-hover)] disabled:cursor-not-allowed disabled:bg-[color:var(--gf-line)] disabled:text-[color:var(--gf-ink-3)]"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[color:var(--gf-accent-strong)] text-white transition-colors hover:bg-[color:var(--gf-accent-strong-hover)] disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-3"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
             <path d="M12 19V5M5 12l7-7 7 7" />
@@ -92,7 +92,7 @@ export function Composer({ onSend, isStreaming }: Props) {
         qué puede responder el bot aparece cuando ya está respondiendo, no antes
         de la primera pregunta.
       */}
-      <p className="mt-1.5 px-1 text-[10.5px] leading-4 text-[color:var(--gf-ink-3)]">
+      <p className="mt-1.5 px-1 text-[10.5px] leading-4 text-ink-3">
         Enter para enviar · Shift + Enter salto de línea
         <br />
         Respondo sobre GrootFolio y lo que el equipo documentó. No es

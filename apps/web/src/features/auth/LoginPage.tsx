@@ -80,7 +80,7 @@ export function LoginPage() {
           </Button>
           <p className="text-center text-sm text-neutral-500">
             ¿No tenés cuenta?{' '}
-            <Link to="/register" className="text-brand-500 hover:underline">
+            <Link to="/register" className="text-brand-ink hover:underline">
               Creála aquí
             </Link>
           </p>

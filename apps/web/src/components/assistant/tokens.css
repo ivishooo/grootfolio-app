@@ -1,7 +1,8 @@
 /**
- * Tokens del asistente (rediseño, PR 1). Sólo lo que el spec define y Tailwind
- * no cubre: geometría del panel, sombra específica y los neutros cálidos de la
- * referencia, que son distintos de la escala `neutral` del proyecto.
+ * Tokens del asistente. Sólo lo que Tailwind no cubre: geometría del panel,
+ * radios, sombra y los acentos propios. Los neutros (texto, bordes, superficie,
+ * burbuja de Groot) salen del preset de `@grootfolio/tokens` (`text-ink`,
+ * `border-line`, `bg-surface`, `bg-muted`), igual que el resto de la app.
  *
  * El acento NO se redefine: `--gf-accent` es #F97316, el mismo `brand[500]` que
  * ya usa toda la app. Duplicar la escala de marca sería crear un segundo sistema
@@ -33,22 +34,6 @@
    */
   --gf-accent-strong-hover: theme('colors.brand.800');
 
-  --gf-ink: #14161a;
-  --gf-ink-2: #4b5259;
-  /*
-   * El #8A9199 del spec da 3,19:1 sobre blanco: no llega al 4,5:1 que pide AA
-   * para texto chico, y acá viste el disclaimer (10,5 px), el placeholder y el
-   * "En línea". #6B7280 da 4,83:1 y se lee igual de secundario.
-   * En oscuro el problema no existe (el gris claro contra el panel oscuro
-   * sobra), así que `.dark` conserva el valor del spec.
-   */
-  --gf-ink-3: #6b7280;
-  --gf-line: #f0eee9;
-  --gf-border: #eae7e1;
-  --gf-bubble-bot: #f7f6f4;
-  --gf-bubble-bot-border: #efede8;
-  --gf-surface: #ffffff;
-
   --gf-panel-w: 400px;
   --gf-panel-h: 640px;
   --gf-r-panel: 18px;
@@ -62,14 +47,6 @@
 }
 
 .dark {
-  --gf-ink: #f5f5f4;
-  --gf-ink-2: #c8ccd1;
-  --gf-ink-3: #8a9199; /* 5,52:1 sobre el panel oscuro: AA */
-  --gf-line: #23262c;
-  --gf-border: #2c3037;
-  --gf-bubble-bot: #21242a;
-  --gf-bubble-bot-border: #2c3037;
-  --gf-surface: #17191d;
   --gf-accent-soft: rgba(249, 115, 22, 0.14);
   /*
    * En oscuro el acento como texto tiene que ir para el otro lado: sobre el
@@ -111,7 +88,7 @@
   height: 12px;
   border-radius: 999px;
   background: #16a34a;
-  border: 2.5px solid var(--gf-surface);
+  border: 2.5px solid var(--tk-surface);
 }
 
 /* --- Capa --- */
@@ -133,8 +110,8 @@
   height: min(var(--gf-panel-h), 88vh);
   display: flex;
   flex-direction: column;
-  background: var(--gf-surface);
-  border: 1px solid var(--gf-border);
+  background: var(--tk-surface);
+  border: 1px solid var(--tk-line);
   border-radius: var(--gf-r-panel);
   box-shadow: var(--gf-shadow);
   overflow: hidden;

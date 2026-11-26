@@ -70,10 +70,10 @@ export function ReportsPage() {
         <>
           <div className="grid gap-4 md:grid-cols-3">
             <ReportStat
-              icon="↗" iconColor="#16A34A" iconBg="rgba(34,197,94,0.12)"
+              icon="↗" iconColor="var(--tk-pos)" iconBg="var(--tk-pos-soft)"
               label="P&L Realizado"
               value={money.format(s.realizedTotal)}
-              valueColor={s.realizedTotal >= 0 ? '#16A34A' : '#DC2626'}
+              valueColor={s.realizedTotal >= 0 ? 'var(--tk-pos)' : 'var(--tk-neg)'}
               sub="Sobre posiciones cerradas"
             />
             <ReportStat
@@ -83,7 +83,7 @@ export function ReportsPage() {
               sub="Posiciones cerradas total o parcial"
             />
             <ReportStat
-              icon="◈" iconColor="#8B5CF6" iconBg="rgba(139,92,246,0.12)"
+              icon="◈" iconColor="var(--tk-ink-2)" iconBg="var(--tk-muted)"
               label="Activos operados"
               value={String(s.realizedByAsset.length)}
               sub="Incluye activos que ya no tenés"
@@ -201,8 +201,8 @@ export function ReportsPage() {
                   <tbody>
                     {ledger.map((e) => {
                       const buy = e.kind === 'buy'
-                      const kc = buy ? '#16A34A' : '#DC2626'
-                      const ks = buy ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'
+                      const kc = buy ? 'var(--tk-pos)' : 'var(--tk-neg)'
+                      const ks = buy ? 'var(--tk-pos-soft)' : 'var(--tk-neg-soft)'
                       return (
                         <tr key={e.id} className="border-t border-neutral-200 dark:border-neutral-800">
                           <td className="whitespace-nowrap px-3 py-2.5 text-neutral-500">{formatDate(e.purchasedAt)}</td>

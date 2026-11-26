@@ -106,7 +106,18 @@ export interface Theme {
     solidActive: string
     subtle: string
     subtleText: string
+    /** Naranja como texto y links: brand-700 en claro (5,2:1), brand-400 en oscuro. */
+    ink: string
+    /** Fondo apenas naranja: hover de filas, fila expandida y destacados. */
+    tint: string
   }
+  /**
+   * Ganancia y perdida como texto y sus fondos suaves (chips de compra/venta,
+   * delta del dia). Los `success`/`danger` de abajo son de estados de UI.
+   */
+  trend: { pos: string; neg: string; posSoft: string; negSoft: string }
+  /** Groot, el asistente: circulo detras del avatar. */
+  groot: { ground: string }
   success: { solid: string; solidHover: string; subtle: string; subtleText: string }
   danger: { solid: string; solidHover: string; subtle: string; subtleText: string }
   warning: { solid: string; solidHover: string; subtle: string; subtleText: string }
@@ -166,7 +177,11 @@ export const lightTheme: Theme = {
     solidActive: brand[700],
     subtle: brand[100],
     subtleText: brand[600],
+    ink: brand[700],
+    tint: 'rgba(249, 115, 22, 0.07)',
   },
+  trend: { pos: success[700], neg: danger[700], posSoft: success[50], negSoft: danger[50] },
+  groot: { ground: '#FDE7D3' },
   success: { solid: success[500], solidHover: success[600], subtle: success[50], subtleText: success[700] },
   danger: { solid: danger[500], solidHover: danger[600], subtle: danger[50], subtleText: danger[700] },
   warning: { solid: warning[500], solidHover: warning[600], subtle: warning[50], subtleText: warning[700] },
@@ -219,9 +234,13 @@ export const darkTheme: Theme = {
     solid: brand[500],
     solidHover: brand[400],
     solidActive: brand[300],
-    subtle: 'rgba(249, 115, 22, 0.15)',
+    subtle: 'rgba(249, 115, 22, 0.16)',
     subtleText: brand[400],
+    ink: brand[400],
+    tint: 'rgba(249, 115, 22, 0.08)',
   },
+  trend: { pos: '#4ADE80', neg: '#F87171', posSoft: 'rgba(34, 197, 94, 0.14)', negSoft: 'rgba(239, 68, 68, 0.14)' },
+  groot: { ground: '#3A2A1E' },
   success: { solid: success[500], solidHover: success[600], subtle: 'rgba(34,197,94,0.15)', subtleText: success[100] },
   danger: { solid: danger[500], solidHover: danger[600], subtle: 'rgba(239,68,68,0.15)', subtleText: danger[100] },
   warning: { solid: warning[500], solidHover: warning[600], subtle: 'rgba(245,158,11,0.15)', subtleText: warning[100] },
