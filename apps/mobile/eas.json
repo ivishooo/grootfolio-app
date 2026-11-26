@@ -21,6 +21,9 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://grootfolio-app-production.up.railway.app"
+      },
+      "android": {
+        "buildType": "apk"
       }
     },
     "production": {
