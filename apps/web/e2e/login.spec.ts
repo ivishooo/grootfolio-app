@@ -7,7 +7,7 @@ test('login con el usuario dev lleva al dashboard', async ({ page }) => {
   await page.getByRole('button', { name: 'Ingresar' }).click()
 
   await expect(page).toHaveURL(/\/dashboard/)
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Hola/ })).toBeVisible()
 })
 
 test('credenciales invalidas muestran un error', async ({ page }) => {

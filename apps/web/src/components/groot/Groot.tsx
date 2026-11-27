@@ -38,7 +38,7 @@ export function GrootRouteSync() {
 export function Groot({ onOpenChat }: { onOpenChat: () => void }) {
   const g = useGroot()
   const navigate = useNavigate()
-  const { datos, dayPct } = useGrootDatos(g.lastTx)
+  const { datos, dayPct, ready } = useGrootDatos(g.lastTx)
 
   if (!g.visible) return null
 
@@ -70,7 +70,7 @@ export function Groot({ onOpenChat }: { onOpenChat: () => void }) {
 
   return (
     <div className="fixed bottom-6 right-6 z-20 flex flex-col items-end gap-2.5">
-      {g.open && (
+      {g.open && ready && (
         <div
           className="groot-bubble flex w-[330px] max-w-[calc(100vw-48px)] flex-col gap-[9px] border border-line bg-surface px-3.5 pb-3.5 pt-3 shadow-[0_10px_25px_rgba(15,23,42,.12)]"
           style={{ borderRadius: '16px 16px 4px 16px' }}

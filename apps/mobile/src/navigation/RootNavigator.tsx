@@ -25,7 +25,8 @@ export type RootStackParamList = {
   ProfileResult: undefined
   ProfileTest: undefined
   Settings: undefined
-  AddAsset: undefined
+  /** Prefill desde Activos: «+ Comprar más» / «Vender». */
+  AddAsset: { symbol?: string; kind?: 'buy' | 'sell' } | undefined
   AdminUsers: undefined
   AdminUserDetail: { id: string }
   AdminContent: undefined

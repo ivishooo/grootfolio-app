@@ -47,7 +47,7 @@ export function Groot({ onOpenChat }: { onOpenChat: () => void }) {
   const { theme } = useTheme()
   const insets = useSafeAreaInsets()
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
-  const { datos, dayPct } = useGrootDatos(g.lastTx)
+  const { datos, dayPct, ready } = useGrootDatos(g.lastTx)
   // `Main` deja de estar enfocada cuando hay otra pantalla del stack encima.
   const focused = useIsFocused()
 
@@ -84,7 +84,7 @@ export function Groot({ onOpenChat }: { onOpenChat: () => void }) {
       pointerEvents="box-none"
       style={{ position: 'absolute', right: 14, bottom: TAB_BAR + insets.bottom + 12, alignItems: 'flex-end', gap: 10, zIndex: 20 }}
     >
-      {g.open && (
+      {g.open && ready && (
         <View
           testID="groot-burbuja"
           style={{

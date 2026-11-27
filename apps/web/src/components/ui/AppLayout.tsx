@@ -223,9 +223,9 @@ export function AppLayout() {
         </header>
 
         {/* Content */}
-        {/* pb-24: la burbuja del asistente es `fixed` abajo a la derecha y quedaba
-            encima de la ultima fila de las tablas. El padding le da lugar propio. */}
-        <main className="gf-app-main flex-1 p-4 pb-24 transition-[padding] duration-200 md:p-6 md:pb-24 lg:p-8 lg:pb-24">
+        {/* Padding del SPEC (28 32 140): el de abajo es el lugar de Groot, que es
+            `fixed` abajo a la derecha y si no tapa la última fila. */}
+        <main className="gf-app-main flex-1 px-4 pb-[140px] pt-5 transition-[padding] duration-200 md:px-8 md:pt-7">
           <Outlet />
         </main>
 

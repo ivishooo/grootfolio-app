@@ -5,11 +5,12 @@
  */
 import type { AssetType } from '@grootfolio/shared'
 
-export const ASSET_COLORS: Record<AssetType, { accent: string; soft: string }> = {
-  crypto: { accent: '#F97316', soft: 'rgba(249,115,22,0.12)' },
-  stock: { accent: '#3B82F6', soft: 'rgba(59,130,246,0.12)' },
-  bond: { accent: '#8B5CF6', soft: 'rgba(139,92,246,0.12)' },
-  currency: { accent: '#14B8A6', soft: 'rgba(20,184,166,0.12)' },
+/** `ink`: el color del tipo como texto sobre `soft` (chips), con contraste AA. */
+export const ASSET_COLORS: Record<AssetType, { accent: string; soft: string; ink: string }> = {
+  crypto: { accent: '#F97316', soft: 'rgba(249,115,22,0.12)', ink: '#C2410C' },
+  stock: { accent: '#3B82F6', soft: 'rgba(59,130,246,0.12)', ink: '#1D4ED8' },
+  bond: { accent: '#8B5CF6', soft: 'rgba(139,92,246,0.12)', ink: '#6D28D9' },
+  currency: { accent: '#14B8A6', soft: 'rgba(20,184,166,0.12)', ink: '#0F766E' },
 }
 
 export function assetColor(type: AssetType) {

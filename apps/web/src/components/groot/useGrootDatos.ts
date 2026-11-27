@@ -14,7 +14,8 @@ const PROFILE_LABEL: Record<RiskProfileType, string> = {
   aggressive: 'Agresivo',
 }
 
-export function useGrootDatos(lastTx: GrootLastTx | null): { datos: GrootDatos; dayPct: number | null } {
+/** `ready`: el portafolio ya cargó. Antes de eso la burbuja diría «vale US$ 0». */
+export function useGrootDatos(lastTx: GrootLastTx | null): { datos: GrootDatos; dayPct: number | null; ready: boolean } {
   const money = useMoney()
   const { data: portfolio } = usePortfolio()
   const { data: report } = useReportSummary()
@@ -65,6 +66,6 @@ export function useGrootDatos(lastTx: GrootLastTx | null): { datos: GrootDatos; 
           }
         : undefined,
     }
-    return { datos, dayPct }
+    return { datos, dayPct, ready: portfolio !== undefined }
   }, [portfolio, report, quiz, content, lastTx, money])
 }

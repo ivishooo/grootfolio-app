@@ -1,19 +1,16 @@
 /**
- * Gestión de activos mobile (rediseño GF) — espejo del AssetsPage de web.
- * Holdings con AssetAvatar, ticker (chip color), chip de tipo, avg→actual,
- * barra de % de cartera y P&L ($ y %). Expand a transacciones con editar/
- * eliminar. Confirmaciones con el ConfirmProvider (estado de carga) y toasts.
+ * Activos en mobile (rediseño v2, Fase 4). Espejo de la web:
+ * resumen (Valor hoy / Invertido | Resultado), chips por tipo con scroll
+ * horizontal, «Ordenar: Valor · Resultado · A–Z» y filas que se expanden
+ * enteras. Adentro: 4 datos, operaciones con «Editar» y «+ Comprar más» /
+ * «Vender», que abren Cargar con el activo ya elegido. `route.params.open`
+ * abre una fila expandida (lo usa Inicio).
  */
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import {
-  assetTypeLabel,
-  formatPercent,
-  formatShare,
-  updateTransactionInputSchema,
-} from '@grootfolio/shared'
+import { assetTypeLabel, formatCurrency, formatPctArrow, formatQuantity, updateTransactionInputSchema } from '@grootfolio/shared'
 import type { AssetType, Holding, Transaction, UpdateTransactionInput } from '@grootfolio/shared'
 import {
   useDeleteAssetPosition,
@@ -23,6 +20,7 @@ import {
   useUpdateTransaction,
 } from '@/lib/queries'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
+import type { TabParamList } from '@/navigation/TabNavigator'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useToast } from '@/components/ui/ToastProvider'
 import { useConfirm } from '@/components/ui/ConfirmProvider'
@@ -30,10 +28,18 @@ import { Screen } from '@/components/ui/Screen'
 import { Button } from '@/components/ui/Button'
 import { FormField } from '@/components/ui/FormField'
 import { AssetAvatar } from '@/components/ui/AssetAvatar'
-import { assetColor } from '@/lib/asset-visual'
 import { EmptyState, ErrorState } from '@/components/ui/States'
-import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
-import { useMoney } from '@/lib/money'
+import { useMoney, signedMoney } from '@/lib/money'
+
+/** Padding inferior del SPEC: es el lugar de Groot sobre las tabs. */
+const GROOT_SPACE = 150
+const TYPE_ORDER: AssetType[] = ['crypto', 'stock', 'bond', 'currency']
+const SORTS = [
+  { id: 'valor', label: 'Valor' },
+  { id: 'resultado', label: 'Resultado' },
+  { id: 'az', label: 'A–Z' },
+] as const
+type SortId = (typeof SORTS)[number]['id']
 
 const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
 type PriceCurrency = (typeof PRICE_CURRENCIES)[number]
@@ -62,28 +68,51 @@ function ddmmyyyyToIso(input: string): string {
 }
 
 export function AssetsScreen() {
-  const money = useMoney()
   const { theme } = useTheme()
+  const money = useMoney()
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
-  const { data: p, isLoading, isError, error, refetch } = usePortfolio()
+  const route = useRoute<RouteProp<TabParamList, 'Assets'>>()
+  const { data: p, isLoading, isError, error, refetch, dataUpdatedAt } = usePortfolio()
   const { data: transactions } = useTransactions()
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [bannerOpen, setBannerOpen] = useState(true)
+  const [filter, setFilter] = useState<AssetType | 'all'>('all')
+  const [sort, setSort] = useState<SortId>('valor')
   const deletePosition = useDeleteAssetPosition()
   const { toast } = useToast()
   const confirm = useConfirm()
 
+  // Desde Inicio: abrir la fila del activo tocado.
+  const openParam = route.params?.open
+  useEffect(() => {
+    if (openParam) setExpanded(openParam)
+  }, [openParam])
+
+  const holdings = useMemo(() => p?.holdings ?? [], [p])
   const total = p?.totalValue ?? 0
+  const invested = p ? p.totalValue - p.pnlAbsolute : 0
+  const counts = useMemo(() => {
+    const c = new Map<AssetType, number>()
+    for (const h of holdings) c.set(h.asset.type as AssetType, (c.get(h.asset.type as AssetType) ?? 0) + 1)
+    return c
+  }, [holdings])
+  const visible = useMemo(() => {
+    const list = holdings.filter((h) => filter === 'all' || h.asset.type === filter)
+    const sorted = [...list]
+    if (sort === 'valor') sorted.sort((a, b) => b.value - a.value)
+    if (sort === 'resultado') sorted.sort((a, b) => (b.pnlPercent ?? -Infinity) - (a.pnlPercent ?? -Infinity))
+    if (sort === 'az') sorted.sort((a, b) => a.asset.name.localeCompare(b.asset.name, 'es'))
+    return sorted
+  }, [holdings, filter, sort])
 
   const handleDeletePosition = (holding: Holding) => {
     void confirm({
       title: 'Eliminar posición',
-      message: `¿Eliminar toda la posición de ${holding.asset.name}? Se borran todas sus transacciones. Esta acción no se puede deshacer.`,
+      message: `¿Eliminar toda la posición de ${holding.asset.name}? Se borran todas sus operaciones. Esta acción no se puede deshacer.`,
       confirmLabel: 'Eliminar posición',
       onConfirm: async () => {
         try {
           await deletePosition.mutateAsync(holding.assetId)
-          toast('Posición eliminada', 'info', { description: 'Se borraron todas sus transacciones.' })
+          toast('Posición eliminada', 'info', { description: 'Se borraron todas sus operaciones.' })
         } catch (err) {
           toast(err instanceof Error ? err.message : 'No se pudo eliminar la posición.', 'error')
           throw err
@@ -92,76 +121,126 @@ export function AssetsScreen() {
     })
   }
 
+  const time = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }) : null
+  const card = { backgroundColor: theme.background.surface, borderColor: theme.border.default, borderWidth: 1, borderRadius: 16 } as const
+
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: ASSISTANT_SAFE_BOTTOM }}>
-        {bannerOpen && (
-          <View style={[st.banner, { backgroundColor: 'rgba(37,99,235,0.10)', borderColor: 'rgba(37,99,235,0.35)' }]}>
-            <Text style={{ color: theme.text.secondary, fontSize: 13, flex: 1 }}>
-              Los precios de mercado se actualizan cada 15 minutos.
-            </Text>
-            <TouchableOpacity
-              onPress={() => setBannerOpen(false)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Cerrar el aviso"
-              style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Text accessibilityElementsHidden importantForAccessibility="no" style={{ color: theme.text.muted }}>✕</Text>
-            </TouchableOpacity>
+      <ScrollView contentContainerStyle={{ paddingTop: 18, paddingHorizontal: 16, gap: 14, paddingBottom: GROOT_SPACE }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+          <Text testID="screen-activos-title" accessibilityRole="header" style={{ flex: 1, color: theme.text.primary, fontSize: 24, fontWeight: '700', letterSpacing: -0.5 }}>
+            Activos
+          </Text>
+          {time && <Text style={{ color: theme.text.muted, fontSize: 11.5, fontFamily: 'Menlo' }}>precios de las {time}</Text>}
+        </View>
+
+        {isLoading && <Text style={{ color: theme.text.muted }}>Cargando activos…</Text>}
+        {isError && <ErrorState message={error instanceof Error ? error.message : 'No se pudo cargar el portafolio.'} onRetry={() => void refetch()} />}
+
+        {p && holdings.length === 0 && (
+          <View style={[card, { padding: 16, gap: 12 }]}>
+            <EmptyState title="Todavía no tenés activos" description="Cargá tu primera compra para empezar a ver tu portafolio." />
+            <Button testID="activos-cargar-vacio" fullWidth onPress={() => navigation.navigate('AddAsset')}>Cargar activo</Button>
           </View>
         )}
 
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <Text testID="screen-activos-title" style={{ color: theme.text.primary, fontSize: 22, fontWeight: '800' }}>Activos</Text>
-            {p && p.holdings.length > 0 ? (
-              <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
-                {p.holdings.length} posiciones · Valor total{' '}
-                <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{money.format(total)}</Text>
-              </Text>
-            ) : null}
-          </View>
-          <Button testID="activos-cargar" size="sm" onPress={() => navigation.navigate('AddAsset')}>+ Cargar activo</Button>
-        </View>
-
-        {isLoading ? (
-          <Text style={{ color: theme.text.muted }}>Cargando activos…</Text>
-        ) : isError ? (
-          <ErrorState
-            message={error instanceof Error ? error.message : 'No se pudo cargar el portfolio.'}
-            onRetry={() => void refetch()}
-          />
-        ) : !p || p.holdings.length === 0 ? (
-          <View style={[st.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-            <View style={{ gap: 12 }}>
-              <EmptyState
-                title="Todavía no tenés activos"
-                description="Cargá tu primera transacción para empezar a ver tu portafolio."
-              />
-              <Button testID="activos-cargar-vacio" fullWidth onPress={() => navigation.navigate('AddAsset')}>Cargar activo</Button>
+        {p && holdings.length > 0 && (
+          <>
+            <View style={card}>
+              <View style={{ padding: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: theme.border.default }}>
+                <Text style={{ color: theme.text.secondary, fontSize: 13 }}>Valor hoy</Text>
+                <Text style={{ color: theme.text.primary, fontSize: 26, fontWeight: '800', letterSpacing: -0.8, marginTop: 4, fontVariant: ['tabular-nums'] }}>{money.format(total)}</Text>
+                <Text style={{ color: theme.text.muted, fontSize: 12 }}>{holdings.length} {holdings.length === 1 ? 'posición' : 'posiciones'}</Text>
+              </View>
+              <View style={{ flexDirection: 'row' }}>
+                <View style={{ flex: 1, padding: 14, paddingHorizontal: 16, borderRightWidth: 1, borderRightColor: theme.border.default }}>
+                  <Text style={{ color: theme.text.secondary, fontSize: 13 }}>Invertido</Text>
+                  <Text style={{ color: theme.text.primary, fontSize: 17, fontWeight: '700', marginTop: 4, fontVariant: ['tabular-nums'] }}>{money.format(invested)}</Text>
+                  <Text style={{ color: theme.text.muted, fontSize: 12 }}>con comisiones</Text>
+                </View>
+                <View style={{ flex: 1, padding: 14, paddingHorizontal: 16 }}>
+                  <Text style={{ color: theme.text.secondary, fontSize: 13 }}>Resultado</Text>
+                  <Text style={{ color: p.pnlAbsolute >= 0 ? theme.trend.pos : theme.trend.neg, fontSize: 17, fontWeight: '700', marginTop: 4, fontVariant: ['tabular-nums'] }}>
+                    {signedMoney(money.format, p.pnlAbsolute)}
+                  </Text>
+                  <Text style={{ color: p.pnlAbsolute >= 0 ? theme.trend.pos : theme.trend.neg, fontSize: 12, fontWeight: '600' }}>{formatPctArrow(p.pnlPercent)}</Text>
+                </View>
+              </View>
             </View>
-          </View>
-        ) : (
-          p.holdings.map((h) => (
-            <HoldingCard
-              key={h.assetId}
-              holding={h}
-              total={total}
-              transactions={(transactions ?? []).filter((tx) => tx.assetId === h.assetId)}
-              expanded={expanded === h.assetId}
-              onToggle={() => setExpanded((cur) => (cur === h.assetId ? null : h.assetId))}
-              onDeletePosition={() => handleDeletePosition(h)}
-            />
-          ))
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+              {(['all', ...TYPE_ORDER.filter((t) => counts.has(t))] as const).map((t) => {
+                const on = filter === t
+                const n = t === 'all' ? holdings.length : counts.get(t) ?? 0
+                return (
+                  <TouchableOpacity
+                    key={t}
+                    testID={`activos-filtro-${t}`}
+                    onPress={() => setFilter(t)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    style={{
+                      height: 40,
+                      paddingHorizontal: 12,
+                      borderRadius: 20,
+                      borderWidth: 1,
+                      justifyContent: 'center',
+                      borderColor: on ? theme.text.primary : theme.border.default,
+                      backgroundColor: on ? theme.text.primary : theme.background.surface,
+                    }}
+                  >
+                    <Text style={{ color: on ? theme.background.surface : theme.text.primary, fontSize: 13, fontWeight: '600' }}>
+                      {t === 'all' ? 'Todos' : assetTypeLabel[t]} <Text style={{ opacity: 0.6 }}>{n}</Text>
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ color: theme.text.muted, fontSize: 12.5 }}>Ordenar</Text>
+              <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 3, padding: 3, borderRadius: 10, backgroundColor: theme.background.muted }}>
+                {SORTS.map((o) => {
+                  const on = sort === o.id
+                  return (
+                    <TouchableOpacity
+                      key={o.id}
+                      onPress={() => setSort(o.id)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: on }}
+                      style={{ height: 34, paddingHorizontal: 12, borderRadius: 7, justifyContent: 'center', backgroundColor: on ? theme.background.surface : 'transparent' }}
+                    >
+                      <Text style={{ color: on ? theme.text.primary : theme.text.muted, fontSize: 12.5, fontWeight: '600' }}>{o.label}</Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+            </View>
+
+            <View style={[card, { overflow: 'hidden' }]}>
+              {visible.map((h, i) => (
+                <HoldingRow
+                  key={h.assetId}
+                  holding={h}
+                  first={i === 0}
+                  total={total}
+                  transactions={(transactions ?? []).filter((tx) => tx.assetId === h.assetId)}
+                  expanded={expanded === h.assetId}
+                  onToggle={() => setExpanded((cur) => (cur === h.assetId ? null : h.assetId))}
+                  onDeletePosition={() => handleDeletePosition(h)}
+                />
+              ))}
+            </View>
+          </>
         )}
       </ScrollView>
     </Screen>
   )
 }
 
-interface HoldingCardProps {
+interface HoldingRowProps {
   holding: Holding
+  first: boolean
   total: number
   transactions: Transaction[]
   expanded: boolean
@@ -169,197 +248,100 @@ interface HoldingCardProps {
   onDeletePosition: () => void
 }
 
-function HoldingCard({ holding, total, transactions, expanded, onToggle, onDeletePosition }: HoldingCardProps) {
-  const money = useMoney()
+function HoldingRow({ holding: h, first, total, transactions, expanded, onToggle, onDeletePosition }: HoldingRowProps) {
   const { theme } = useTheme()
-  const c = assetColor(holding.asset.type)
-  const pct = total > 0 ? (holding.value / total) * 100 : 0
-  // Cuando pnlPercent es null la rentabilidad no es calculable (sin base de
-  // costo o sin cotizacion). Ni flecha ni color: un triangulo verde al lado de
-  // "—" afirma que subio, que es justo lo que no sabemos.
-  const known = holding.pnlPercent !== null
-  // Sin cotización el backend manda currentPrice/value/pnl en 0: mostrarlos
-  // formateados los hace pasar por una posición que vale cero, que no es lo
-  // mismo que una que no sabemos cuánto vale.
-  const sinCotizacion = holding.currentPrice <= 0
-  const up = holding.pnl >= 0
-  const pnlColor = !known ? theme.text.muted : up ? theme.chart.positive : theme.chart.negative
-
-  /*
-    Sin agrupar, cada posicion se anunciaba como diez fragmentos sueltos: el
-    nombre, el simbolo, el tipo, la cantidad, los dos precios, la participacion,
-    el valor, el porcentaje y el P&L, cada uno como un elemento aparte. Con seis
-    posiciones eso son sesenta paradas para recorrer la pantalla. Agrupada, cada
-    posicion es una sola parada con todo en orden de lectura.
-  */
-  /** El boton dice explicitamente que se lleva puestas las transacciones. */
-  const etiquetaBorrado =
-    transactions.length === 1
-      ? 'Eliminar posición y su transacción'
-      : `Eliminar posición y sus ${transactions.length} transacciones`
-
-  const resumen = [
-    `${holding.asset.name}, ${holding.asset.symbol}`,
-    assetTypeLabel[holding.asset.type as AssetType] ?? holding.asset.type,
-    `${holding.quantity} unidades`,
-    sinCotizacion ? 'sin cotización' : `valor ${money.format(holding.value)}`,
-    known
-      ? `rentabilidad ${formatPercent(holding.pnlPercent)}, ${money.format(holding.pnl)}`
-      : 'rentabilidad sin dato',
-    `${formatShare(pct)} de la cartera`,
-  ].join('. ')
+  const money = useMoney()
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
+  const share = total > 0 ? Math.round((h.value / total) * 100) : 0
+  const sinCot = h.currentPrice <= 0
+  const pnlColor = sinCot ? theme.text.muted : h.pnl >= 0 ? theme.trend.pos : theme.trend.neg
+  const cargar = (kind: 'buy' | 'sell') => navigation.navigate('AddAsset', { symbol: h.asset.symbol, kind })
 
   return (
-    <View style={[st.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default, padding: 0 }]}>
-      <View style={{ flexDirection: 'row', gap: 12, padding: 16 }}>
-        <View accessible accessibilityLabel={resumen} style={{ flexDirection: 'row', gap: 12, flex: 1, minWidth: 0 }}>
-        <AssetAvatar asset={holding.asset} size={44} />
-
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-            <Text style={{ color: theme.text.primary, fontSize: 15, fontWeight: '700' }} numberOfLines={1}>
-              {holding.asset.name}
-            </Text>
-            <Text style={[st.chip, { color: c.accent, backgroundColor: c.soft }]}>{holding.asset.symbol}</Text>
-            <Text style={[st.typeChip, { color: theme.text.muted, borderColor: theme.border.default }]}>
-              {assetTypeLabel[holding.asset.type as AssetType] ?? holding.asset.type}
-            </Text>
-          </View>
-          <Text style={{ color: theme.text.secondary, fontSize: 12, marginTop: 4 }}>
-            {holding.quantity} u · Compra{' '}
-            <Text style={{ color: theme.text.primary }}>{money.format(holding.avgPrice)}</Text> → Actual{' '}
-            <Text style={{ color: theme.text.primary }}>
-              {sinCotizacion ? '—' : money.format(holding.currentPrice)}
-            </Text>
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
-            <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: theme.background.muted, overflow: 'hidden' }}>
-              <View style={{ height: '100%', width: `${Math.min(pct, 100)}%`, backgroundColor: c.accent, borderRadius: 3 }} />
-            </View>
-            <Text style={{ color: theme.text.muted, fontSize: 11, fontWeight: '600' }}>{formatShare(pct)}</Text>
-          </View>
-        </View>
-
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ color: theme.text.primary, fontSize: 16, fontWeight: '800' }}>
-            {sinCotizacion ? '—' : money.format(holding.value)}
-          </Text>
-          {sinCotizacion ? (
-            <Text style={{ color: theme.text.muted, fontSize: 12, fontWeight: '700' }}>Sin cotización</Text>
-          ) : (
-            <>
-              <Text style={{ color: pnlColor, fontSize: 12, fontWeight: '700' }}>
-                {known ? (up ? '▲ ' : '▼ ') : ''}{formatPercent(holding.pnlPercent)}
-              </Text>
-              <Text style={{ color: pnlColor, fontSize: 12 }}>{money.format(holding.pnl)}</Text>
-            </>
-          )}
-        </View>
-        </View>
-      </View>
-
-      {/*
-        La prominencia estaba invertida respecto de la frecuencia de uso: ver las
-        transacciones (frecuente) era un triangulo gris de 5px pegado al borde, y
-        "Eliminar posicion" (rarisimo y destructivo) era un boton de ancho
-        completo repetido en cada tarjeta. Ahora expandir es una fila entera
-        tocable que dice cuantas transacciones hay, y el borrado de la posicion
-        vive dentro del desplegable, junto a las acciones de sus transacciones.
-      */}
+    <View style={{ borderTopWidth: first ? 0 : 1, borderTopColor: theme.border.default, backgroundColor: expanded ? theme.brand.tint : 'transparent' }}>
       <TouchableOpacity
         testID="holding-toggle"
         onPress={onToggle}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
-        accessibilityLabel={`${expanded ? 'Ocultar' : 'Ver'} las transacciones de ${holding.asset.name}`}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          minHeight: 44,
-          paddingHorizontal: 16,
-          paddingBottom: 12,
-        }}
+        accessibilityLabel={`${h.asset.name}, ${sinCot ? 'sin cotización' : money.format(h.value)}`}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 11, minHeight: 64, paddingVertical: 10, paddingHorizontal: 14 }}
       >
-        <Text style={{ color: theme.brand.solid, fontSize: 13, fontWeight: '600' }}>
-          {transactions.length === 1 ? 'Ver 1 transacción' : `Ver ${transactions.length} transacciones`}
-        </Text>
-        <Text accessibilityElementsHidden importantForAccessibility="no" style={{ color: theme.brand.solid, fontSize: 13, fontWeight: '600' }}>
-          {expanded ? '▾' : '▸'}
-        </Text>
+        <AssetAvatar asset={h.asset} size={38} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ color: theme.text.primary, fontSize: 13.5, fontWeight: '600' }}>{h.asset.name}</Text>
+          <Text numberOfLines={1} style={{ color: theme.text.muted, fontSize: 11.5 }}>
+            {formatQuantity(h.quantity)} {h.asset.symbol} · {share} % del total
+          </Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={{ color: theme.text.primary, fontSize: 13.5, fontWeight: '600', fontVariant: ['tabular-nums'] }}>{sinCot ? '—' : money.format(h.value)}</Text>
+          <Text style={{ color: pnlColor, fontSize: 12.5, fontWeight: '600' }}>{sinCot ? 'Sin cotización' : formatPctArrow(h.pnlPercent)}</Text>
+        </View>
+        <Text style={{ color: theme.text.muted, fontSize: 12, width: 14, textAlign: 'center' }}>{expanded ? '▴' : '▾'}</Text>
       </TouchableOpacity>
 
       {expanded && (
-        <View style={{ gap: 10, borderTopWidth: 1, borderTopColor: theme.border.default, backgroundColor: theme.background.muted, padding: 16 }}>
-          {transactions.length === 0 ? (
-            <Text style={{ color: theme.text.muted, fontSize: 13 }}>Sin transacciones para este activo.</Text>
-          ) : (
-            transactions.map((tx) => <TransactionItem key={tx.id} tx={tx} />)
-          )}
+        <View style={{ paddingHorizontal: 14, paddingBottom: 16, paddingTop: 4, gap: 14 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {[
+              ['Precio promedio', money.format(h.avgPrice)],
+              ['Precio hoy', sinCot ? '—' : money.format(h.currentPrice)],
+              ['Invertido', money.format(h.avgPrice * h.quantity)],
+              ['Resultado', sinCot ? 'Sin cotización' : signedMoney(money.format, h.pnl)],
+            ].map(([label, value], i) => (
+              <View key={label} style={{ width: '48%', flexGrow: 1, borderRadius: 10, borderWidth: 1, borderColor: theme.border.default, backgroundColor: theme.background.surface, padding: 10 }}>
+                <Text style={{ color: theme.text.muted, fontSize: 12 }}>{label}</Text>
+                <Text style={{ color: i === 3 ? pnlColor : theme.text.primary, fontSize: 14, fontWeight: '600', marginTop: 2 }}>{value}</Text>
+              </View>
+            ))}
+          </View>
 
-          {/*
-            Al pie y en rojo: borra la posicion entera y todas sus transacciones,
-            o sea mas que cualquier "Eliminar" de la lista de arriba. Antes era el
-            unico de los dos que NO se veia destructivo, con el peso visual justo
-            al reves del dano real.
-          */}
-          <Button testID="holding-eliminar" variant="destructive" size="sm" onPress={onDeletePosition}>
-            {etiquetaBorrado}
-          </Button>
+          <View style={{ gap: 6 }}>
+            <Text style={{ color: theme.text.primary, fontSize: 13, fontWeight: '600' }}>Operaciones · {transactions.length}</Text>
+            {transactions.length === 0 ? (
+              <Text style={{ color: theme.text.muted, fontSize: 13 }}>Sin operaciones para este activo.</Text>
+            ) : (
+              transactions.map((tx) => <TransactionItem key={tx.id} tx={tx} symbol={h.asset.symbol} />)
+            )}
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Button testID="holding-comprar" onPress={() => cargar('buy')} style={{ flex: 1 }}>+ Comprar más</Button>
+            <Button testID="holding-vender" variant="secondary" onPress={() => cargar('sell')} style={{ flex: 1 }}>Vender</Button>
+          </View>
+          <TouchableOpacity testID="holding-eliminar" onPress={onDeletePosition} accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-end' }}>
+            <Text style={{ color: theme.trend.neg, fontSize: 13, fontWeight: '600' }}>Eliminar posición…</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
   )
 }
 
-function TransactionItem({ tx }: { tx: Transaction }) {
-  // Sin conversion a proposito: una transaccion se muestra en la moneda con la
-  // que se opero (`tx.priceCurrency`), que es el registro historico. Convertirla
-  // a la moneda de visualizacion falsearia lo que el usuario efectivamente pago.
+function TransactionItem({ tx, symbol }: { tx: Transaction; symbol: string }) {
+  // Sin conversión a propósito: la operación se muestra en la moneda con la que
+  // se hizo (`tx.priceCurrency`), que es el registro histórico.
   const { theme } = useTheme()
-  const { toast } = useToast()
-  const confirm = useConfirm()
   const [editing, setEditing] = useState(false)
-  const deleteTx = useDeleteTransaction()
+  if (editing) return <TransactionEditForm tx={tx} onClose={() => setEditing(false)} />
   const isBuy = tx.kind === 'buy'
-  const opColor = isBuy ? theme.chart.positive : theme.chart.negative
-
-  const handleDelete = () => {
-    void confirm({
-      title: 'Eliminar transacción',
-      message: '¿Eliminar esta transacción? Esta acción no se puede deshacer.',
-      confirmLabel: 'Eliminar',
-      onConfirm: async () => {
-        try {
-          await deleteTx.mutateAsync(tx.id)
-          toast('Transacción eliminada')
-        } catch (err) {
-          toast(err instanceof Error ? err.message : 'No se pudo eliminar la transacción.', 'error')
-          throw err
-        }
-      },
-    })
-  }
-
-  if (editing) {
-    return <TransactionEditForm tx={tx} onClose={() => setEditing(false)} />
-  }
-
   return (
-    <View style={[st.txRow, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-        <Text style={[st.opChip, { color: opColor, backgroundColor: isBuy ? 'rgba(22,163,74,0.13)' : 'rgba(220,38,38,0.13)' }]}>
-          {isBuy ? 'Compra' : 'Venta'}
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, backgroundColor: theme.background.surface, paddingLeft: 10, paddingVertical: 4 }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ color: theme.text.muted, fontSize: 12 }}>{isoToDdmmyyyy(tx.purchasedAt)}</Text>
+          <Text style={[st.opChip, { color: isBuy ? theme.trend.pos : theme.trend.neg, backgroundColor: isBuy ? theme.trend.posSoft : theme.trend.negSoft }]}>
+            {isBuy ? 'Compra' : 'Venta'}
+          </Text>
+        </View>
+        <Text style={{ color: theme.text.primary, fontSize: 13 }}>
+          {formatQuantity(tx.quantity)} {symbol} a {formatCurrency(tx.unitPrice, tx.priceCurrency)}
         </Text>
-        <Text style={{ color: theme.text.primary, fontSize: 13 }}>{tx.quantity} u</Text>
-        <Text style={{ color: theme.text.primary, fontSize: 13 }}>{tx.unitPrice} {tx.priceCurrency}</Text>
-        <Text style={{ color: theme.text.muted, fontSize: 12 }}>Com: {tx.fee}</Text>
-        <Text style={{ color: theme.text.muted, fontSize: 12 }}>{isoToDdmmyyyy(tx.purchasedAt)}</Text>
       </View>
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-        <Button variant="secondary" size="sm" onPress={() => setEditing(true)} style={{ flex: 1 }}>Editar</Button>
-        <Button variant="destructive" size="sm" onPress={handleDelete} disabled={deleteTx.isPending} style={{ flex: 1 }}>Eliminar</Button>
-      </View>
+      <TouchableOpacity onPress={() => setEditing(true)} accessibilityRole="button" accessibilityLabel="Editar operación" style={{ minHeight: 44, minWidth: 44, justifyContent: 'center', paddingHorizontal: 10 }}>
+        <Text style={{ color: theme.brand.ink, fontSize: 13, fontWeight: '600' }}>Editar</Text>
+      </TouchableOpacity>
     </View>
   )
 }
@@ -367,7 +349,29 @@ function TransactionItem({ tx }: { tx: Transaction }) {
 function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => void }) {
   const { theme } = useTheme()
   const { toast } = useToast()
+  const confirm = useConfirm()
   const updateTx = useUpdateTransaction()
+  const deleteTx = useDeleteTransaction()
+
+  // En el rediseño la fila de la operación solo tiene «Editar»: borrar una
+  // operación suelta se hace desde acá, con la confirmación de siempre.
+  const handleDelete = () => {
+    void confirm({
+      title: 'Eliminar operación',
+      message: '¿Eliminar esta operación? Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      onConfirm: async () => {
+        try {
+          await deleteTx.mutateAsync(tx.id)
+          toast('Operación eliminada')
+          onClose()
+        } catch (err) {
+          toast(err instanceof Error ? err.message : 'No se pudo eliminar la operación.', 'error')
+          throw err
+        }
+      },
+    })
+  }
   const [kind, setKind] = useState<'buy' | 'sell'>(tx.kind)
   const [quantity, setQuantity] = useState(String(tx.quantity))
   const [unitPrice, setUnitPrice] = useState(String(tx.unitPrice))
@@ -449,15 +453,14 @@ function TransactionEditForm({ tx, onClose }: { tx: Transaction; onClose: () => 
         </Button>
         <Button variant="secondary" size="sm" onPress={onClose} disabled={updateTx.isPending} style={{ flex: 1 }}>Cancelar</Button>
       </View>
+      <TouchableOpacity onPress={handleDelete} disabled={deleteTx.isPending} accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'center' }}>
+        <Text style={{ color: theme.trend.neg, fontSize: 13, fontWeight: '600' }}>Eliminar operación</Text>
+      </TouchableOpacity>
     </View>
   )
 }
 
 const st = StyleSheet.create({
-  banner: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, padding: 12 },
-  card: { borderRadius: 18, borderWidth: 1, padding: 16 },
-  chip: { fontSize: 11, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
-  typeChip: { fontSize: 11, fontWeight: '600', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, overflow: 'hidden' },
+  opChip: { fontSize: 11.5, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
   txRow: { borderWidth: 1, borderRadius: 12, padding: 12 },
-  opChip: { fontSize: 12, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
 })
