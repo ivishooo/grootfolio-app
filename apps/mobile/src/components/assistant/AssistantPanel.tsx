@@ -13,10 +13,13 @@ import Svg, { Path } from 'react-native-svg'
 import { KeyboardAvoidingView, Modal, Platform, Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/theme/ThemeProvider'
+import { GrootAvatar } from '@/components/groot/GrootAvatar'
 import { useAssistantTokens } from './tokens'
 
 interface Props {
   visible: boolean
+  /** Groot está respondiendo: «escribiendo…» y cara de curioso. */
+  isStreaming?: boolean
   onClose: () => void
   onNewConversation?: () => void
   children: ReactNode
@@ -47,7 +50,7 @@ function IconButton({
   )
 }
 
-export function AssistantPanel({ visible, onClose, onNewConversation, children }: Props) {
+export function AssistantPanel({ visible, isStreaming = false, onClose, onNewConversation, children }: Props) {
   const { theme } = useTheme()
   const t = useAssistantTokens()
   const insets = useSafeAreaInsets()
@@ -70,24 +73,27 @@ export function AssistantPanel({ visible, onClose, onNewConversation, children }
         >
           <View
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: 17,
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              overflow: 'hidden',
               alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: t.accentSoft,
+              justifyContent: 'flex-end',
+              backgroundColor: theme.groot.ground,
             }}
           >
-            <Text style={{ color: t.accentInk, fontWeight: '700', fontSize: 13 }}>G</Text>
+            <GrootAvatar mood={isStreaming ? 'curious' : 'calm'} size={38} />
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text numberOfLines={1} style={{ color: theme.text.primary, fontSize: 15, fontWeight: '700' }}>
-              Asistente GrootFolio
+            <Text numberOfLines={1} style={{ color: theme.text.primary, fontSize: 14.5, fontWeight: '700' }}>
+              Groot
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: t.online }} />
-              <Text style={{ color: theme.text.muted, fontSize: 12 }}>En línea</Text>
+              <Text accessibilityLiveRegion="polite" style={{ color: theme.text.muted, fontSize: 12 }}>
+                {isStreaming ? 'escribiendo…' : 'en línea'}
+              </Text>
             </View>
           </View>
 

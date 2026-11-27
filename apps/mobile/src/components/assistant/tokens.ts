@@ -31,15 +31,15 @@ export function useAssistantTokens() {
   }
 }
 
-/** Alto del launcher; también lo usa el panel para no taparlo. */
-export const LAUNCHER_SIZE = 56
+/** Botón de Groot (avatar) en mobile, SPEC › Groot. */
+export const GROOT_BUTTON_SIZE = 58
 
 /**
- * Espacio que las pantallas con scroll tienen que reservar abajo para que la
- * burbuja del asistente no quede encima del contenido.
+ * Espacio que las pantallas con scroll tienen que reservar abajo para que Groot
+ * no quede encima del contenido.
  *
- * La burbuja es `position: absolute` sobre el tab bar, así que sin este padding
+ * Groot es `position: absolute` sobre el tab bar, así que sin este padding
  * tapaba controles reales: el "Eliminar posición" de la última posición en
  * Activos y el "Abrir →" de la última tarjeta en Contenidos.
  */
-export const ASSISTANT_SAFE_BOTTOM = LAUNCHER_SIZE + 32
+export const ASSISTANT_SAFE_BOTTOM = GROOT_BUTTON_SIZE + 32

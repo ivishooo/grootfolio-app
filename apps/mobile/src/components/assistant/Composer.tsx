@@ -57,7 +57,7 @@ export function Composer({ onSend, isStreaming }: Props) {
         <TextInput
           value={draft}
           onChangeText={setDraft}
-          placeholder="Preguntá sobre GrootFolio…"
+          placeholder="Preguntale a Groot…"
           placeholderTextColor={theme.text.placeholder}
           accessibilityLabel="Mensaje para el asistente"
           maxLength={1000}
@@ -104,7 +104,7 @@ export function Composer({ onSend, isStreaming }: Props) {
       </View>
 
       <Text style={{ color: theme.text.muted, fontSize: 11, lineHeight: 15, paddingHorizontal: 4, marginTop: 6 }}>
-        Respondo sobre GrootFolio y lo que el equipo documentó. No es asesoramiento financiero.
+        Groot no da recomendaciones de inversión personalizadas.
       </Text>
     </View>
   )

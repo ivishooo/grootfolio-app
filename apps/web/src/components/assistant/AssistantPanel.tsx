@@ -15,8 +15,11 @@
  *    se escape a la página de atrás es peor que no prometerla.
  */
 import { useEffect, useRef, type ReactNode } from 'react'
+import { GrootAvatar } from '@/components/groot/GrootAvatar'
 
 interface Props {
+  /** Groot está respondiendo: el header dice «escribiendo…» y el avatar pone cara de curioso. */
+  isStreaming?: boolean
   onClose: () => void
   onNewConversation?: () => void
   onToggleExpanded?: () => void
@@ -50,6 +53,7 @@ function IconButton({
 }
 
 export function AssistantPanel({
+  isStreaming = false,
   onClose,
   onNewConversation,
   onToggleExpanded,
@@ -119,25 +123,23 @@ export function AssistantPanel({
         tabIndex={-1}
         className="gf-panel focus:outline-none"
         role="dialog"
-        aria-label="Asistente GrootFolio"
+        aria-label="Chat con Groot"
         aria-modal={isExpanded || undefined}
         data-expanded={isExpanded}
       >
         <header className="flex items-center gap-3 border-b border-line px-4 py-3">
           <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--gf-accent-soft)] text-sm font-bold text-[color:var(--gf-accent-ink)]"
+            className="flex h-[42px] w-[42px] shrink-0 items-end justify-center overflow-hidden rounded-full bg-groot-ground"
             aria-hidden="true"
           >
-            G
+            <GrootAvatar mood={isStreaming ? 'curious' : 'calm'} size={38} />
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-ink">
-              Asistente GrootFolio
-            </p>
-            <p className="flex items-center gap-1.5 text-xs text-ink-3">
+            <p className="truncate text-[14.5px] font-bold text-ink">Groot</p>
+            <p className="flex items-center gap-1.5 text-xs text-ink-3" aria-live="polite">
               <i className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" aria-hidden="true" />
-              En línea
+              {isStreaming ? 'escribiendo…' : 'en línea'}
             </p>
           </div>
 

@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { ScrollView, View, Text, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import { useGroot } from '@/components/groot/GrootProvider'
 import { useTheme } from '@/theme/ThemeProvider'
 import { createTransactionInputSchema, type AssetSearchResult, type CreateTransactionInput } from '@grootfolio/shared'
 import { useCreateTransaction } from '@/lib/queries'
@@ -58,6 +59,7 @@ const emptyForm = { symbol: '', quantity: '', unitPrice: '', fee: '', priceCurre
 export function AddAssetScreen() {
   const { theme } = useTheme()
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
+  const groot = useGroot()
   const { toast } = useToast()
   const [activeType, setActiveType] = useState<AssetType>('crypto')
   const [kind, setKind] = useState<'buy' | 'sell'>('buy')
@@ -129,6 +131,10 @@ export function AddAssetScreen() {
       onSuccess: () => {
         setForm({ ...emptyForm })
         toast('Activo cargado', 'success', { description: 'Se sumó a tu portafolio.' })
+        groot.decir('cargado', {
+          morder: true,
+          lastTx: { qty: result.data.quantity.toLocaleString('es-AR', { maximumFractionDigits: 8 }), symbol: result.data.symbol },
+        })
         navigation.navigate('Main')
       },
       onError: (err) => {

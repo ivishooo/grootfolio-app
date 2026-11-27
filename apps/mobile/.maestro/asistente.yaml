@@ -1,4 +1,4 @@
-# La burbuja del asistente tiene que estar accesible y abrir el panel.
+# Groot tiene que estar accesible y abrir el chat.
 #
 # Además cuida una regresión visual: la burbuja es `position: absolute` sobre el
 # tab bar y llegó a tapar el "Eliminar posición" de la última tarjeta en
@@ -6,10 +6,18 @@
 appId: host.exp.Exponent
 ---
 - runFlow: _login.yaml
+# Groot reemplaza al launcher (ADR-0006). Tocarlo muestra un mensaje de ánimo;
+# «Mi resumen» vuelve al resumen, que tiene «Preguntarme algo» para abrir el chat.
 - assertVisible:
-    id: 'assistant-launcher'
+    id: 'groot-avatar'
 - tapOn:
-    id: 'assistant-launcher'
+    id: 'groot-avatar'
+- tapOn:
+    id: 'groot-accion-mi-resumen'
+- tapOn:
+    id: 'groot-accion-chat'
+# El placeholder del input no se expone en la jerarquía de iOS: se espera el
+# aviso fijo del composer, que es lo que importa que se vea (ADR-0006).
 - extendedWaitUntil:
-    visible: 'Asistente GrootFolio'
+    visible: 'Groot no da recomendaciones de inversión personalizadas.'
     timeout: 20000

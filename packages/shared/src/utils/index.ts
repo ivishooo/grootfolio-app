@@ -298,3 +298,6 @@ export function groupSourcesByArticle(
 
   return [...byArticle.values()].sort((a, b) => b.score - a.score)
 }
+
+// Groot, el asistente (rediseño v2, ADR-0006)
+export * from './groot'

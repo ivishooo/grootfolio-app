@@ -1,8 +1,9 @@
-import { ScrollView, View, Text, TouchableOpacity, TextInput, Image, StyleSheet } from 'react-native'
+import { ScrollView, View, Text, TouchableOpacity, TextInput, Image, StyleSheet, Switch } from 'react-native'
 import { useState } from 'react'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import * as ImagePicker from 'expo-image-picker'
+import { useGroot } from '@/components/groot/GrootProvider'
 import { useTheme, type ThemePreference } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
 import { SUPPORTED_CURRENCIES, currencyLabels, formatCurrency } from '@grootfolio/shared'
@@ -115,6 +116,7 @@ function ThemeSegmented() {
 
 export function SettingsScreen() {
   const { theme } = useTheme()
+  const groot = useGroot()
   const { user, updateUser, logout } = useAuth()
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const { toast } = useToast()
@@ -182,6 +184,24 @@ export function SettingsScreen() {
           </View>
         </View>
         <ThemeSegmented />
+      </View>
+
+      {/* Groot */}
+      <View style={cardStyle}>
+        <View style={[s.row, { gap: 12 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.label, { color: theme.text.primary }]}>Mostrar a Groot</Text>
+            <Text style={[s.hint, { color: theme.text.muted }]}>El gato que te cuenta cómo viene el día. Lo podés ocultar cuando quieras.</Text>
+          </View>
+          <Switch
+            testID="settings-groot"
+            value={groot.visible}
+            onValueChange={groot.setVisible}
+            accessibilityLabel="Mostrar a Groot"
+            trackColor={{ true: theme.brand.solid, false: theme.border.strong }}
+            ios_backgroundColor={theme.border.strong}
+          />
+        </View>
       </View>
 
       {/* Preferencias */}

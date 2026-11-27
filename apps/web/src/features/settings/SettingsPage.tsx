@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme, type ThemePreference } from '@/theme/ThemeProvider'
+import { useGroot } from '@/components/groot/GrootProvider'
 import { useAuth } from '@/auth/AuthProvider'
 import { SUPPORTED_CURRENCIES, currencyLabels, formatCurrency } from '@grootfolio/shared'
 import type { SupportedCurrency } from '@grootfolio/shared'
@@ -80,6 +81,7 @@ function ProfileSection() {
 
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
         <h3 className="mb-4 text-lg font-semibold">Notificaciones</h3>
+        <GrootSwitchRow />
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium">Nuevo contenido publicado</p>
@@ -160,6 +162,35 @@ function CurrencySection() {
         </p>
       )}
     </section>
+  )
+}
+
+/** Switch del SPEC: 46×28, radio 14, perilla de 22 a 3 px; encendido brand.solid, apagado ctl. */
+function Switch({ on, onChange, labelledBy }: { on: boolean; onChange: (v: boolean) => void; labelledBy: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-labelledby={labelledBy}
+      onClick={() => onChange(!on)}
+      className={`relative h-7 w-[46px] shrink-0 rounded-[14px] transition-colors ${on ? 'bg-brand-500' : 'bg-ctl'}`}
+    >
+      <span className={`absolute top-[3px] h-[22px] w-[22px] rounded-full bg-white transition-all ${on ? 'left-[21px]' : 'left-[3px]'}`} />
+    </button>
+  )
+}
+
+function GrootSwitchRow() {
+  const { visible, setVisible } = useGroot()
+  return (
+    <div className="mb-4 flex items-center justify-between gap-4 border-b border-line pb-4">
+      <div>
+        <p id="groot-switch-label" className="text-sm font-medium">Mostrar a Groot</p>
+        <p className="text-xs text-ink-3">El gato que te cuenta cómo viene el día. Lo podés ocultar cuando quieras.</p>
+      </div>
+      <Switch on={visible} onChange={setVisible} labelledBy="groot-switch-label" />
+    </div>
   )
 }
 

@@ -1,0 +1,25 @@
+/* Groot, avatar y keyframes (web). Van al lado de GrootAvatar.tsx.
+   Viene de reference/groot-avatar.js: misma geometría y mismos tiempos. */
+.groot { position: relative; display: inline-block; line-height: 0; }
+.groot-loop { transform-box: fill-box; }
+
+@keyframes g-blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+@keyframes g-breathe { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(1.2%) scale(1.012); } }
+@keyframes g-ear-l { 0%, 86%, 100% { transform: rotate(0); } 89% { transform: rotate(-9deg); } 92% { transform: rotate(3deg); } 95% { transform: rotate(0); } }
+@keyframes g-tilt { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2.5deg); } }
+@keyframes g-curious { 0%, 100% { transform: rotate(-9deg); } 50% { transform: rotate(-6deg); } }
+@keyframes g-shiver { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-.6%); } 75% { transform: translateX(.6%); } }
+@keyframes g-slowblink { 0%, 100% { transform: scaleY(1); } 20%, 62% { transform: scaleY(.12); } }
+@keyframes g-nuzzle { 0% { transform: rotate(0) translateY(0); } 30% { transform: rotate(-7deg) translateY(2%); } 60% { transform: rotate(5deg) translateY(1%); } 100% { transform: rotate(0); } }
+@keyframes g-prrr { 0% { opacity: 0; transform: translate(0, 4px) scale(.6); } 20% { opacity: 1; transform: translate(0, 0) scale(1.05); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(6px, -10px) scale(1); } }
+@keyframes g-heart { 0% { opacity: 0; transform: translateY(0) scale(.4); } 25% { opacity: 1; transform: translateY(-4px) scale(1); } 100% { opacity: 0; transform: translateY(-22px) scale(.9); } }
+
+/* Burbuja: entra con opacidad y 8 px hacia arriba en 180 ms. */
+.groot-bubble { animation: g-bubble-in .18s ease-out both; }
+@keyframes g-bubble-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Movimiento reducido: sin loops. La respuesta al toque se mantiene porque la pide el usuario. */
+@media (prefers-reduced-motion: reduce) {
+  .groot-loop { animation: none !important; }
+  .groot-bubble { animation: none; }
+}

@@ -1,12 +1,12 @@
 /**
- * Asistente de GrootFolio en mobile: launcher flotante + panel, con la misma
- * forma que la burbuja de la web.
+ * Asistente de GrootFolio en mobile: Groot (rediseño v2, ADR-0006; reemplaza al
+ * launcher genérico) + el panel del chat, igual que en la web.
  *
  * Se monta al lado del `TabNavigator`, no dentro de una pantalla: así el
  * launcher acompaña a todas las tabs y no aparece en pantallas empujadas como
  * "Cargar activo", donde el usuario está en el medio de una tarea.
  */
-import { AssistantLauncher } from './AssistantLauncher'
+import { Groot } from '@/components/groot/Groot'
 import { AssistantPanel } from './AssistantPanel'
 import { MessageList } from './MessageList'
 import { Composer } from './Composer'
@@ -19,10 +19,11 @@ export function Assistant() {
 
   return (
     <>
-      {!chat.isOpen && <AssistantLauncher onOpen={chat.open} />}
+      {!chat.isOpen && <Groot onOpenChat={chat.open} />}
 
       <AssistantPanel
         visible={chat.isOpen}
+        isStreaming={chat.status === 'streaming'}
         onClose={chat.close}
         onNewConversation={chat.messages.length > 0 ? chat.newConversation : undefined}
       >

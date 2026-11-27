@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Assistant } from '@/components/assistant/Assistant'
+import { GrootProvider } from '@/components/groot/GrootProvider'
+import { GrootRouteSync } from '@/components/groot/Groot'
 import { useAuth } from '@/auth/AuthProvider'
 import { useNotifications } from '@/lib/queries'
 import { UserMenu } from './UserMenu'
@@ -143,6 +145,8 @@ export function AppLayout() {
   )
 
   return (
+    <GrootProvider>
+    <GrootRouteSync />
     <div className="min-h-screen bg-canvas">
       {/* Backdrop (mobile drawer) */}
       {drawerOpen && <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={closeDrawer} />}
@@ -225,9 +229,10 @@ export function AppLayout() {
           <Outlet />
         </main>
 
-        {/* Asistente: launcher flotante sobre toda la app autenticada. */}
+        {/* Asistente: Groot flotante sobre toda la app autenticada. */}
         <Assistant />
       </div>
     </div>
+    </GrootProvider>
   )
 }
