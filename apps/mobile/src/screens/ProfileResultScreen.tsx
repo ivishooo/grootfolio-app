@@ -1,145 +1,116 @@
 /**
- * Detalle del perfil mobile (rediseño GF) — espejo del ProfileResultPage de web.
- * Badge con ProfileIcon y color por perfil, pill, asignación sugerida con barras
- * por clase de activo y recomendaciones con checks. Conserva los hooks reales.
+ * Perfil de inversor · resultado en mobile (rediseño v2, Fase 5). Espejo de la
+ * web: «Tu perfil es» + pastilla en tinta invertida, medidor neutro de 3
+ * segmentos, descripción y «Tu cartera vs. la sugerida».
  */
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { ScrollView, View, Text, TouchableOpacity } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import type { RiskProfileType } from '@grootfolio/shared'
-import { useTheme } from '@/theme/ThemeProvider'
+import { ASIGNACION_SUGERIDA, formatDate } from '@grootfolio/shared'
+import type { AssetType, RiskProfileType } from '@grootfolio/shared'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
-import { useQuizResult } from '@/lib/queries'
+import { useTheme } from '@/theme/ThemeProvider'
+import { usePortfolio, useQuizResult } from '@/lib/queries'
+import { assetColor } from '@/lib/asset-visual'
+import { Screen } from '@/components/ui/Screen'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States'
-import { ProfileIcon } from '@/components/ui/icons'
 
-const labels: Record<RiskProfileType, string> = {
-  conservative: 'Conservador',
-  moderate: 'Moderado',
-  aggressive: 'Agresivo',
-}
-
-const PROFILE_COLOR: Record<RiskProfileType, { accent: string; soft: string }> = {
-  conservative: { accent: '#3B82F6', soft: 'rgba(59,130,246,0.14)' },
-  moderate: { accent: '#F97316', soft: 'rgba(249,115,22,0.14)' },
-  aggressive: { accent: '#8B5CF6', soft: 'rgba(139,92,246,0.14)' },
-}
-
-// Asignación sugerida por perfil (presentación; el backend no la devuelve).
-const ALLOCATION: Record<RiskProfileType, Array<{ label: string; pct: number }>> = {
-  conservative: [
-    { label: 'Renta fija', pct: 60 }, { label: 'Acciones', pct: 20 },
-    { label: 'Criptomonedas', pct: 5 }, { label: 'Cash', pct: 15 },
-  ],
-  moderate: [
-    { label: 'Renta fija', pct: 40 }, { label: 'Acciones', pct: 35 },
-    { label: 'Criptomonedas', pct: 15 }, { label: 'Cash', pct: 10 },
-  ],
-  aggressive: [
-    { label: 'Renta fija', pct: 15 }, { label: 'Acciones', pct: 50 },
-    { label: 'Criptomonedas', pct: 30 }, { label: 'Cash', pct: 5 },
-  ],
-}
-
-const ALLOC_COLORS: Record<string, string> = {
-  'Renta fija': '#8B5CF6',
-  Acciones: '#3B82F6',
-  Criptomonedas: '#F97316',
-  Cash: '#14B8A6',
-}
+const LABEL: Record<RiskProfileType, string> = { conservative: 'Conservador', moderate: 'Moderado', aggressive: 'Agresivo' }
+const ORDER: RiskProfileType[] = ['conservative', 'moderate', 'aggressive']
+const CLASSES: Array<{ type: AssetType; label: string }> = [
+  { type: 'crypto', label: 'Cripto' },
+  { type: 'stock', label: 'Acciones' },
+  { type: 'bond', label: 'Bonos' },
+  { type: 'currency', label: 'Divisas y efectivo' },
+]
 
 export function ProfileResultScreen() {
   const { theme } = useTheme()
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const { data: result, isLoading, isError, error, refetch } = useQuizResult()
+  const { data: portfolio } = usePortfolio()
+  const card = { backgroundColor: theme.background.surface, borderColor: theme.border.default, borderWidth: 1, borderRadius: 16, padding: 16 } as const
+
+  if (isLoading) return <LoadingState label="Cargando tu perfil…" />
+  if (isError) return <ErrorState message={error instanceof Error ? error.message : 'No se pudo cargar tu perfil.'} onRetry={() => void refetch()} />
+
+  const total = portfolio?.totalValue ?? 0
+  const now = (t: AssetType) => {
+    const v = portfolio?.distribution.find((d) => d.type === t)?.value ?? 0
+    return total > 0 ? Math.round((v / total) * 100) : 0
+  }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background.canvas }}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-        {isLoading && <LoadingState label="Cargando tu perfil…" />}
-        {isError && (
-          <ErrorState
-            message={error instanceof Error ? error.message : 'No se pudo cargar tu perfil.'}
-            onRetry={() => void refetch()}
-          />
-        )}
-        {!isLoading && !isError && !result && (
-          <EmptyState title="Todavía no hiciste el test" description="Respondé el cuestionario para conocer tu perfil." />
-        )}
+    <Screen>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}>
+        <Text accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 24, fontWeight: '700', letterSpacing: -0.5 }}>Perfil de inversor</Text>
 
-        {result && (() => {
-          const pc = PROFILE_COLOR[result.profile]
-          return (
-            <>
-              <View style={[s.hero, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-                <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: pc.soft, alignItems: 'center', justifyContent: 'center' }}>
-                  <ProfileIcon profile={result.profile} color={pc.accent} size={36} />
-                </View>
-                <Text style={{ color: theme.text.secondary, marginTop: 12 }}>Tu perfil de inversor es</Text>
-                <View style={{ backgroundColor: pc.soft, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 8, marginTop: 8 }}>
-                  <Text style={{ color: pc.accent, fontSize: 18, fontWeight: '800' }}>{labels[result.profile]}</Text>
-                </View>
-                <Text style={{ color: theme.text.secondary, marginTop: 12, lineHeight: 20, textAlign: 'center' }}>
-                  {result.description}
+        {!result ? (
+          <View style={[card, { gap: 12 }]}>
+            <EmptyState title="Todavía no hiciste el test" description="Son unas pocas preguntas y te ayudan a leer tu cartera." />
+            <TouchableOpacity onPress={() => nav.navigate('ProfileTest', { rehacer: true })} style={{ height: 48, borderRadius: 11, backgroundColor: theme.brand.solid, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: '#fff', fontWeight: '600' }}>Hacer el test</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <View style={card}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+                <Text style={{ color: theme.text.secondary, fontSize: 15 }}>Tu perfil es</Text>
+                <Text style={{ color: theme.background.surface, backgroundColor: theme.text.primary, fontSize: 16, fontWeight: '700', paddingHorizontal: 14, paddingVertical: 4, borderRadius: 16, overflow: 'hidden' }}>
+                  {LABEL[result.profile]}
                 </Text>
               </View>
+              <Text style={{ color: theme.text.muted, fontSize: 12, marginTop: 6 }}>test del {formatDate(result.calculatedAt)}</Text>
+              <View accessible accessibilityLabel={`Perfil ${LABEL[result.profile]}, de conservador a agresivo`} style={{ flexDirection: 'row', gap: 6, marginTop: 14 }}>
+                {ORDER.map((p) => (
+                  <View key={p} style={{ flex: 1 }}>
+                    <View style={{ height: 8, borderRadius: 4, backgroundColor: p === result.profile ? theme.brand.solid : theme.background.muted }} />
+                    <Text style={{ textAlign: 'center', marginTop: 6, fontSize: 11.5, color: p === result.profile ? theme.text.primary : theme.text.muted, fontWeight: p === result.profile ? '600' : '400' }}>
+                      {LABEL[p]}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={{ color: theme.text.secondary, fontSize: 14, lineHeight: 20, marginTop: 14 }}>{result.description}</Text>
+            </View>
 
-              <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-                <Text style={{ color: theme.text.primary, fontWeight: '700', marginBottom: 12 }}>Asignación sugerida</Text>
-                {ALLOCATION[result.profile].map((a) => {
-                  const color = ALLOC_COLORS[a.label] ?? theme.brand.solid
+            <View style={card}>
+              <Text style={{ color: theme.text.primary, fontSize: 15, fontWeight: '600', marginBottom: 14 }}>Tu cartera vs. la sugerida</Text>
+              <View style={{ gap: 16 }}>
+                {CLASSES.map(({ type, label }) => {
+                  const c = assetColor(type)
+                  const hoy = now(type)
+                  const sug = ASIGNACION_SUGERIDA[result.profile][type]
                   return (
-                    <View key={a.label} style={{ gap: 6, marginBottom: 12 }}>
-                      <View style={s.row}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: color }} />
-                          <Text style={{ color: theme.text.primary }}>{a.label}</Text>
-                        </View>
-                        <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{a.pct}%</Text>
+                    <View key={type}>
+                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                        <Text style={{ flex: 1, color: theme.text.primary, fontSize: 13.5 }}>{label}</Text>
+                        <Text style={{ color: theme.text.primary, fontSize: 13.5, fontWeight: '700' }}>{hoy} %</Text>
+                        <Text style={{ width: 64, textAlign: 'right', color: theme.text.muted, fontSize: 12 }}>sug. {sug} %</Text>
                       </View>
-                      <View style={[s.barTrack, { backgroundColor: theme.background.muted }]}>
-                        <View style={[s.barFill, { width: `${a.pct}%`, backgroundColor: color }]} />
+                      <View style={{ height: 8, borderRadius: 4, backgroundColor: theme.background.muted, overflow: 'hidden', justifyContent: 'center' }}>
+                        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${sug}%`, backgroundColor: c.accent, opacity: 0.3, borderRadius: 4 }} />
+                        <View style={{ width: `${Math.min(100, hoy)}%`, height: 4, backgroundColor: c.accent, borderRadius: 2 }} />
                       </View>
                     </View>
                   )
                 })}
               </View>
+              <Text style={{ color: theme.text.muted, fontSize: 12.5, marginTop: 14 }}>Es una referencia educativa, no una recomendación de compra o venta.</Text>
+            </View>
 
-              <View style={[s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-                <Text style={{ color: theme.text.primary, fontWeight: '700', marginBottom: 10 }}>Recomendaciones para vos</Text>
-                {result.recommendations.map((r) => (
-                  <View key={r} style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
-                    <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: pc.soft, alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                      <Text style={{ color: pc.accent, fontSize: 12, fontWeight: '800' }}>✓</Text>
-                    </View>
-                    <Text style={{ color: theme.text.secondary, flex: 1, lineHeight: 19, fontSize: 13 }}>{r}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <TouchableOpacity style={[s.primaryBtn, { flex: 1, backgroundColor: theme.brand.solid }]} onPress={() => nav.goBack()}>
-                  <Text style={{ color: theme.text.onBrand, fontWeight: '700' }}>Rehacer test</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[s.secondaryBtn, { flex: 1, borderColor: theme.border.default }]} onPress={() => nav.navigate('Main')}>
-                  <Text style={{ color: theme.text.primary, fontWeight: '600' }}>Ir al Dashboard</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )
-        })()}
+            <View style={{ gap: 10 }}>
+              <TouchableOpacity onPress={() => nav.navigate('ProfileTest', { rehacer: true })} style={{ height: 48, borderRadius: 11, borderWidth: 1, borderColor: theme.border.strong, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: theme.text.primary, fontWeight: '600' }}>Rehacer el test</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => nav.navigate('Main', { screen: 'Content' } as never)} style={{ height: 48, borderRadius: 11, backgroundColor: theme.brand.solid, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: '600' }}>Aprender sobre mi perfil</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   )
 }
-
-const s = StyleSheet.create({
-  hero: { padding: 22, borderWidth: 1, borderRadius: 18, alignItems: 'center' },
-  card: { padding: 18, borderWidth: 1, borderRadius: 18 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  barTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 4 },
-  primaryBtn: { paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  secondaryBtn: { paddingVertical: 14, borderRadius: 12, borderWidth: 1, alignItems: 'center' },
-})

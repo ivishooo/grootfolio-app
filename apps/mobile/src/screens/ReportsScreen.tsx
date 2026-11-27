@@ -1,220 +1,188 @@
 /**
- * Reportes mobile (rediseño GF) — espejo del ReportsPage de web. 3 stat cards
- * con badge de ícono, línea de P&L acumulado (SVG), barras de balance histórico,
- * y listas de P&L por activo y ledger con AssetAvatar + chips de operación.
+ * Reportes en mobile (rediseño v2, Fase 5). Espejo de la web: KPI del año,
+ * «Ganancia realizada acumulada» en barras, «Operaciones» como lista y la nota
+ * de fuentes. «Exportar CSV» abre la hoja de compartir del sistema con el CSV.
  */
-import { ScrollView, View, Text, StyleSheet } from 'react-native'
-import Svg, { Polyline } from 'react-native-svg'
+import { ScrollView, View, Text, TouchableOpacity, Share } from 'react-native'
 import { useTheme } from '@/theme/ThemeProvider'
-import { BarChart } from '@/components/ui/BarChart'
 import { useReportSummary, useReportLedger } from '@/lib/queries'
-import { formatPercent, assetTypeLabel } from '@grootfolio/shared'
-import { useMoney } from '@/lib/money'
-import type { AssetType } from '@grootfolio/shared'
+import { formatCompactNumber, formatCurrency, formatDate, formatQuantity } from '@grootfolio/shared'
+import type { LedgerEntry } from '@grootfolio/shared'
+import { useMoney, signedMoney } from '@/lib/money'
 import { Screen } from '@/components/ui/Screen'
-import { Card } from '@/components/ui/Card'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { AssetAvatar } from '@/components/ui/AssetAvatar'
-import { assetColor } from '@/lib/asset-visual'
-import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString()
+/** Padding inferior del SPEC: es el lugar de Groot sobre las tabs. */
+const GROOT_SPACE = 150
+const shortDate = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+
+function toCsv(ledger: LedgerEntry[], currency: string, convert: (usd: number) => number): string {
+  const esc = (v: string) => (/[",\n;]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
+  return [
+    ['Fecha', 'Activo', 'Símbolo', 'Operación', 'Cantidad', 'Precio', 'Moneda del precio', `Monto (${currency})`],
+    ...ledger.map((e) => [
+      formatDate(e.purchasedAt),
+      e.name,
+      e.symbol,
+      e.kind === 'buy' ? 'Compra' : 'Venta',
+      String(e.quantity),
+      String(e.unitPrice),
+      e.priceCurrency,
+      convert(e.amountUsd).toFixed(2),
+    ]),
+  ]
+    .map((r) => r.map(esc).join(','))
+    .join('\n')
 }
 
 export function ReportsScreen() {
-  const money = useMoney()
   const { theme } = useTheme()
+  const money = useMoney()
   const summaryQ = useReportSummary()
   const ledgerQ = useReportLedger()
   const s = summaryQ.data
   const ledger = ledgerQ.data ?? []
 
+  const year = new Date().getFullYear()
+  const series = s?.realizedSeries ?? []
+  const before = series.filter((p) => new Date(p.date).getFullYear() < year).at(-1)?.cumulative ?? 0
+  const thisYear = series.filter((p) => new Date(p.date).getFullYear() === year)
+  const realizedYear = (thisYear.at(-1)?.cumulative ?? before) - before
+  const traded = new Set(ledger.map((e) => e.assetId)).size
+  const maxBar = Math.max(1, ...series.map((p) => Math.abs(p.cumulative)))
+  const card = { backgroundColor: theme.background.surface, borderColor: theme.border.default, borderWidth: 1, borderRadius: 16 } as const
+
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: ASSISTANT_SAFE_BOTTOM }}>
-        <View>
-          <Text style={{ color: theme.text.primary, fontSize: 22, fontWeight: '800' }}>Reportes</Text>
-          <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>
-            Ganancia realizada, balance histórico y ledger de operaciones.
-          </Text>
-        </View>
+      <ScrollView contentContainerStyle={{ paddingTop: 18, paddingHorizontal: 16, gap: 14, paddingBottom: GROOT_SPACE }}>
+        <Text accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 24, fontWeight: '700', letterSpacing: -0.5 }}>Reportes</Text>
 
-        {summaryQ.isLoading ? (
-          <Text style={{ color: theme.text.muted }}>Cargando reportes…</Text>
-        ) : summaryQ.isError ? (
-          <ErrorState
-            message={summaryQ.error instanceof Error ? summaryQ.error.message : 'No se pudo cargar el reporte.'}
-            onRetry={() => void summaryQ.refetch()}
-          />
-        ) : !s ? null : (
+        {summaryQ.isLoading && <Text style={{ color: theme.text.muted }}>Cargando reportes…</Text>}
+        {summaryQ.isError && (
+          <ErrorState message={summaryQ.error instanceof Error ? summaryQ.error.message : 'No se pudo cargar el reporte.'} onRetry={() => void summaryQ.refetch()} />
+        )}
+
+        {s && (
           <>
-            <ReportStat icon="↗" iconColor="#16A34A" iconBg="rgba(34,197,94,0.13)" label="P&L Realizado"
-              value={money.format(s.realizedTotal)} valueColor={s.realizedTotal >= 0 ? theme.chart.positive : theme.chart.negative}
-              sub="Sobre posiciones cerradas" />
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <ReportStat icon="⇄" iconColor="#3B82F6" iconBg="rgba(59,130,246,0.13)" label="Ventas"
-                  value={String(s.realizedSeries.length)} sub="Cierres" />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              <View style={[card, { width: '100%', padding: 16 }]}>
+                <Text style={{ color: theme.text.secondary, fontSize: 13 }}>Ganancia realizada · {year}</Text>
+                <Text style={{ color: realizedYear >= 0 ? theme.trend.pos : theme.trend.neg, fontSize: 26, fontWeight: '800', letterSpacing: -0.8, marginTop: 6 }}>
+                  {signedMoney(money.format, realizedYear)}
+                </Text>
+                <Text style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>De lo que ya vendiste</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <ReportStat icon="◈" iconColor="#8B5CF6" iconBg="rgba(139,92,246,0.13)" label="Operados"
-                  value={String(s.realizedByAsset.length)} sub="Incl. cerrados" />
+              <View style={[card, { flex: 1, padding: 14 }]}>
+                <Text style={{ color: theme.text.secondary, fontSize: 13 }}>Ventas</Text>
+                <Text style={{ color: theme.text.primary, fontSize: 18, fontWeight: '700', marginTop: 6 }}>{series.length}</Text>
+                <Text style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>totales o parciales</Text>
+              </View>
+              <View style={[card, { flex: 1, padding: 14 }]}>
+                <Text style={{ color: theme.text.secondary, fontSize: 13 }}>Activos operados</Text>
+                <Text style={{ color: theme.text.primary, fontSize: 18, fontWeight: '700', marginTop: 6 }}>{traded}</Text>
+                <Text style={{ color: theme.text.muted, fontSize: 12, marginTop: 4 }}>incluye los que ya no tenés</Text>
               </View>
             </View>
 
-            <Card title="P&L realizado acumulado">
-              {s.realizedSeries.length === 0 ? (
-                <EmptyState title="Sin ventas aún" description="El P&L realizado aparece cuando vendés (total o parcial)." />
+            <View style={[card, { padding: 16 }]}>
+              <Text style={{ color: theme.text.primary, fontSize: 15, fontWeight: '600', marginBottom: 14 }}>Ganancia realizada acumulada</Text>
+              {series.length === 0 ? (
+                <EmptyState title="Sin ventas aún" description="La ganancia realizada aparece cuando vendés, total o parcialmente." />
               ) : (
-                <RealizedLine points={[0, ...s.realizedSeries.map((p) => p.cumulative)]} color={theme.chart.series1} />
-              )}
-            </Card>
-
-            <Card title="Balance histórico (mark-to-market)">
-              {s.historicalBalance.length === 0 ? (
-                <EmptyState title="Sin histórico aún" description="Se muestra cuando hay snapshots históricos (crypto)." />
-              ) : (
-                <BarChart
-                  data={s.historicalBalance.map((m) => ({ label: m.month, value: m.value }))}
-                  // Mismo dato que el Dashboard (valor del portafolio): mismo color.
-                  color={theme.chart.series1}
-                  formatValue={money.format}
-                />
-              )}
-            </Card>
-
-            <Card title="P&L realizado por activo">
-              {s.realizedByAsset.length === 0 ? (
-                <EmptyState title="Sin posiciones cerradas" description="Acá vas a ver la ganancia realizada de lo que vendiste." />
-              ) : (
-                s.realizedByAsset.map((r) => {
-                  const c = assetColor(r.type)
-                  const up = r.realized >= 0
-                  const pct = r.costBasis ? (r.realized / r.costBasis) * 100 : 0
-                  const pnlColor = up ? theme.chart.positive : theme.chart.negative
-                  return (
-                    <View key={r.assetId} style={[st.row, { borderColor: theme.border.default }]}>
-                      <AssetAvatar asset={{ symbol: r.symbol, name: r.name, type: r.type }} size={32} />
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <Text style={{ color: theme.text.primary, fontWeight: '700', fontSize: 14 }} numberOfLines={1}>{r.name}</Text>
-                          <Text style={[st.chip, { color: c.accent, backgroundColor: c.soft }]}>{r.symbol}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, minWidth: '100%' }}>
+                  {series.map((p, i) => {
+                    const last = i === series.length - 1
+                    const color = p.cumulative >= 0 ? theme.trend.pos : theme.trend.neg
+                    return (
+                      <View key={`${p.date}-${i}`} style={{ flex: 1, minWidth: 44, alignItems: 'center', gap: 6 }}>
+                        <Text style={{ color: theme.text.muted, fontSize: 10.5 }}>{formatCompactNumber(money.convert(p.cumulative))}</Text>
+                        <View style={{ height: 120, width: '100%', justifyContent: 'flex-end', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: theme.border.default }}>
+                          <View
+                            style={{
+                              width: '100%',
+                              maxWidth: 64,
+                              height: `${Math.max(3, Math.round((Math.abs(p.cumulative) / maxBar) * 100))}%`,
+                              borderTopLeftRadius: 6,
+                              borderTopRightRadius: 6,
+                              borderBottomLeftRadius: 2,
+                              borderBottomRightRadius: 2,
+                              backgroundColor: color,
+                              opacity: last ? 1 : 0.35,
+                            }}
+                          />
                         </View>
-                        <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 2 }}>
-                          {assetTypeLabel[r.type as AssetType] ?? r.type} · {r.quantitySold} vendidas · costo {money.format(r.costBasis)}
-                        </Text>
+                        <Text style={{ color: theme.text.muted, fontSize: 11.5 }}>{shortDate(p.date)}</Text>
                       </View>
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ color: pnlColor, fontWeight: '700' }}>{money.format(r.realized)}</Text>
-                        <Text style={{ color: pnlColor, fontSize: 11 }}>{formatPercent(pct)}</Text>
-                      </View>
-                    </View>
-                  )
-                })
+                    )
+                  })}
+                </ScrollView>
               )}
-            </Card>
+            </View>
 
-            <Card title="Ledger de operaciones">
+            <View style={[card, { paddingTop: 16, paddingHorizontal: 14, paddingBottom: 6 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ flex: 1, color: theme.text.primary, fontSize: 15, fontWeight: '600' }}>
+                  Operaciones <Text style={{ color: theme.text.muted, fontWeight: '500' }}>· {ledger.length}</Text>
+                </Text>
+                {ledger.length > 0 && (
+                  <TouchableOpacity
+                    testID="reportes-exportar"
+                    onPress={() => void Share.share({ title: 'Operaciones GrootFolio', message: toCsv(ledger, money.currency, money.convert) })}
+                    accessibilityRole="button"
+                    style={{ height: 32, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: theme.border.strong, justifyContent: 'center' }}
+                  >
+                    <Text style={{ color: theme.text.primary, fontSize: 13, fontWeight: '600' }}>Exportar CSV</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               {ledgerQ.isLoading ? (
-                <Text style={{ color: theme.text.muted }}>Cargando operaciones…</Text>
+                <Text style={{ color: theme.text.muted, paddingVertical: 12 }}>Cargando operaciones…</Text>
               ) : ledger.length === 0 ? (
-                <EmptyState title="Sin operaciones" description="Cargá transacciones para ver el ledger." />
+                <EmptyState title="Sin operaciones" description="Cargá una compra o una venta para verla acá." />
               ) : (
                 ledger.map((e) => {
                   const buy = e.kind === 'buy'
-                  const kc = buy ? theme.chart.positive : theme.chart.negative
                   return (
-                    <View key={e.id} style={[st.row, { borderColor: theme.border.default }]}>
+                    <View key={e.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderTopWidth: 1, borderTopColor: theme.border.default }}>
                       <AssetAvatar asset={{ symbol: e.symbol, name: e.name, type: e.type }} size={30} />
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={{ color: theme.text.primary, fontWeight: '700', fontSize: 14 }} numberOfLines={1}>{e.name}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
-                          <Text style={[st.opChip, { color: kc, backgroundColor: buy ? 'rgba(34,197,94,0.13)' : 'rgba(239,68,68,0.13)' }]}>
-                            {buy ? '↓ Compra' : '↑ Venta'}
-                          </Text>
-                          <Text style={{ color: theme.text.muted, fontSize: 11 }}>
-                            {e.quantity} @ {e.unitPrice} {e.priceCurrency}{e.usdApprox ? ' ≈' : ''}
-                          </Text>
-                        </View>
+                        <Text numberOfLines={1} style={{ color: theme.text.primary, fontSize: 13.5, fontWeight: '600' }}>{e.name}</Text>
+                        <Text numberOfLines={1} style={{ color: theme.text.muted, fontSize: 12 }}>
+                          {shortDate(e.purchasedAt)} · {formatQuantity(e.quantity)} u a {formatCurrency(e.unitPrice, e.priceCurrency)}
+                          {e.usdApprox ? ' ≈' : ''}
+                        </Text>
                       </View>
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={{ color: theme.text.primary, fontWeight: '700' }}>{money.format(e.amountUsd)}</Text>
-                        <Text style={{ color: theme.text.muted, fontSize: 11 }}>{formatDate(e.purchasedAt)}</Text>
-                      </View>
+                      <Text
+                        style={{
+                          color: buy ? theme.trend.pos : theme.trend.neg,
+                          backgroundColor: buy ? theme.trend.posSoft : theme.trend.negSoft,
+                          fontSize: 11.5,
+                          fontWeight: '600',
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                          borderRadius: 6,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {buy ? 'Compra' : 'Venta'}
+                      </Text>
+                      <Text style={{ width: 80, textAlign: 'right', color: theme.text.primary, fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] }}>
+                        {money.format(e.amountUsd)}
+                      </Text>
                     </View>
                   )
                 })
               )}
-            </Card>
-
-            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(59,130,246,0.28)', backgroundColor: 'rgba(59,130,246,0.08)', padding: 12 }}>
-              <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#3B82F6', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700', fontStyle: 'italic' }}>i</Text>
-              </View>
-              <Text style={{ color: theme.text.secondary, fontSize: 11, flex: 1, lineHeight: 16 }}>
-                El balance histórico usa datos de crypto (CoinGecko); acciones y bonos se sumarán cuando esos
-                proveedores tengan histórico. ≈ marca operaciones con FX aproximado a la fecha.
-              </Text>
             </View>
+
+            <Text style={{ color: theme.text.muted, fontSize: 12.5, lineHeight: 18 }}>
+              Los precios históricos salen de CoinGecko (cripto); acciones y bonos se suman cuando esos proveedores tengan histórico. El símbolo ≈ marca
+              operaciones con tipo de cambio aproximado a la fecha.
+            </Text>
           </>
         )}
       </ScrollView>
     </Screen>
   )
 }
-
-function ReportStat({ icon, iconColor, iconBg, label, value, valueColor, sub }: {
-  icon: string; iconColor: string; iconBg: string; label: string; value: string; valueColor?: string; sub?: string
-}) {
-  const { theme } = useTheme()
-  return (
-    <View style={[st.statCard, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: iconColor, fontSize: 13, fontWeight: '700' }}>{icon}</Text>
-        </View>
-        <Text style={{ color: theme.text.secondary, fontSize: 13 }}>{label}</Text>
-      </View>
-      <Text style={{ color: valueColor ?? theme.text.primary, fontSize: 22, fontWeight: '800', marginTop: 8 }}>{value}</Text>
-      {sub ? <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 2 }}>{sub}</Text> : null}
-    </View>
-  )
-}
-
-/** Línea de P&L acumulado con SVG normalizada a un viewBox 100x40. */
-function RealizedLine({ points, color }: { points: number[]; color: string }) {
-  const money = useMoney()
-  const { theme } = useTheme()
-  if (points.length === 0) return null
-  const min = Math.min(...points, 0)
-  const max = Math.max(...points, 0)
-  const range = max - min || 1
-  const n = points.length
-  const coords = points
-    .map((v, i) => {
-      const x = n === 1 ? 50 : (i / (n - 1)) * 100
-      const y = 40 - ((v - min) / range) * 40
-      return `${x.toFixed(2)},${y.toFixed(2)}`
-    })
-    .join(' ')
-  return (
-    <View style={{ gap: 6 }}>
-      <Svg width="100%" height={120} viewBox="0 0 100 40" preserveAspectRatio="none">
-        <Polyline points={coords} fill="none" stroke={color} strokeWidth={1.2} strokeLinejoin="round" strokeLinecap="round" />
-      </Svg>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ color: theme.text.muted, fontSize: 11 }}>{money.format(min)}</Text>
-        <Text style={{ color: theme.text.muted, fontSize: 11 }}>{money.format(max)}</Text>
-      </View>
-    </View>
-  )
-}
-
-const st = StyleSheet.create({
-  statCard: { borderRadius: 16, borderWidth: 1, padding: 16 },
-  row: { flexDirection: 'row', gap: 10, paddingVertical: 12, borderTopWidth: 1, alignItems: 'center' },
-  chip: { fontSize: 11, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, overflow: 'hidden' },
-  opChip: { fontSize: 11, fontWeight: '700', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
-})

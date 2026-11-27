@@ -7,7 +7,7 @@
  * sigue sin leer la cartera. Groot no recomienda comprar ni vender: describe lo
  * que pasó y lo compara con el perfil.
  */
-import type { RiskProfileType } from '../types'
+import type { AssetType, RiskProfileType } from '../types'
 
 export type GrootMood = 'calm' | 'happy' | 'curious' | 'scared'
 export type GrootMode = 'resumen' | 'animo' | 'cargar' | 'cargado' | 'reportes' | 'contenido' | 'perfil'
@@ -47,13 +47,21 @@ export interface GrootContenido {
 export const BAJA_FUERTE = -2
 
 /**
- * % de cripto sugerido por perfil. Son los mismos valores de la asignación
- * sugerida que muestra el resultado del test (ProfileResult en web y mobile).
+ * Asignación sugerida por perfil (%), por tipo de activo. Es la referencia
+ * educativa que muestra el resultado del test («Tu cartera vs. la sugerida») y
+ * la que usa Groot. No es una recomendación de compra o venta.
  */
+export const ASIGNACION_SUGERIDA: Record<RiskProfileType, Record<AssetType, number>> = {
+  conservative: { bond: 60, stock: 20, crypto: 5, currency: 15 },
+  moderate: { bond: 40, stock: 35, crypto: 15, currency: 10 },
+  aggressive: { bond: 15, stock: 50, crypto: 30, currency: 5 },
+}
+
+/** % de cripto sugerido por perfil (atajo de ASIGNACION_SUGERIDA). */
 export const CRIPTO_SUGERIDA: Record<RiskProfileType, number> = {
-  conservative: 5,
-  moderate: 15,
-  aggressive: 30,
+  conservative: ASIGNACION_SUGERIDA.conservative.crypto,
+  moderate: ASIGNACION_SUGERIDA.moderate.crypto,
+  aggressive: ASIGNACION_SUGERIDA.aggressive.crypto,
 }
 
 export const ANIMO = [

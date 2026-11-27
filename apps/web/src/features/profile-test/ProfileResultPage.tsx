@@ -1,79 +1,41 @@
 /**
- * ProfileResultPage — detalle del perfil (rediseño). Badge con ícono y color por
- * perfil, asignación sugerida con barras por clase de activo, y recomendaciones.
- * Conserva los hooks reales; la asignación se deriva del perfil (presentación).
+ * Perfil de inversor · resultado (rediseño v2, Fase 5). SPEC-pantallas › Perfil.
+ * «Tu perfil es» + pastilla en tinta invertida, medidor neutro de 3 segmentos
+ * (ya no pinta Moderado de naranja ni Conservador de azul), la descripción y
+ * «Tu cartera vs. la sugerida»: lo que tenés hoy sobre la sugerida al 30 %.
  */
 import { useNavigate } from 'react-router-dom'
-import type { RiskProfileType } from '@grootfolio/shared'
-import { useQuizResult } from '@/lib/queries'
+import { ASIGNACION_SUGERIDA, formatDate } from '@grootfolio/shared'
+import type { AssetType, RiskProfileType } from '@grootfolio/shared'
+import { usePortfolio, useQuizResult } from '@/lib/queries'
+import { assetColor } from '@/lib/asset-visual'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States'
 
-const labels: Record<RiskProfileType, string> = {
-  conservative: 'Conservador',
-  moderate: 'Moderado',
-  aggressive: 'Agresivo',
-}
-
-const PROFILE_COLOR: Record<RiskProfileType, { accent: string; soft: string }> = {
-  conservative: { accent: '#3B82F6', soft: 'rgba(59,130,246,0.14)' },
-  moderate: { accent: '#F97316', soft: 'rgba(249,115,22,0.14)' },
-  aggressive: { accent: '#8B5CF6', soft: 'rgba(139,92,246,0.14)' },
-}
-
-const ALLOCATION: Record<RiskProfileType, Array<{ label: string; pct: number }>> = {
-  conservative: [
-    { label: 'Renta fija', pct: 60 }, { label: 'Acciones', pct: 20 },
-    { label: 'Criptomonedas', pct: 5 }, { label: 'Cash', pct: 15 },
-  ],
-  moderate: [
-    { label: 'Renta fija', pct: 40 }, { label: 'Acciones', pct: 35 },
-    { label: 'Criptomonedas', pct: 15 }, { label: 'Cash', pct: 10 },
-  ],
-  aggressive: [
-    { label: 'Renta fija', pct: 15 }, { label: 'Acciones', pct: 50 },
-    { label: 'Criptomonedas', pct: 30 }, { label: 'Cash', pct: 5 },
-  ],
-}
-
-const ALLOC_COLORS: Record<string, string> = {
-  'Renta fija': '#8B5CF6',
-  Acciones: '#3B82F6',
-  Criptomonedas: '#F97316',
-  Cash: '#14B8A6',
-}
-
-function ProfileIcon({ profile }: { profile: RiskProfileType }) {
-  const common = { width: 34, height: 34, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
-  if (profile === 'conservative') {
-    return <svg {...common}><path d="M12 3l7 3v5c0 4.5-3 7.2-7 8.5C8 18.2 5 15.5 5 11V6z" /><path d="M9 12l2 2 4-4.5" /></svg>
-  }
-  if (profile === 'moderate') {
-    return <svg {...common}><path d="M12 4v16" /><path d="M5 8h14" /><path d="M5 8l-2.5 5a3 3 0 006 0z" /><path d="M19 8l-2.5 5a3 3 0 006 0z" /></svg>
-  }
-  return <svg {...common}><path d="M4 15l6-6 4 4 6-7" /><path d="M20 6h-4M20 6v4" /></svg>
-}
+const LABEL: Record<RiskProfileType, string> = { conservative: 'Conservador', moderate: 'Moderado', aggressive: 'Agresivo' }
+const ORDER: RiskProfileType[] = ['conservative', 'moderate', 'aggressive']
+const CLASSES: Array<{ type: AssetType; label: string }> = [
+  { type: 'crypto', label: 'Cripto' },
+  { type: 'stock', label: 'Acciones' },
+  { type: 'bond', label: 'Bonos' },
+  { type: 'currency', label: 'Divisas y efectivo' },
+]
+const CARD = 'rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,.05)] dark:shadow-none'
 
 export function ProfileResultPage() {
   const navigate = useNavigate()
   const { data: result, isLoading, isError, error, refetch } = useQuizResult()
+  const { data: portfolio } = usePortfolio()
 
   if (isLoading) return <LoadingState label="Cargando tu perfil…" />
-  if (isError) {
-    return (
-      <ErrorState
-        message={error instanceof Error ? error.message : 'No se pudo cargar tu perfil.'}
-        onRetry={() => void refetch()}
-      />
-    )
-  }
+  if (isError) return <ErrorState message={error instanceof Error ? error.message : 'No se pudo cargar tu perfil.'} onRetry={() => void refetch()} />
   if (!result) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-[680px]">
         <EmptyState
           title="Todavía no hiciste el test"
-          description="Respondé el cuestionario para conocer tu perfil de inversor."
+          description="Son unas pocas preguntas y te ayudan a leer tu cartera."
           action={
-            <button onClick={() => navigate('/profile-test')} className="rounded-xl bg-brand-500 px-5 py-2.5 font-semibold text-white hover:bg-brand-600">
+            <button onClick={() => navigate('/profile-test')} className="h-11 rounded-[10px] bg-brand-500 px-5 font-semibold text-white hover:bg-brand-600">
               Hacer el test
             </button>
           }
@@ -82,60 +44,64 @@ export function ProfileResultPage() {
     )
   }
 
-  const pc = PROFILE_COLOR[result.profile]
-  const allocation = ALLOCATION[result.profile]
+  const total = portfolio?.totalValue ?? 0
+  const now = (t: AssetType) => {
+    const v = portfolio?.distribution.find((d) => d.type === t)?.value ?? 0
+    return total > 0 ? Math.round((v / total) * 100) : 0
+  }
+  const sug = ASIGNACION_SUGERIDA[result.profile]
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mx-auto grid h-[76px] w-[76px] place-items-center rounded-full" style={{ background: pc.soft, color: pc.accent }}>
-          <ProfileIcon profile={result.profile} />
-        </div>
-        <p className="mt-4 text-sm text-neutral-500">Tu perfil de inversor es</p>
-        <div className="mx-auto mt-2.5 inline-block rounded-full px-6 py-2 text-lg font-bold" style={{ background: pc.soft, color: pc.accent }}>
-          {labels[result.profile]}
-        </div>
-        <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">{result.description}</p>
-      </div>
+    <div className="mx-auto max-w-[680px] space-y-5">
+      <h1 className="text-2xl font-bold tracking-[-0.02em] md:text-[28px]">Perfil de inversor</h1>
 
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-        <h3 className="mb-4 font-semibold">Asignación sugerida</h3>
+      <section className={CARD}>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-[15px] text-ink-2">Tu perfil es</p>
+          <span className="rounded-full bg-ink px-3.5 py-1 text-base font-bold text-surface">{LABEL[result.profile]}</span>
+          <span className="text-xs text-ink-3">test del {formatDate(result.calculatedAt)}</span>
+        </div>
+        <div className="mt-4 flex gap-1.5" role="img" aria-label={`Perfil ${LABEL[result.profile]}, de conservador a agresivo`}>
+          {ORDER.map((p) => (
+            <div key={p} className="flex-1">
+              <div className={`h-2 rounded-full ${p === result.profile ? 'bg-brand-500' : 'bg-muted'}`} />
+              <p className={`mt-1.5 text-center text-[11.5px] ${p === result.profile ? 'font-semibold text-ink' : 'text-ink-3'}`}>{LABEL[p]}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-sm leading-relaxed text-ink-2">{result.description}</p>
+      </section>
+
+      <section className={CARD}>
+        <h2 className="mb-4 text-[15px] font-semibold">Tu cartera vs. la sugerida</h2>
         <div className="space-y-4">
-          {allocation.map((a) => (
-            <div key={a.label}>
-              <div className="mb-1.5 flex justify-between text-sm">
-                <span className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-sm" style={{ background: ALLOC_COLORS[a.label] }} />
-                  {a.label}
-                </span>
-                <span className="font-semibold tabular-nums">{a.pct}%</span>
+          {CLASSES.map(({ type, label }) => {
+            const c = assetColor(type)
+            const hoy = now(type)
+            return (
+              <div key={type}>
+                <div className="mb-1.5 flex items-baseline gap-2 text-[13.5px]">
+                  <span className="flex-1">{label}</span>
+                  <span className="font-bold tabular-nums">{hoy} %</span>
+                  <span className="w-16 text-right text-xs tabular-nums text-ink-3">sug. {sug[type]} %</span>
+                </div>
+                <div className="relative h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                  <div className="absolute inset-y-0 left-0 rounded-full opacity-30" style={{ width: `${sug[type]}%`, background: c.accent }} />
+                  <div className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full" style={{ width: `${Math.min(100, hoy)}%`, background: c.accent }} />
+                </div>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-                <div className="h-full rounded-full transition-all" style={{ width: `${a.pct}%`, background: ALLOC_COLORS[a.label] }} />
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
-      </div>
+        <p className="mt-4 text-[12.5px] text-ink-3">Es una referencia educativa, no una recomendación de compra o venta.</p>
+      </section>
 
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-        <h3 className="mb-3.5 font-semibold">Recomendaciones para vos</h3>
-        <div className="space-y-3">
-          {result.recommendations.map((r) => (
-            <div key={r} className="flex items-start gap-2.5">
-              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[12px] font-bold" style={{ background: pc.soft, color: pc.accent }}>✓</span>
-              <span className="text-[13.5px] leading-snug text-neutral-600 dark:text-neutral-300">{r}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex gap-3">
-        <button onClick={() => navigate('/profile-test')} className="flex-1 rounded-xl bg-brand-500 py-3 font-semibold text-white hover:bg-brand-600">
-          Hacer el test nuevamente
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <button onClick={() => navigate('/profile-test?rehacer=1')} className="h-12 flex-1 rounded-[11px] border border-ctl bg-surface font-semibold hover:bg-muted">
+          Rehacer el test
         </button>
-        <button onClick={() => navigate('/dashboard')} className="flex-1 rounded-xl border border-neutral-300 py-3 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
-          Ir al Dashboard
+        <button onClick={() => navigate('/content')} className="h-12 flex-1 rounded-[11px] bg-brand-500 font-semibold text-white hover:bg-brand-600">
+          Aprender sobre mi perfil
         </button>
       </div>
     </div>
