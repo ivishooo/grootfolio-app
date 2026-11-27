@@ -56,41 +56,6 @@
   --gf-accent-ink: theme('colors.brand.400');
 }
 
-/* --- Launcher --- */
-
-.gf-launcher {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 40;
-  width: 60px;
-  height: 60px;
-  border-radius: 999px;
-  background: var(--gf-accent);
-  color: #fff;
-  border: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 14px 30px -10px rgba(249, 115, 22, 0.6);
-  transition: transform 0.18s ease, background-color 0.18s ease;
-}
-.gf-launcher:hover {
-  transform: translateY(-2px) scale(1.03);
-  background: var(--gf-accent-hover);
-}
-.gf-launcher-dot {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  background: #16a34a;
-  border: 2.5px solid var(--tk-surface);
-}
-
 /* --- Capa --- */
 
 .gf-overlay {
@@ -151,8 +116,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gf-panel,
-  .gf-launcher {
+  .gf-panel {
     animation: none;
     transition: none;
   }

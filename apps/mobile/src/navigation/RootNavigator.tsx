@@ -15,6 +15,8 @@ import { ProfileTestScreen } from '@/screens/ProfileTestScreen'
 import { SettingsScreen } from '@/screens/SettingsScreen'
 import { Assistant } from '@/components/assistant/Assistant'
 import { TabNavigator } from './TabNavigator'
+import { GrootProvider } from '@/components/groot/GrootProvider'
+import { useGrootTabSync } from '@/components/groot/Groot'
 import { AppHeader } from './AppHeader'
 
 export type RootStackParamList = {
@@ -41,6 +43,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>()
  * ya no son tabs (ADR-0006): se abren desde el menú del avatar.
  */
 function MainWithAssistant() {
+  useGrootTabSync()
   return (
     <View style={{ flex: 1 }}>
       <TabNavigator />
@@ -65,6 +68,7 @@ export function RootNavigator() {
   return (
     // `headerBackTitle` fijo: el back nativo tomaba el nombre de la ruta previa
     // y todas las pantallas mostraban "‹ Main", que es un nombre interno.
+    <GrootProvider>
     <Stack.Navigator screenOptions={{ headerShown: false, headerBackTitle: 'Volver' }}>
       {isAuthenticated ? (
         <>
@@ -90,5 +94,6 @@ export function RootNavigator() {
         </>
       )}
     </Stack.Navigator>
+    </GrootProvider>
   )
 }

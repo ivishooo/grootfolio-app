@@ -68,7 +68,7 @@ export function Composer({ onSend, isStreaming }: Props) {
               submit()
             }
           }}
-          placeholder="Preguntá sobre GrootFolio…"
+          placeholder="Preguntale a Groot…"
           aria-label="Mensaje para el asistente"
           maxLength={1000}
           className="max-h-[120px] flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-5 text-ink placeholder:text-ink-3 focus:outline-none"
@@ -92,11 +92,9 @@ export function Composer({ onSend, isStreaming }: Props) {
         qué puede responder el bot aparece cuando ya está respondiendo, no antes
         de la primera pregunta.
       */}
-      <p className="mt-1.5 px-1 text-[10.5px] leading-4 text-ink-3">
-        Enter para enviar · Shift + Enter salto de línea
-        <br />
-        Respondo sobre GrootFolio y lo que el equipo documentó. No es
-        asesoramiento financiero.
+      <p className="mt-1.5 px-1 text-[11px] leading-4 text-ink-3">
+        Groot no da recomendaciones de inversión personalizadas.
+        <span className="hidden sm:inline"> · Enter para enviar, Shift + Enter salto de línea.</span>
       </p>
     </footer>
   )

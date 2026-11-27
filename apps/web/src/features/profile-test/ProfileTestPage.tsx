@@ -5,6 +5,7 @@
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useGroot } from '@/components/groot/GrootProvider'
 import type { RiskProfileType } from '@grootfolio/shared'
 import { useQuiz, useQuizResult, useSubmitQuiz } from '@/lib/queries'
 import { ErrorState, LoadingState } from '@/components/ui/States'
@@ -23,6 +24,7 @@ const PROFILE_COLOR: Record<RiskProfileType, { accent: string; soft: string }> =
 
 export function ProfileTestPage() {
   const navigate = useNavigate()
+  const groot = useGroot()
   const result = useQuizResult()
   const { data: questions, isLoading, isError, error, refetch } = useQuiz()
   const submitQuiz = useSubmitQuiz()
@@ -83,7 +85,10 @@ export function ProfileTestPage() {
     }
     const answers = questions.map((q) => ({ questionId: q.id, optionId: selected[q.id]! }))
     submitQuiz.mutate(answers, {
-      onSuccess: () => navigate('/profile-test/result'),
+      onSuccess: () => {
+        groot.decir('perfil')
+        navigate('/profile-test/result')
+      },
     })
   }
 

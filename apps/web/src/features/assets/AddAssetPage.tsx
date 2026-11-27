@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { createTransactionInputSchema, formatCurrency, dateInputToISO, isoToDateInput } from '@grootfolio/shared'
 import type { AssetSearchResult, AssetType } from '@grootfolio/shared'
 import { useCreateTransaction } from '@/lib/queries'
+import { useGroot } from '@/components/groot/GrootProvider'
 import { useToast } from '@/components/ui/ToastProvider'
 import { Input } from '@/components/ui/Input'
 import { AssetAutocomplete } from '@/components/ui/AssetAutocomplete'
@@ -59,6 +60,7 @@ const fieldCls =
 
 export function AddAssetPage() {
   const navigate = useNavigate()
+  const groot = useGroot()
   const [activeType, setActiveType] = useState<AssetType>('crypto')
   const [kind, setKind] = useState<'buy' | 'sell'>('buy')
   const [form, setForm] = useState({ ...emptyForm })
@@ -116,6 +118,10 @@ export function AddAssetPage() {
       onSuccess: () => {
         setForm({ ...emptyForm })
         toast('Activo cargado', 'success', { description: 'Se sumó a tu portafolio.' })
+        groot.decir('cargado', {
+          morder: true,
+          lastTx: { qty: result.data.quantity.toLocaleString('es-AR', { maximumFractionDigits: 8 }), symbol: result.data.symbol },
+        })
         navigate('/dashboard')
       },
       onError: (err) => {

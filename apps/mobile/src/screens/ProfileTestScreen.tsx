@@ -8,6 +8,7 @@ import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-nati
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { RiskProfileType } from '@grootfolio/shared'
+import { useGroot } from '@/components/groot/GrootProvider'
 import { useTheme } from '@/theme/ThemeProvider'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
 import { useQuiz, useQuizResult, useSubmitQuiz } from '@/lib/queries'
@@ -32,6 +33,7 @@ const OPTION_SOFT = 'rgba(249,115,22,0.10)'
 export function ProfileTestScreen() {
   const { theme } = useTheme()
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList, 'ProfileTest'>>()
+  const groot = useGroot()
   const result = useQuizResult()
   const { data: questions, isLoading, isError, error, refetch } = useQuiz()
   const submitQuiz = useSubmitQuiz()
@@ -106,7 +108,10 @@ export function ProfileTestScreen() {
     }
     const answers = questions.map((q) => ({ questionId: q.id, optionId: selected[q.id]! }))
     submitQuiz.mutate(answers, {
-      onSuccess: () => nav.navigate('ProfileResult'),
+      onSuccess: () => {
+        groot.decir('perfil')
+        nav.navigate('ProfileResult')
+      },
     })
   }
 

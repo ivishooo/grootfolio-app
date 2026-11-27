@@ -1,10 +1,10 @@
 /**
- * Asistente de GrootFolio (rediseño). Compone launcher + panel y les pasa el
- * estado del hook. El panel arranca cerrado y al cerrarlo el foco vuelve al
- * launcher.
+ * Asistente de GrootFolio. Compone a Groot (rediseño v2, ADR-0006: reemplaza al
+ * launcher genérico) + el panel del chat, y les pasa el estado del hook. El
+ * panel arranca cerrado y al cerrarlo el foco vuelve a Groot.
  */
 import { useEffect, useRef } from 'react'
-import { AssistantLauncher } from './AssistantLauncher'
+import { Groot } from '@/components/groot/Groot'
 import { AssistantPanel } from './AssistantPanel'
 import { ConversationRail } from './ConversationRail'
 import { MessageList } from './MessageList'
@@ -21,7 +21,7 @@ export function Assistant() {
   // Al cerrar, devolver el foco al launcher (requisito de accesibilidad).
   useEffect(() => {
     if (wasOpen.current && !chat.isOpen) {
-      launcherRef.current?.querySelector('button')?.focus()
+      launcherRef.current?.querySelector<HTMLButtonElement>('button[aria-label^="Groot"]')?.focus()
     }
     wasOpen.current = chat.isOpen
   }, [chat.isOpen])
@@ -45,7 +45,7 @@ export function Assistant() {
   if (!chat.isOpen) {
     return (
       <div ref={launcherRef}>
-        <AssistantLauncher onOpen={chat.open} isOpen={false} />
+        <Groot onOpenChat={chat.open} />
       </div>
     )
   }
@@ -54,6 +54,7 @@ export function Assistant() {
 
   return (
     <AssistantPanel
+      isStreaming={chat.status === 'streaming'}
       onClose={chat.close}
       onNewConversation={chat.messages.length > 0 ? chat.newConversation : undefined}
       onToggleExpanded={chat.toggleExpanded}
