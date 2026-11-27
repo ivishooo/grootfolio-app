@@ -102,7 +102,10 @@ export function GrootProvider({ children }: { children: ReactNode }) {
     (next, autoOpen) => {
       if (Date.now() < holdUntil.current) return
       setMode(next)
+      // Mobile (SPEC › Groot): la burbuja solo vive en Inicio; en las demás
+      // tabs queda el avatar, para no tapar el contenido de pantallas chicas.
       if (autoOpen && !closedToday()) setOpen(true)
+      else if (!autoOpen) setOpen(false)
     },
     [closedToday],
   )

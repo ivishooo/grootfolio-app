@@ -1,4 +1,8 @@
-# Pantalla de Activos: lista de posiciones y acceso al alta.
+# Activos (rediseño v2): la fila entera expande y «Vender» abre Cargar activo
+# con el activo y la venta ya elegidos.
+#
+# Además cuida una regresión visual: Groot es `position: absolute` sobre el tab
+# bar y llegó a tapar la última fila. Las pantallas reservan su lugar abajo.
 appId: host.exp.Exponent
 ---
 - runFlow: _login.yaml
@@ -8,23 +12,33 @@ appId: host.exp.Exponent
     visible:
       id: 'screen-activos-title'
     timeout: 20000
-# El CTA de alta tiene que estar siempre a mano, con o sin posiciones cargadas.
-- assertVisible:
-    id: 'activos-cargar'
+
+# Expandir la primera posición.
 - tapOn:
-    id: 'activos-cargar'
-- extendedWaitUntil:
-    visible: 'Cargar activo'
-    timeout: 20000
-# Volver sin guardar no debe dejar nada a medias. El formulario es largo:
-# "Cancelar" vive al pie, debajo del fold, así que hay que llegar scrolleando.
+    id: 'holding-toggle'
+    index: 0
+# Con muchas operaciones, «Vender» queda debajo del fold al expandir.
 - scrollUntilVisible:
-    element: 'Cancelar'
+    element:
+      id: 'holding-vender'
     direction: DOWN
     centerElement: true
     timeout: 20000
-- tapOn: 'Cancelar'
+
+# «Vender» abre Cargar con la venta elegida y el activo prefijado.
+- tapOn:
+    id: 'holding-vender'
+- extendedWaitUntil:
+    visible: 'Cargar activo'
+    timeout: 20000
+- assertVisible:
+    id: 'addasset-cambiar'
+- assertVisible: 'Guardar venta'
+
+# Volver sin guardar: Activos conserva el scroll, así que se ve la fila abierta.
+- tapOn:
+    id: 'addasset-volver'
 - extendedWaitUntil:
     visible:
-      id: 'screen-activos-title'
+      id: 'holding-vender'
     timeout: 20000

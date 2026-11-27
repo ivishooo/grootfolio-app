@@ -14,7 +14,7 @@ export const assetTypeLabels: Record<AssetType, string> = {
 }
 
 export const assetTypeLabel: Record<AssetType, string> = {
-  crypto: 'Crypto',
+  crypto: 'Cripto',
   stock: 'Acción',
   bond: 'Bono',
   currency: 'Divisa',
@@ -297,6 +297,27 @@ export function groupSourcesByArticle(
   }
 
   return [...byArticle.values()].sort((a, b) => b.score - a.score)
+}
+
+/**
+ * Cantidad de un activo para mostrar. Los montos llegan como float y sumar
+ * compras parciales deja colas como 1.4000000000000001: se redondea a 8
+ * decimales (lo que usan las cripto) y se formatea en es-AR, sin ceros de más.
+ */
+export function formatQuantity(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—'
+  return value.toLocaleString('es-AR', { maximumFractionDigits: 8 })
+}
+
+/**
+ * Porcentaje con flecha, como lo muestra el rediseño v2: «▲ 58,6 %»,
+ * «▼ 13,6 %». `null` (sin base de costo o sin cotización) da «—».
+ */
+export function formatPctArrow(value: number | null | undefined, fractionDigits = 1): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—'
+  const arrow = value >= 0 ? '▲' : '▼'
+  const n = Math.abs(value).toLocaleString('es-AR', { minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits })
+  return `${arrow} ${n} %`
 }
 
 // Groot, el asistente (rediseño v2, ADR-0006)

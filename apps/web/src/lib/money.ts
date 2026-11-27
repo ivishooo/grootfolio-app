@@ -50,3 +50,9 @@ export function useMoney(): Money {
         : formatCurrency(usd * resolved, currency),
   }
 }
+
+/** Importe con signo explícito: «+US$ 7.160» / «−US$ 1.291» (rediseño v2). */
+export function signedMoney(format: (n: number) => string, n: number): string {
+  const s = format(Math.abs(n))
+  return n > 0 ? `+${s}` : n < 0 ? `−${s}` : s
+}

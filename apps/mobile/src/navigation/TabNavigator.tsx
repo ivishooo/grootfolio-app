@@ -20,7 +20,8 @@ import type { RootStackParamList } from './RootNavigator'
  */
 export type TabParamList = {
   Dashboard: undefined
-  Assets: undefined
+  /** `open`: assetId de la fila que se abre expandida (lo usa Inicio). */
+  Assets: { open?: string } | undefined
   /** No es una pantalla: el tab central abre `AddAsset` en el stack. */
   AddAssetTab: undefined
   Reports: undefined

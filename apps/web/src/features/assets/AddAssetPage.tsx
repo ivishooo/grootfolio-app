@@ -1,19 +1,22 @@
 /**
- * Cargar activo (GF-249) — rediseño. Selector de tipo en tarjetas con color,
- * toggle compra/venta, formulario por tipo y panel de resumen en vivo.
- * Conserva la lógica original: validación con Zod, autocomplete, toast + redirect.
+ * Cargar activo (rediseño v2, Fase 4). SPEC-pantallas › Cargar activo.
+ *
+ * Tres pasos en una tarjeta: 1) ¿qué activo? (el buscador completa tipo y
+ * moneda; el tipo ya no se elige antes), 2) ¿compraste o vendiste?, 3) cantidad
+ * y precio. El resumen va al costado (sticky). Prefill desde la URL:
+ * `/assets/new?asset=BTC&kind=sell` (lo usan «+ Comprar más» y «Vender» de
+ * Activos). Se mantienen las validaciones: Zod, TX_CURRENCY_MISMATCH y CEDEAR.
  */
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createTransactionInputSchema, formatCurrency, dateInputToISO, isoToDateInput } from '@grootfolio/shared'
-import type { AssetSearchResult, AssetType } from '@grootfolio/shared'
-import { useCreateTransaction } from '@/lib/queries'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { assetTypeLabel, createTransactionInputSchema, formatCurrency, formatQuantity, dateInputToISO, isoToDateInput } from '@grootfolio/shared'
+import type { AssetSearchResult, AssetType, Holding } from '@grootfolio/shared'
+import { useCreateTransaction, usePortfolio } from '@/lib/queries'
 import { useGroot } from '@/components/groot/GrootProvider'
 import { useToast } from '@/components/ui/ToastProvider'
-import { Input } from '@/components/ui/Input'
 import { AssetAutocomplete } from '@/components/ui/AssetAutocomplete'
-import { assetColor, assetMark } from '@/lib/asset-visual'
-import { success, danger } from '@grootfolio/tokens'
+import { AssetAvatar } from '@/components/ui/AssetAvatar'
+import { assetColor } from '@/lib/asset-visual'
 
 const PRICE_CURRENCIES = ['USD', 'ARS', 'EUR'] as const
 
@@ -40,34 +43,68 @@ const todayInput = () => isoToDateInput(new Date().toISOString())
 
 const emptyForm = { symbol: '', quantity: '', unitPrice: '', fee: '', priceCurrency: 'USD', purchasedAt: todayInput(), notes: '' }
 
-function TypeIcon({ type }: { type: AssetType }) {
-  const { accent } = assetColor(type)
-  const common = { width: 17, height: 17, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
-  const inner =
-    type === 'crypto' ? <span className="text-base font-bold">₿</span>
-    : type === 'currency' ? <span className="text-[17px] font-bold">$</span>
-    : type === 'stock' ? <svg {...common}><path d="M4 16l5-5 3 3 6-7" /><path d="M18 7h-4M18 7v4" /></svg>
-    : <svg {...common}><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 8h6M9 12h6M9 16h4" /></svg>
+const CARD = 'rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(15,23,42,.05)] dark:shadow-none'
+const fieldCls =
+  'h-[46px] w-full rounded-[10px] border border-ctl bg-surface px-3 text-[15px] text-ink placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-brand-500'
+
+type Selected = { symbol: string; name: string; type: AssetType; currency: string }
+
+function StepHead({ n, state, title }: { n: number; state: 'current' | 'done' | 'pending'; title: string }) {
+  const cls =
+    state === 'current' ? 'bg-brand-500 text-white' : state === 'done' ? 'bg-pos text-white dark:text-neutral-900' : 'bg-muted text-ink-3'
   return (
-    <span className="grid h-[34px] w-[34px] place-items-center rounded-full" style={{ background: assetColor(type).soft, color: accent }}>
-      {inner}
-    </span>
+    <div className="mb-3 flex items-center gap-2.5">
+      <span className={`grid h-6 w-6 place-items-center rounded-full font-mono text-xs font-medium ${cls}`} aria-hidden="true">
+        {state === 'done' ? '✓' : n}
+      </span>
+      <h2 className="text-[15px] font-semibold">{title}</h2>
+    </div>
   )
 }
 
-const fieldCls =
-  'w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-neutral-700 dark:bg-neutral-800'
+function Field({ label, optional, help, children, htmlFor }: { label: string; optional?: boolean; help?: React.ReactNode; children: React.ReactNode; htmlFor: string }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={htmlFor} className="text-[13px] font-semibold">
+        {label} {optional && <span className="font-normal text-ink-3">· opcional</span>}
+      </label>
+      {children}
+      {help && <div className="text-xs text-ink-3">{help}</div>}
+    </div>
+  )
+}
 
 export function AddAssetPage() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
   const groot = useGroot()
-  const [activeType, setActiveType] = useState<AssetType>('crypto')
-  const [kind, setKind] = useState<'buy' | 'sell'>('buy')
+  const { data: portfolio } = usePortfolio()
+  const [filterType, setFilterType] = useState<AssetType | undefined>(undefined)
+  const [selected, setSelected] = useState<Selected | null>(null)
+  const [kind, setKind] = useState<'buy' | 'sell'>(params.get('kind') === 'sell' ? 'sell' : 'buy')
   const [form, setForm] = useState({ ...emptyForm })
+  const [showNotes, setShowNotes] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const createTx = useCreateTransaction()
   const { toast } = useToast()
+  const fromAssets = params.get('from') === 'assets'
+
+  // Prefill: «+ Comprar más» / «Vender» de Activos traen el activo en la URL.
+  const prefill = params.get('asset')
+  useEffect(() => {
+    if (!prefill || selected || !portfolio) return
+    const h = portfolio.holdings.find((x) => x.asset.symbol.toUpperCase() === prefill.toUpperCase())
+    if (!h) return
+    const sel = { symbol: h.asset.symbol, name: h.asset.name, type: h.asset.type as AssetType, currency: h.asset.symbol.toUpperCase().endsWith('.BA') ? 'ARS' : 'USD' }
+    setSelected(sel)
+    setForm((p) => ({ ...p, symbol: sel.symbol, priceCurrency: TYPE_FORM[sel.type].showCurrency ? sel.currency : 'USD' }))
+  }, [prefill, selected, portfolio])
+
+  const type: AssetType = selected?.type ?? filterType ?? 'crypto'
+  const holding: Holding | undefined = portfolio?.holdings.find(
+    (h) => h.asset.symbol.toUpperCase() === (selected?.symbol ?? form.symbol).trim().toUpperCase(),
+  )
 
   const updateField = (field: string, value: string) => {
     setForm((p) => ({ ...p, [field]: value }))
@@ -76,7 +113,7 @@ export function AddAssetPage() {
   }
 
   const handleSubmit = () => {
-    if (activeType === 'currency' && form.priceCurrency.toUpperCase() === form.symbol.trim().toUpperCase()) {
+    if (type === 'currency' && form.priceCurrency.toUpperCase() === form.symbol.trim().toUpperCase()) {
       setErrors({ priceCurrency: 'La moneda con la que pagás no puede ser la misma que comprás.' })
       return
     }
@@ -84,7 +121,7 @@ export function AddAssetPage() {
     // Nasdaq no tiene precio en pesos: si pagaste en pesos compraste el CEDEAR,
     // y anotarlo contra el ticker del subyacente daba rentabilidades de +4.000%.
     if (
-      activeType === 'stock' &&
+      type === 'stock' &&
       form.priceCurrency.toUpperCase() === 'ARS' &&
       !form.symbol.trim().toUpperCase().endsWith('.BA')
     ) {
@@ -95,7 +132,7 @@ export function AddAssetPage() {
     }
     const parsed = {
       symbol: form.symbol,
-      type: activeType,
+      type: type,
       kind,
       quantity: parseFloat(form.quantity) || 0,
       unitPrice: parseFloat(form.unitPrice) || 0,
@@ -117,7 +154,7 @@ export function AddAssetPage() {
     createTx.mutate(result.data, {
       onSuccess: () => {
         setForm({ ...emptyForm })
-        toast('Activo cargado', 'success', { description: 'Se sumó a tu portafolio.' })
+        toast(kind === 'buy' ? 'Compra guardada' : 'Venta guardada', 'success', { description: 'Ya la ves en tu portafolio.' })
         groot.decir('cargado', {
           morder: true,
           lastTx: { qty: result.data.quantity.toLocaleString('es-AR', { maximumFractionDigits: 8 }), symbol: result.data.symbol },
@@ -131,191 +168,255 @@ export function AddAssetPage() {
   }
 
   const handleSelectAsset = (r: AssetSearchResult) => {
-    setActiveType(r.type)
+    setSelected({ symbol: r.symbol, name: r.name, type: r.type, currency: r.currency })
     setForm((p) => ({
       ...p,
       symbol: r.symbol,
       priceCurrency:
-        TYPE_FORM[r.type].showCurrency && (PRICE_CURRENCIES as readonly string[]).includes(r.currency)
-          ? r.currency
-          : p.priceCurrency,
+        TYPE_FORM[r.type].showCurrency && (PRICE_CURRENCIES as readonly string[]).includes(r.currency) ? r.currency : 'USD',
     }))
     setErrors((p) => ({ ...p, symbol: '' }))
     setSubmitError(null)
   }
 
-  const handleCancel = () => {
-    setForm({ ...emptyForm })
-    setErrors({})
-    navigate('/dashboard')
+  const clearAsset = () => {
+    setSelected(null)
+    setForm((p) => ({ ...p, symbol: '' }))
   }
 
-  const cfg = TYPE_FORM[activeType]
-  const c = assetColor(activeType)
+  const handleCancel = () => navigate(fromAssets ? '/assets' : '/dashboard')
+
+  const cfg = TYPE_FORM[type]
+  const c = assetColor(type)
   const cur = cfg.showCurrency ? form.priceCurrency : 'USD'
   const qty = parseFloat(form.quantity) || 0
   const price = parseFloat(form.unitPrice) || 0
   const fee = parseFloat(form.fee) || 0
-  const total = qty * price + fee
+  const subtotal = qty * price
+  const total = kind === 'buy' ? subtotal + fee : subtotal - fee
   const fmt = (n: number) => formatCurrency(n, cur)
-  const previewMark = form.symbol
-    ? assetMark({ symbol: form.symbol })
-    : ({ crypto: '₿', stock: 'A', bond: 'B', currency: '$' } as Record<AssetType, string>)[activeType]
+  const chosen = selected !== null || form.symbol.trim() !== ''
+  const ready = chosen && qty > 0 && price > 0
+  const step = !chosen ? 1 : qty > 0 && price > 0 ? 4 : 3
+  // Precio de hoy: solo lo sabemos si el activo ya está en el portafolio (en USD).
+  const todayPrice = holding && holding.currentPrice > 0 && cur === 'USD' ? holding.currentPrice : null
+  const sellGain = kind === 'sell' && holding && cur === 'USD' && ready ? (price - holding.avgPrice) * qty - fee : null
+  const sym = selected?.symbol ?? form.symbol.trim().toUpperCase()
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="mx-auto max-w-[1040px] space-y-5">
       <div>
-        <button onClick={() => navigate('/assets')} className="mb-2 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
-          ← Volver a Activos
-        </button>
-        <h2 className="text-2xl font-bold">Cargar activo</h2>
-        <p className="mt-1 text-sm text-neutral-500">Registrá una compra o venta en tu portafolio.</p>
+        {fromAssets && (
+          <button onClick={() => navigate('/assets')} className="mb-2 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-ink hover:underline">
+            ← Volver a Activos
+          </button>
+        )}
+        <h1 className="text-2xl font-bold tracking-[-0.02em] md:text-[28px]">Cargar activo</h1>
+        <p className="mt-1 text-sm text-ink-2">Registrá una compra o una venta en tres pasos.</p>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
-        {/* FORM */}
-        <div className="space-y-5">
-          <div>
-            <p className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-300">Tipo de activo</p>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              {TYPE_ORDER.map((type) => {
-                const sel = activeType === type
-                const tc = assetColor(type)
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => {
-                      setActiveType(type)
-                      if (!TYPE_FORM[type].showCurrency) updateField('priceCurrency', 'USD')
-                    }}
-                    className="flex flex-col items-center gap-2 rounded-xl border-[1.5px] border-neutral-200 p-3.5 transition-colors dark:border-neutral-800"
-                    style={
-                      sel
-                        ? { borderColor: tc.accent, background: `color-mix(in srgb, ${tc.accent} 8%, transparent)` }
-                        : undefined
-                    }
-                  >
-                    <span className={sel ? '' : 'contents'}>
-                      <TypeIcon type={type} />
-                    </span>
-                    <span className="text-[12.5px] font-semibold">{TYPE_FORM[type].label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-300">Operación</p>
-            <div className="flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => setKind('buy')}
-                className="flex-1 rounded-lg border-[1.5px] border-neutral-300 py-2.5 text-sm font-semibold transition-colors dark:border-neutral-700"
-                style={kind === 'buy' ? { borderColor: success[700], background: success[700], color: '#fff' } : undefined}
-              >
-                ↓ Compra
-              </button>
-              <button
-                type="button"
-                onClick={() => setKind('sell')}
-                className="flex-1 rounded-lg border-[1.5px] border-neutral-300 py-2.5 text-sm font-semibold transition-colors dark:border-neutral-700"
-                style={kind === 'sell' ? { borderColor: danger[700], background: danger[700], color: '#fff' } : undefined}
-              >
-                ↑ Venta
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-[22px] dark:border-neutral-800 dark:bg-neutral-900">
-            <AssetAutocomplete
-              label={cfg.symbolLabel}
-              placeholder={cfg.symbolPlaceholder}
-              value={form.symbol}
-              error={errors.symbol}
-              type={activeType}
-              onChange={(v) => updateField('symbol', v)}
-              onSelect={handleSelectAsset}
-            />
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input label={cfg.qtyLabel} placeholder={cfg.qtyPlaceholder} value={form.quantity} error={errors.quantity} onChange={(v) => updateField('quantity', v)} type="number" required min={0} step="any" inputMode="decimal" />
-              {cfg.showCurrency ? (
-                <div className="text-sm">
-                  <label htmlFor="unitPrice" className="mb-1 block font-medium">
-                    {cfg.priceLabel}
-                    <span className="ml-0.5 text-danger-500" aria-hidden="true">*</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <input id="unitPrice" type="number" placeholder="0" min={0} step="any" inputMode="decimal" aria-required="true" aria-invalid={errors.unitPrice ? true : undefined} value={form.unitPrice} onChange={(e) => updateField('unitPrice', e.target.value)} className={fieldCls} />
-                    <select value={form.priceCurrency} onChange={(e) => updateField('priceCurrency', e.target.value)} aria-label="Moneda del precio" className="rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-sm dark:border-neutral-700 dark:bg-neutral-800">
-                      {PRICE_CURRENCIES.map((cc) => <option key={cc} value={cc}>{cc}</option>)}
-                    </select>
-                  </div>
-                  {(errors.unitPrice || errors.priceCurrency) && (
-                    <p className="mt-1 text-xs text-danger-500">{errors.unitPrice || errors.priceCurrency}</p>
-                  )}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className={`${CARD} divide-y divide-line`}>
+          {/* 1 · ¿Qué activo? */}
+          <section className="p-4 md:p-5">
+            <StepHead n={1} state={chosen ? 'done' : 'current'} title="¿Qué activo?" />
+            {selected ? (
+              <div className="flex items-center gap-3 rounded-xl border-[1.5px] p-3" style={{ borderColor: c.accent, background: c.soft }}>
+                <AssetAvatar asset={{ symbol: selected.symbol, name: selected.name, type: selected.type, iconUrl: holding?.asset.iconUrl }} size={40} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{selected.name}</p>
+                  <p className="text-xs text-ink-2">
+                    {selected.symbol} · {assetTypeLabel[selected.type]}
+                    {todayPrice !== null && ` · hoy ${formatCurrency(todayPrice, 'USD')}`}
+                  </p>
                 </div>
-              ) : (
-                <Input label={cfg.priceLabel} placeholder="50000" value={form.unitPrice} error={errors.unitPrice} onChange={(v) => updateField('unitPrice', v)} type="number" required min={0} step="any" inputMode="decimal" hint={kind === 'buy' ? 'Lo que pagaste por unidad.' : 'Lo que cobraste por unidad.'} />
-              )}
-            </div>
-            {cfg.help && (
-              <div className="flex items-start gap-2.5 rounded-lg border px-3 py-2.5" style={{ borderColor: `color-mix(in srgb, ${c.accent} 22%, transparent)`, background: `color-mix(in srgb, ${c.accent} 9%, transparent)` }}>
-                <span className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full text-[11px] font-bold italic text-white" style={{ background: c.accent }}>i</span>
-                <p className="text-[12.5px] leading-snug text-neutral-600 dark:text-neutral-300">{cfg.help}</p>
+                <button type="button" onClick={clearAsset} className="h-9 rounded-lg border border-ctl bg-surface px-3 text-[13px] font-semibold hover:bg-muted">
+                  Cambiar
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por tipo">
+                  {TYPE_ORDER.map((t) => {
+                    const on = filterType === t
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => setFilterType(on ? undefined : t)}
+                        className={`h-[34px] rounded-[20px] border px-3 text-[13px] font-semibold ${on ? 'border-ink bg-ink text-surface' : 'border-line bg-surface hover:bg-muted'}`}
+                      >
+                        {assetTypeLabel[t]}
+                      </button>
+                    )
+                  })}
+                </div>
+                <AssetAutocomplete
+                  label="Nombre o ticker"
+                  value={form.symbol}
+                  onChange={(v) => updateField('symbol', v)}
+                  onSelect={handleSelectAsset}
+                  type={filterType}
+                  placeholder="Nombre o ticker: Bitcoin, AAPL, AL30…"
+                  error={errors.symbol}
+                />
               </div>
             )}
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input label={cfg.showCurrency ? `Comisión (${form.priceCurrency})` : 'Comisión (USD)'} placeholder="0" value={form.fee} error={errors.fee} onChange={(v) => updateField('fee', v)} type="number" min={0} step="any" inputMode="decimal" hint="Opcional. Dejalo en 0 si no pagaste comisión." />
-              <Input label={kind === 'buy' ? 'Fecha de compra' : 'Fecha de venta'} value={form.purchasedAt} error={errors.purchasedAt} onChange={(v) => updateField('purchasedAt', v)} type="date" required max={todayInput()} />
-            </div>
-            <Input label="Notas (opcional)" placeholder="Observaciones..." value={form.notes} error={errors.notes} onChange={(v) => updateField('notes', v)} multiline />
+            {cfg.help && chosen && <p className="mt-2.5 text-[12.5px] text-ink-2">{cfg.help}</p>}
+          </section>
 
-            {submitError && <p className="text-sm font-medium text-danger-500">{submitError}</p>}
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={createTx.isPending}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {createTx.isPending && (
-                <span className="inline-block h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white" style={{ animation: 'gf-spin .6s linear infinite' }} />
+          <fieldset disabled={!chosen} className={`divide-y divide-line transition-opacity ${chosen ? '' : 'opacity-45'}`}>
+            {/* 2 · ¿Compraste o vendiste? */}
+            <section className="p-4 md:p-5">
+              <StepHead n={2} state={!chosen ? 'pending' : 'done'} title="¿Compraste o vendiste?" />
+              <div role="radiogroup" aria-label="Operación" className="flex gap-[3px] rounded-[10px] bg-muted p-[3px]">
+                {(['buy', 'sell'] as const).map((k) => {
+                  const on = kind === k
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => setKind(k)}
+                      className={`flex h-[42px] flex-1 items-center justify-center gap-2 rounded-lg text-sm font-semibold ${on ? 'bg-surface text-ink shadow-[0_1px_2px_rgba(15,23,42,.12)]' : 'text-ink-3'}`}
+                    >
+                      <span className={`h-2 w-2 rounded-full ${k === 'buy' ? 'bg-pos' : 'bg-neg'}`} aria-hidden="true" />
+                      {k === 'buy' ? 'Compra' : 'Venta'}
+                    </button>
+                  )
+                })}
+              </div>
+              {kind === 'sell' && chosen && (
+                <p className="mt-2.5 text-[13px] text-ink-2">
+                  {holding ? (
+                    <>
+                      Tenés {formatQuantity(holding.quantity)} {holding.asset.symbol}.{' '}
+                      <button type="button" onClick={() => updateField('quantity', String(Number(holding.quantity.toFixed(8))))} className="font-semibold text-brand-ink hover:underline">
+                        Vender todo
+                      </button>
+                    </>
+                  ) : (
+                    `No tenés ${sym} cargado: no se puede vender lo que no compraste.`
+                  )}
+                </p>
               )}
-              {createTx.isPending ? 'Guardando…' : 'Guardar activo'}
-            </button>
-            <button type="button" onClick={handleCancel} disabled={createTx.isPending} className="rounded-xl border border-neutral-300 px-6 py-3 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
-              Cancelar
-            </button>
-          </div>
+            </section>
+
+            {/* 3 · Cantidad y precio */}
+            <section className="p-4 md:p-5">
+              <StepHead n={3} state={step < 3 ? 'pending' : step === 3 ? 'current' : 'done'} title="Cantidad y precio" />
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label={cfg.qtyLabel} htmlFor="f-qty" help={errors.quantity && <span className="text-neg">{errors.quantity}</span>}>
+                  <input id="f-qty" className={fieldCls} type="number" inputMode="decimal" placeholder={cfg.qtyPlaceholder} value={form.quantity} onChange={(e) => updateField('quantity', e.target.value)} />
+                </Field>
+                <Field
+                  label={kind === 'buy' ? 'Precio que pagaste' : 'Precio al que vendiste'}
+                  htmlFor="f-price"
+                  help={
+                    errors.unitPrice ? (
+                      <span className="text-neg">{errors.unitPrice}</span>
+                    ) : errors.priceCurrency ? (
+                      <span className="text-neg">{errors.priceCurrency}</span>
+                    ) : todayPrice !== null ? (
+                      <>
+                        Hoy cotiza {formatCurrency(todayPrice, 'USD')} ·{' '}
+                        <button type="button" onClick={() => updateField('unitPrice', String(todayPrice))} className="font-semibold text-brand-ink hover:underline">
+                          Usar este
+                        </button>
+                      </>
+                    ) : undefined
+                  }
+                >
+                  <div className="flex gap-2">
+                    <input id="f-price" className={fieldCls} type="number" inputMode="decimal" placeholder="0" value={form.unitPrice} onChange={(e) => updateField('unitPrice', e.target.value)} />
+                    {cfg.showCurrency ? (
+                      <select
+                        value={form.priceCurrency}
+                        onChange={(e) => updateField('priceCurrency', e.target.value)}
+                        aria-label="Moneda del precio"
+                        className="h-[46px] rounded-[10px] border border-ctl bg-surface px-2 text-sm"
+                      >
+                        {PRICE_CURRENCIES.map((m) => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="grid h-[46px] place-items-center px-2 text-sm text-ink-3">USD</span>
+                    )}
+                  </div>
+                </Field>
+                <Field label={kind === 'buy' ? 'Fecha de compra' : 'Fecha de venta'} htmlFor="f-date" help={errors.purchasedAt && <span className="text-neg">{errors.purchasedAt}</span>}>
+                  <input id="f-date" className={fieldCls} type="date" max={todayInput()} value={form.purchasedAt} onChange={(e) => updateField('purchasedAt', e.target.value)} />
+                </Field>
+                <Field label="Comisión" optional htmlFor="f-fee">
+                  <input id="f-fee" className={fieldCls} type="number" inputMode="decimal" placeholder="0" value={form.fee} onChange={(e) => updateField('fee', e.target.value)} />
+                </Field>
+              </div>
+              {showNotes ? (
+                <div className="mt-4">
+                  <Field label="Nota" optional htmlFor="f-notes">
+                    <textarea id="f-notes" rows={3} className={`${fieldCls} h-auto py-2.5`} value={form.notes} onChange={(e) => updateField('notes', e.target.value)} />
+                  </Field>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowNotes(true)} className="mt-3 text-[13px] font-semibold text-brand-ink hover:underline">
+                  + Agregar una nota
+                </button>
+              )}
+            </section>
+          </fieldset>
         </div>
 
-        {/* PREVIEW */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900 lg:sticky lg:top-20 lg:self-start">
-          <p className="mb-3.5 text-xs font-semibold uppercase tracking-wide text-neutral-400">Resumen</p>
-          <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-[17px] font-bold text-white" style={{ background: c.accent }}>{previewMark}</span>
+        {/* Resumen */}
+        <aside className={`${CARD} sticky top-[76px] p-[18px]`} aria-label="Resumen">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">Resumen</p>
+          <div className="mt-3 flex items-center gap-2.5">
+            {chosen ? (
+              <AssetAvatar asset={{ symbol: sym, name: selected?.name ?? sym, type, iconUrl: holding?.asset.iconUrl }} size={34} />
+            ) : (
+              <span className="h-[34px] w-[34px] rounded-full bg-muted" />
+            )}
             <div className="min-w-0">
-              <div className="truncate text-base font-bold">{form.symbol || 'Nuevo activo'}</div>
-              <div className="text-xs text-neutral-500">{cfg.label}</div>
+              <p className="truncate text-sm font-semibold">{chosen ? selected?.name ?? sym : 'Elegí un activo'}</p>
+              <p className={`text-xs font-semibold ${kind === 'buy' ? 'text-pos' : 'text-neg'}`}>{kind === 'buy' ? 'Compra' : 'Venta'}</p>
             </div>
           </div>
-          <div className="mt-4 space-y-2.5 text-sm">
-            <div className="flex justify-between"><span className="text-neutral-500">Operación</span><span className="font-semibold" style={{ color: kind === 'buy' ? 'var(--tk-pos)' : 'var(--tk-neg)' }}>{kind === 'buy' ? 'Compra' : 'Venta'}</span></div>
-            <div className="flex justify-between"><span className="text-neutral-500">Cantidad</span><span className="font-medium tabular-nums">{qty ? qty.toLocaleString('es-AR') : '—'}</span></div>
-            <div className="flex justify-between"><span className="text-neutral-500">Precio unitario</span><span className="font-medium tabular-nums">{price ? fmt(price) : '—'}</span></div>
-            <div className="flex justify-between"><span className="text-neutral-500">Comisión</span><span className="font-medium tabular-nums">{fee ? fmt(fee) : '—'}</span></div>
+          <div className="mt-4 space-y-1.5 text-[13px] tabular-nums">
+            <div className="flex justify-between gap-2 text-ink-2">
+              <span>{qty > 0 && price > 0 ? `${formatQuantity(qty)} × ${fmt(price)}` : 'Cantidad × precio'}</span>
+              <span>{fmt(subtotal)}</span>
+            </div>
+            <div className="flex justify-between gap-2 text-ink-2">
+              <span>Comisión</span>
+              <span>{fmt(fee)}</span>
+            </div>
           </div>
-          <div className="mt-3.5 flex items-baseline justify-between border-t border-neutral-200 pt-3.5 dark:border-neutral-800">
-            <span className="text-sm font-medium text-neutral-600 dark:text-neutral-300">Total estimado</span>
-            <span className="text-xl font-bold tabular-nums">{fmt(total)}</span>
+          <div className="mt-3 border-t border-line pt-3">
+            <p className="text-[13px] text-ink-2">{kind === 'buy' ? 'Total que pagaste' : 'Total que cobraste'}</p>
+            <p className="text-[22px] font-extrabold tabular-nums">{fmt(total)}</p>
+            {sellGain !== null && (
+              <p className={`mt-1 text-[13px] font-semibold tabular-nums ${sellGain >= 0 ? 'text-pos' : 'text-neg'}`}>
+                Ganancia de esta venta: {sellGain >= 0 ? '+' : '−'}{fmt(Math.abs(sellGain))}
+              </p>
+            )}
           </div>
-        </div>
+          {submitError && <p className="mt-3 text-sm font-medium text-neg" role="alert">{submitError}</p>}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={createTx.isPending}
+            aria-disabled={!ready}
+            className={`mt-4 h-12 w-full rounded-[11px] bg-brand-500 text-[15px] font-semibold text-white transition-opacity hover:bg-brand-600 ${ready ? '' : 'opacity-50'}`}
+          >
+            {createTx.isPending ? 'Guardando…' : kind === 'buy' ? 'Guardar compra' : 'Guardar venta'}
+          </button>
+          <button type="button" onClick={handleCancel} className="mt-2 h-10 w-full rounded-[10px] text-sm font-semibold text-ink-2 hover:bg-muted">
+            Cancelar
+          </button>
+        </aside>
       </div>
-      <style>{`@keyframes gf-spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 }
