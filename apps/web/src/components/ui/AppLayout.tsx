@@ -72,6 +72,7 @@ const CRUMBS: ReadonlyArray<[prefix: string, label: string]> = [
   ['/content', 'Aprender'],
   ['/profile-test', 'Perfil de inversor'],
   ['/settings', 'Configuración'],
+  ['/notifications', 'Notificaciones'],
   ['/admin/users', 'Usuarios'],
   ['/admin/content', 'Gestión de contenidos'],
   ['/admin/kb', 'Base de conocimiento'],

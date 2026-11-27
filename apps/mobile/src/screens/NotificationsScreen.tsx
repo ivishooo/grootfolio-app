@@ -1,6 +1,10 @@
 /**
- * Notificaciones mobile (F7). Lista con badge por tipo, "Marcar todas leídas",
- * y tap en una de contenido abre los Contenidos y la marca leída. Pull-to-refresh.
+ * Notificaciones mobile (F7; rediseño v2, Fase 6). SPEC-pantallas ›
+ * Notificaciones: fila de padding 14 y radio 14, ícono de 30 por tipo; las no
+ * leídas con fondo brand.tint, título 600 y punto de 8 brand.solid. Tocar una de
+ * contenido abre Aprender y la marca leída. Pull-to-refresh.
+ *
+ * El tipo `groot.drop` depende de la variación diaria en `GET /portfolio`.
  */
 import { View, Text, FlatList, TouchableOpacity, RefreshControl } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
@@ -24,20 +28,22 @@ function relativeTime(iso: string): string {
   if (min < 60) return `hace ${min} min`
   const h = Math.floor(min / 60)
   if (h < 24) return `hace ${h} h`
-  return `hace ${Math.floor(h / 24)} d`
+  const d = Math.floor(h / 24)
+  return d === 1 ? 'ayer' : `hace ${d} d`
 }
 
 export function NotificationsScreen() {
   const { theme } = useTheme()
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
-  const { data, refetch, isRefetching } = useNotifications()
+  const { data, refetch, isRefetching, isLoading } = useNotifications()
   const markAll = useMarkAllRead()
   const markOne = useMarkNotificationRead()
   const notifs = data?.data ?? []
 
   const onTap = (n: AppNotification) => {
     if (!n.readAt) markOne.mutate(n.id)
-    if (n.type === 'content.published') nav.navigate('Main')
+    if (n.type === 'content.published') nav.navigate('Main', { screen: 'Content' })
+    else if (n.type === 'profile.moderated') nav.navigate('Settings')
   }
 
   return (
@@ -45,34 +51,52 @@ export function NotificationsScreen() {
       <FlatList
         data={notifs}
         keyExtractor={(n) => n.id}
-        contentContainerStyle={{ padding: 16, gap: 10 }}
+        contentContainerStyle={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 40, gap: 12 }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.brand.solid} />}
         ListHeaderComponent={
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <Text style={{ color: theme.text.primary, fontSize: 24, fontWeight: '800' }}>Notificaciones</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Text accessibilityRole="header" style={{ flex: 1, color: theme.text.primary, fontSize: 24, fontWeight: '700', letterSpacing: -0.5 }}>
+              Notificaciones
+            </Text>
             {(data?.unreadCount ?? 0) > 0 && (
-              <TouchableOpacity onPress={() => markAll.mutate()} hitSlop={8}>
-                <Text style={{ color: theme.brand.solid, fontWeight: '700', fontSize: 13 }}>Marcar todas leídas</Text>
+              <TouchableOpacity onPress={() => markAll.mutate()} accessibilityRole="button" style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: 6 }}>
+                <Text style={{ color: theme.brand.ink, fontWeight: '600', fontSize: 13 }}>Marcar todas leídas</Text>
               </TouchableOpacity>
             )}
           </View>
         }
         renderItem={({ item }) => {
           const m = ICONS[item.type]
+          const unread = !item.readAt
           return (
-            <TouchableOpacity onPress={() => onTap(item)} style={{ flexDirection: 'row', gap: 12, borderRadius: 14, borderWidth: 1, borderColor: theme.border.default, backgroundColor: item.readAt ? theme.background.surface : 'rgba(249,115,22,0.06)', padding: 14 }}>
-              <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: m.color, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{m.icon}</Text>
+            <TouchableOpacity
+              onPress={() => onTap(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`${unread ? 'Sin leer. ' : ''}${item.title}`}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: 12,
+                padding: 14,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: theme.border.default,
+                backgroundColor: unread ? theme.brand.tint : theme.background.surface,
+              }}
+            >
+              <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: m.color, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{m.icon}</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: theme.text.primary, fontWeight: '600' }}>{item.title}</Text>
-                {item.body ? <Text style={{ color: theme.text.secondary, fontSize: 13 }} numberOfLines={2}>{item.body}</Text> : null}
-                <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 2 }}>{relativeTime(item.createdAt)}</Text>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ color: theme.text.primary, fontSize: 14, fontWeight: unread ? '600' : '500' }}>{item.title}</Text>
+                {item.body ? <Text style={{ color: theme.text.secondary, fontSize: 13, lineHeight: 18 }}>{item.body}</Text> : null}
+                <Text style={{ color: theme.text.muted, fontSize: 11.5, marginTop: 2 }}>{relativeTime(item.createdAt)}</Text>
               </View>
+              {unread && <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 6, backgroundColor: theme.brand.solid }} />}
             </TouchableOpacity>
           )
         }}
-        ListEmptyComponent={<EmptyState title="Sin notificaciones" description="Cuando haya novedades, aparecen acá." />}
+        ListEmptyComponent={isLoading ? null : <EmptyState title="Sin notificaciones" description="Cuando haya novedades, aparecen acá." />}
       />
     </Screen>
   )

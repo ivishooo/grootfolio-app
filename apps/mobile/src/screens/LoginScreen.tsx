@@ -1,17 +1,18 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { Text, TouchableOpacity } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/auth/AuthProvider'
 import { loginInputSchema } from '@grootfolio/shared'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
 import { FormField } from '@/components/ui/FormField'
-import { Logo } from '@/components/ui/Logo'
+import { AuthLayout, AuthSubmit } from './AuthLayout'
 
+/**
+ * Login mobile (rediseño v2, Fase 6). «¿La olvidaste?» no se dibuja: la API no
+ * tiene recuperación de contraseña.
+ */
 export function LoginScreen() {
   const { theme } = useTheme()
   const { login } = useAuth()
@@ -50,85 +51,41 @@ export function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={[s.safe, { backgroundColor: theme.background.canvas }]}>
-      {/* Sin esto el teclado tapa el boton "Ingresar": el formulario esta
-          centrado y el boton cae justo en la franja que ocupa el teclado, asi
-          que al terminar de tipear la contrasena no habia forma de enviar sin
-          cerrar el teclado a mano. */}
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView
-          contentContainerStyle={s.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <Card padding="lg">
-            <View style={{ gap: 14 }}>
-              <View style={{ alignItems: 'center' }}>
-                <Logo variant="lockup" />
-              </View>
-              <Text style={[s.title, { color: theme.text.primary }]}>Bienvenido de vuelta</Text>
-              <Text style={{ color: theme.text.secondary, textAlign: 'center' }}>
-                Ingresá a tu portafolio
-              </Text>
-
-              <FormField
-                testID="login-email"
-                label="Email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(t) => {
-                  setEmail(t)
-                  setErrors((p) => ({ ...p, email: '' }))
-                }}
-                error={errors.email}
-                keyboard="email-address"
-              />
-              <FormField
-                testID="login-password"
-                label="Contraseña"
-                placeholder="••••••••"
-                value={password}
-                onChange={(t) => {
-                  setPassword(t)
-                  setErrors((p) => ({ ...p, password: '' }))
-                }}
-                error={errors.password}
-                secureTextEntry
-              />
-              {formError && (
-                <Text style={{ color: '#EF4444', textAlign: 'center', fontSize: 13 }}>
-                  {formError}
-                </Text>
-              )}
-              <Button
-                testID="login-submit"
-                fullWidth
-                onPress={handleLogin}
-                disabled={submitting || (!email && !password)}
-              >
-                {submitting ? 'Ingresando…' : 'Ingresar'}
-              </Button>
-            </View>
-          </Card>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <AuthLayout title="Hola de nuevo" subtitle="Ingresá para ver tu portafolio.">
+      <FormField
+        testID="login-email"
+        label="Email"
+        placeholder="tu@email.com"
+        value={email}
+        onChange={(t) => {
+          setEmail(t)
+          setErrors((p) => ({ ...p, email: '' }))
+        }}
+        error={errors.email}
+        keyboard="email-address"
+        height={48}
+      />
+      <FormField
+        testID="login-password"
+        label="Contraseña"
+        value={password}
+        onChange={(t) => {
+          setPassword(t)
+          setErrors((p) => ({ ...p, password: '' }))
+        }}
+        error={errors.password}
+        secureTextEntry
+        height={48}
+      />
+      {formError && <Text style={{ color: theme.trend.neg, textAlign: 'center', fontSize: 13 }}>{formError}</Text>}
+      <AuthSubmit testID="login-submit" onPress={handleLogin} disabled={submitting || (!email && !password)}>
+        {submitting ? 'Ingresando…' : 'Ingresar'}
+      </AuthSubmit>
+      <TouchableOpacity testID="login-registrarse" onPress={() => nav.navigate('Register')} accessibilityRole="link" style={{ minHeight: 44, justifyContent: 'center' }}>
+        <Text style={{ color: theme.text.secondary, fontSize: 14, textAlign: 'center' }}>
+          ¿No tenés cuenta? <Text style={{ color: theme.brand.ink, fontWeight: '600' }}>Creá una gratis</Text>
+        </Text>
+      </TouchableOpacity>
+    </AuthLayout>
   )
 }
-
-const s = StyleSheet.create({
-  safe: { flex: 1, padding: 20 },
-  scroll: { flexGrow: 1, justifyContent: 'center' },
-  logo: {
-    alignSelf: 'center',
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginTop: 8 },
-})

@@ -10,6 +10,7 @@ import { ReportsScreen } from '../screens/ReportsScreen'
 import { ContentLibraryScreen } from '../screens/ContentLibraryScreen'
 import { DashboardIcon, AssetsIcon, ReportsIcon, ContentIcon } from '../components/ui/icons'
 import { AppHeader } from './AppHeader'
+import { useGrootTabListeners } from '@/components/groot/Groot'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { RootStackParamList } from './RootNavigator'
 
@@ -71,6 +72,7 @@ function CargarIcon({ solid }: { solid: string }) {
 }
 
 export function TabNavigator() {
+  const grootListeners = useGrootTabListeners()
   const { theme } = useTheme()
   const insets = useSafeAreaInsets()
   const { data: notif } = useNotifications()
@@ -78,6 +80,7 @@ export function TabNavigator() {
 
   return (
     <Tab.Navigator
+      screenListeners={grootListeners}
       screenOptions={{
         header: () => <AppHeader />,
         tabBarActiveTintColor: theme.brand.ink,

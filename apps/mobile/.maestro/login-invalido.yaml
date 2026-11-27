@@ -7,9 +7,13 @@ tags: [smoke]
 - tapOn:
     id: 'login-email'
 - inputText: 'noexiste@grootfolio.app'
+# Con el teclado abierto el formulario se corre (Groot + logo arriba).
+- hideKeyboard
 - tapOn:
     id: 'login-password'
 - inputText: 'ClaveIncorrecta1!'
+- hideKeyboard
+- waitForAnimationToEnd
 - tapOn:
     id: 'login-submit'
 - extendedWaitUntil:

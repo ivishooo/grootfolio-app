@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { NotificationsPage } from '@/features/notifications/NotificationsPage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
@@ -35,6 +36,7 @@ export function App() {
           <Route path="/profile-test" element={<ProfileTestPage />} />
           <Route path="/profile-test/result" element={<ProfileResultPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route element={<RequireAdmin />}>
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/content" element={<AdminContentPage />} />

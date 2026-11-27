@@ -21,7 +21,8 @@ test('admin publica un enlace y el usuario lo ve en la biblioteca', async ({ pag
   await expect(page.getByText(title).first()).toBeVisible()
   await expect(page.getByText('NUEVO').first()).toBeVisible()
 
-  // La campanita tiene notificación de contenido publicado.
-  await page.getByRole('button', { name: 'Notificaciones' }).click()
+  // La campanita lleva a Notificaciones, donde está la del contenido publicado.
+  await page.getByRole('link', { name: /^Notificaciones/ }).click()
+  await expect(page).toHaveURL(/\/notifications/)
   await expect(page.getByText('Nuevo contenido disponible').first()).toBeVisible()
 })

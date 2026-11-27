@@ -8,10 +8,10 @@
  * - «Preguntarme algo» abre el chat (sin cambios, ADR-0004).
  * - La burbuja se abre sola solo en Inicio y con eventos.
  */
-import { useEffect } from 'react'
+import { useCallback } from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { getFocusedRouteNameFromRoute, useIsFocused, useNavigation, useRoute } from '@react-navigation/native'
+import { useIsFocused, useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import Svg, { Path } from 'react-native-svg'
 import { BAJA_FUERTE, grootContenido, type GrootAction, type GrootMode } from '@grootfolio/shared'
@@ -31,15 +31,24 @@ const MODE_BY_TAB: Record<string, { mode: GrootMode; autoOpen: boolean }> = {
   Content: { mode: 'contenido', autoOpen: false },
 }
 
-/** Sincroniza el modo de Groot con la tab visible. Va dentro de la pantalla `Main`. */
-export function useGrootTabSync() {
-  const route = useRoute()
+/**
+ * Listeners de las tabs: al enfocar una, Groot toma el modo de esa pantalla y la
+ * burbuja se abre (Inicio) o se cierra (el resto). Va en `screenListeners` del
+ * Tab.Navigator: leer la tab enfocada desde la ruta padre con
+ * `getFocusedRouteNameFromRoute` no se enteraba de todos los cambios y la
+ * burbuja quedaba abierta en Activos, tapando sus botones.
+ */
+export function useGrootTabListeners() {
   const { pantalla } = useGroot()
-  const tab = getFocusedRouteNameFromRoute(route) ?? 'Dashboard'
-  useEffect(() => {
-    const m = MODE_BY_TAB[tab]
-    if (m) pantalla(m.mode, m.autoOpen)
-  }, [tab, pantalla])
+  return useCallback(
+    ({ route }: { route: { name: string } }) => ({
+      focus: () => {
+        const m = MODE_BY_TAB[route.name]
+        if (m) pantalla(m.mode, m.autoOpen)
+      },
+    }),
+    [pantalla],
+  )
 }
 
 export function Groot({ onOpenChat }: { onOpenChat: () => void }) {
