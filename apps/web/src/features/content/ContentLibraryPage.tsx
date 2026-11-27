@@ -1,6 +1,8 @@
 /**
- * Biblioteca de contenidos del usuario (F6, /content). Buscador + chips de
- * sección, destacados y todo el material con badge NUEVO. Al abrir un item se
+ * Aprender (rediseño v2, Fase 5; antes «Contenidos»). SPEC-pantallas › Aprender.
+ * Buscador de 44, chips de sección en tinta invertida y tarjetas en grilla
+ * (3 columnas en web). Los destacados (`pinned`) van con fondo brand.tint y la
+ * etiqueta «NUEVO» en brand.subtle + brand.ink. Al abrir un material se
  * registra la vista (saca el NUEVO y suma al contador).
  */
 import { useState } from 'react'
@@ -17,6 +19,14 @@ const TYPE_META: Record<ContentType, { color: string; icon: string; cta: string 
   link: { color: '#3B82F6', icon: '⇗', cta: 'Abrir' },
 }
 
+/** «Video · 4 min», «Documento · 1,2 MB». */
+function meta(item: ContentItem): string {
+  const parts = [contentTypeLabels[item.type]]
+  if (item.durationSeconds) parts.push(`${Math.max(1, Math.round(item.durationSeconds / 60))} min`)
+  else if (item.sizeBytes) parts.push(formatFileSize(item.sizeBytes))
+  return parts.join(' · ')
+}
+
 export function ContentLibraryPage() {
   const [search, setSearch] = useState('')
   const [sectionId, setSectionId] = useState<string | undefined>(undefined)
@@ -29,12 +39,12 @@ export function ContentLibraryPage() {
     if (item.url) window.open(item.url, '_blank', 'noopener,noreferrer')
   }
 
-  const featured = items.filter((i) => i.pinned)
-  const rest = items.filter((i) => !i.pinned)
+  // Destacados primero; el resto en el orden en que llega.
+  const sorted = [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned))
+  const nuevos = items.filter((i) => i.isNew).length
 
-  // "No hay material publicado" y "tu busqueda no encontro nada" son dos cosas
-  // distintas. Mostrar la primera cuando el usuario acaba de filtrar lo lleva a
-  // pensar que la seccion esta vacia, sin pista de que hay un filtro puesto.
+  // "No hay material publicado" y "tu búsqueda no encontró nada" son dos cosas
+  // distintas: con un filtro puesto hay que decirlo y ofrecer limpiarlo.
   const hasFilters = search.trim() !== '' || sectionId !== undefined
   const clearFilters = () => {
     setSearch('')
@@ -42,37 +52,38 @@ export function ContentLibraryPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-[1040px] space-y-5">
       <div>
-        <h2 className="text-2xl font-bold">Contenidos</h2>
-        <p className="mt-1 text-sm text-neutral-500">Material educativo del equipo de GrootFolio.</p>
+        <h1 className="text-2xl font-bold tracking-[-0.02em] md:text-[28px]">Aprender</h1>
+        <p className="mt-1 text-sm text-ink-2">
+          Material del equipo de GrootFolio.
+          {nuevos > 0 && ` ${nuevos} ${nuevos === 1 ? 'nuevo' : 'nuevos'} desde tu última visita.`}
+        </p>
       </div>
 
       <input
-        className="h-[42px] w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-neutral-700 dark:bg-neutral-800"
-        placeholder="Buscar contenido…"
+        type="search"
+        aria-label="Buscar material"
+        className="h-11 w-full rounded-[10px] border border-ctl bg-surface px-3.5 text-[15px] placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        placeholder="Buscar material…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      <div className="flex flex-wrap gap-2">
-        <Chip label="Todos" active={!sectionId} onClick={() => setSectionId(undefined)} />
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Secciones">
+        <Chip label="Todo" active={!sectionId} onClick={() => setSectionId(undefined)} />
         {sections.map((s) => (
           <Chip key={s.id} label={s.name} active={sectionId === s.id} onClick={() => setSectionId(s.id)} />
         ))}
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-neutral-400">Cargando…</p>
+        <p className="text-sm text-ink-3">Cargando…</p>
       ) : items.length === 0 ? (
         hasFilters ? (
           <EmptyState
             title="No encontramos nada con ese filtro"
-            description={
-              search.trim()
-                ? `Ningún material coincide con “${search.trim()}”.`
-                : 'Esta categoría todavía no tiene material.'
-            }
+            description={search.trim() ? `Ningún material coincide con “${search.trim()}”.` : 'Esta sección todavía no tiene material.'}
             action={
               <Button variant="secondary" size="sm" onClick={clearFilters}>
                 Limpiar filtros
@@ -83,22 +94,11 @@ export function ContentLibraryPage() {
           <EmptyState title="Sin material todavía" description="Cuando el equipo publique contenido, va a aparecer acá." />
         )
       ) : (
-        <>
-          {featured.length > 0 && (
-            <section>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Destacados</p>
-              <div className="grid gap-3 md:grid-cols-2">
-                {featured.map((it) => <FeaturedCard key={it.id} item={it} onOpen={() => open(it)} />)}
-              </div>
-            </section>
-          )}
-          <section>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Todo el material</p>
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {rest.map((it) => <ItemCard key={it.id} item={it} onOpen={() => open(it)} />)}
-            </div>
-          </section>
-        </>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {sorted.map((it) => (
+            <ItemCard key={it.id} item={it} onOpen={() => open(it)} />
+          ))}
+        </div>
       )}
     </div>
   )
@@ -107,35 +107,12 @@ export function ContentLibraryPage() {
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
-      className="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
-      style={active ? { borderColor: '#F97316', background: 'var(--tk-brand-tint)', color: 'var(--tk-brand-ink)' } : { borderColor: 'rgb(212 212 216 / 1)' }}
+      className={`h-[34px] rounded-[20px] border px-3 text-[13px] font-semibold ${active ? 'border-ink bg-ink text-surface' : 'border-line bg-surface hover:bg-muted'}`}
     >
       {label}
-    </button>
-  )
-}
-
-function meta(item: ContentItem): string {
-  const parts = [contentTypeLabels[item.type]]
-  if (item.sizeBytes) parts.push(formatFileSize(item.sizeBytes))
-  return parts.join(' · ')
-}
-
-function FeaturedCard({ item, onOpen }: { item: ContentItem; onOpen: () => void }) {
-  const m = TYPE_META[item.type]
-  return (
-    <button
-      onClick={onOpen}
-      className="flex gap-3.5 rounded-2xl border p-4 text-left transition-transform hover:-translate-y-0.5"
-      style={{ borderColor: 'rgba(249,115,22,0.26)', background: 'rgba(249,115,22,0.05)' }}
-    >
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-lg font-bold" style={{ color: m.color, background: `${m.color}22` }}>{m.icon}</span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 font-semibold"><span className="text-brand-ink">★</span>{item.title}</div>
-        {item.description && <p className="mt-0.5 line-clamp-2 text-sm text-neutral-500">{item.description}</p>}
-        <p className="mt-1.5 text-xs text-neutral-400">{meta(item)}</p>
-      </div>
     </button>
   )
 }
@@ -143,19 +120,24 @@ function FeaturedCard({ item, onOpen }: { item: ContentItem; onOpen: () => void 
 function ItemCard({ item, onOpen }: { item: ContentItem; onOpen: () => void }) {
   const m = TYPE_META[item.type]
   return (
-    <div className="relative flex flex-col rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-      {item.isNew && (
-        <span className="absolute right-3 top-3 rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: '#F97316' }}>NUEVO</span>
-      )}
-      <span className="grid h-[38px] w-[38px] place-items-center rounded-xl text-base font-bold" style={{ color: m.color, background: `${m.color}22` }}>{m.icon}</span>
-      <div className="mt-2.5 font-semibold">{item.title}</div>
-      {item.description && <p className="mt-0.5 line-clamp-2 flex-1 text-sm text-neutral-500">{item.description}</p>}
-      <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 dark:border-neutral-800">
-        <span className="text-xs text-neutral-400">{meta(item)}</span>
-        <button onClick={onOpen} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink">
-          {m.cta} →
-        </button>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`flex flex-col rounded-2xl border p-4 text-left transition-colors hover:border-brand-500 ${
+        item.pinned ? 'bg-brand-tint' : 'border-line bg-surface'
+      }`}
+      style={item.pinned ? { borderColor: 'color-mix(in srgb, #F97316 35%, transparent)' } : undefined}
+    >
+      <span className="grid h-9 w-9 place-items-center rounded-[10px] text-base font-bold" style={{ color: m.color, background: `color-mix(in srgb, ${m.color} 12%, transparent)` }} aria-hidden="true">
+        {m.icon}
+      </span>
+      <span className="mt-3 flex items-center gap-2 text-xs text-ink-3">
+        {meta(item)}
+        {item.isNew && <span className="rounded-md bg-brand-subtle px-1.5 py-0.5 text-[10.5px] font-bold text-brand-ink">NUEVO</span>}
+      </span>
+      <span className="mt-1 text-[15px] font-semibold">{item.title}</span>
+      {item.description && <span className="mt-0.5 line-clamp-2 flex-1 text-[13px] text-ink-2">{item.description}</span>}
+      <span className="mt-3 text-[13px] font-semibold text-brand-ink">{m.cta} →</span>
+    </button>
   )
 }

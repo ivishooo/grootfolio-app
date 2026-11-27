@@ -12,9 +12,7 @@ import { useDeleteAvatar, useUpdateProfile, useUploadAvatar } from '@/lib/querie
 import { useMoney } from '@/lib/money'
 import { useToast } from '@/components/ui/ToastProvider'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
-import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 
-const VIOLET = '#8B5CF6'
 
 function initials(name: string | null, email: string): string {
   const base = (name || email || '?').trim()
@@ -53,9 +51,9 @@ function ProfileCard() {
       <Text style={[s.section, { color: theme.text.primary }]}>Perfil</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
         {user?.avatarUrl ? (
-          <Image source={{ uri: user.avatarUrl }} style={{ width: 74, height: 74, borderRadius: 37 }} />
+          <Image source={{ uri: user.avatarUrl }} style={{ width: 60, height: 60, borderRadius: 30 }} />
         ) : (
-          <View style={{ width: 74, height: 74, borderRadius: 37, backgroundColor: VIOLET, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontSize: 26, fontWeight: '800' }}>{initials(user?.fullName ?? null, user?.email ?? '')}</Text></View>
+          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: theme.brand.subtle, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: theme.brand.ink, fontSize: 22, fontWeight: '700' }}>{initials(user?.fullName ?? null, user?.email ?? '')}</Text></View>
         )}
         <View style={{ flex: 1 }}>
           <Text style={{ color: theme.text.muted, fontSize: 12 }}>JPG o PNG, máx 2 MB. Se recorta en círculo.</Text>
@@ -143,51 +141,55 @@ export function SettingsScreen() {
 
   const cardStyle = [s.card, { backgroundColor: theme.background.surface, borderColor: theme.border.default }]
 
+  // SPEC › Configuración: Perfil, Preferencias (moneda y tema), Avisos (solo
+  // «Mostrar a Groot»: los switches sin backend no se dibujan) y «Cerrar
+  // sesión» como link. Administración queda para admins: es el único acceso
+  // mobile a Contenidos y Base de conocimiento.
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.background.canvas }} contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: ASSISTANT_SAFE_BOTTOM }}>
-      <Text style={[s.title, { color: theme.text.primary }]}>Configuración</Text>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.background.canvas }} contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 }}>
+      <Text accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 24, fontWeight: '700', letterSpacing: -0.5 }}>Configuración</Text>
 
       <ProfileCard />
 
-      {/* Notificaciones + Administración */}
       <View style={cardStyle}>
-        <TouchableOpacity onPress={() => nav.navigate('Notifications')} style={s.navRow}>
-          <Text style={[s.label, { color: theme.text.primary }]}>Notificaciones</Text>
-          <Text style={{ color: theme.text.muted }}>›</Text>
-        </TouchableOpacity>
-        {user?.role === 'admin' && (
-          <>
-            <Text style={{ color: theme.text.muted, fontSize: 10.5, fontWeight: '700', letterSpacing: 1, marginTop: 6 }}>ADMINISTRACIÓN</Text>
-            <TouchableOpacity onPress={() => nav.navigate('AdminUsers')} style={s.navRow}>
-              <Text style={{ color: VIOLET, fontWeight: '600' }}>Usuarios</Text>
-              <Text style={{ color: theme.text.muted }}>›</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => nav.navigate('AdminContent')} style={s.navRow}>
-              <Text style={{ color: VIOLET, fontWeight: '600' }}>Gestión de contenidos</Text>
-              <Text style={{ color: theme.text.muted }}>›</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => nav.navigate('AdminKb')} style={s.navRow}>
-              <Text style={{ color: VIOLET, fontWeight: '600' }}>Base de conocimiento</Text>
-              <Text style={{ color: theme.text.muted }}>›</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-
-      {/* Apariencia */}
-      <View style={cardStyle}>
-        <Text style={[s.section, { color: theme.text.primary }]}>Apariencia</Text>
-        <View style={s.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={[s.label, { color: theme.text.primary }]}>Tema</Text>
-            <Text style={[s.hint, { color: theme.text.muted }]}>«Sistema» sigue la configuración del teléfono.</Text>
+        <Text style={[s.section, { color: theme.text.primary }]}>Preferencias</Text>
+        <View style={{ gap: 8 }}>
+          <Text style={[s.label, { color: theme.text.primary }]}>Moneda</Text>
+          <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 3, padding: 3, borderRadius: 10, backgroundColor: theme.background.muted }}>
+            {SUPPORTED_CURRENCIES.map((c) => {
+              const active = c === currency
+              return (
+                <TouchableOpacity
+                  key={c}
+                  testID={`moneda-${c}`}
+                  onPress={() => changeCurrency(c)}
+                  disabled={updateCurrency.isPending}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active, disabled: updateCurrency.isPending }}
+                  accessibilityLabel={`Ver los importes en ${currencyLabels[c]}`}
+                  style={{ flex: 1, height: 42, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: active ? theme.background.surface : 'transparent', opacity: updateCurrency.isPending ? 0.6 : 1 }}
+                >
+                  <Text style={{ color: active ? theme.text.primary : theme.text.muted, fontWeight: '600', fontSize: 14 }}>{c}</Text>
+                </TouchableOpacity>
+              )
+            })}
           </View>
+          <Text style={[s.hint, { color: theme.text.muted }]}>
+            {formatCurrency(1234)} se ve como {money.format(1234)}. Las operaciones se guardan en USD.
+          </Text>
+          {money.isFallback && (
+            <Text style={{ color: theme.warning.solid, fontSize: 12 }}>No pudimos obtener la cotización de {money.preferred}; por ahora se muestra en USD.</Text>
+          )}
         </View>
-        <ThemeSegmented />
+        <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: theme.border.default, paddingTop: 12 }}>
+          <Text style={[s.label, { color: theme.text.primary }]}>Tema</Text>
+          <ThemeSegmented />
+          <Text style={[s.hint, { color: theme.text.muted }]}>«Sistema» sigue la configuración del teléfono.</Text>
+        </View>
       </View>
 
-      {/* Groot */}
       <View style={cardStyle}>
+        <Text style={[s.section, { color: theme.text.primary }]}>Avisos</Text>
         <View style={[s.row, { gap: 12 }]}>
           <View style={{ flex: 1 }}>
             <Text style={[s.label, { color: theme.text.primary }]}>Mostrar a Groot</Text>
@@ -204,71 +206,33 @@ export function SettingsScreen() {
         </View>
       </View>
 
-      {/* Preferencias */}
-      <View style={cardStyle}>
-        <Text style={[s.section, { color: theme.text.primary }]}>Preferencias</Text>
-        <View style={s.row}>
-          <View style={{ flex: 1 }}>
-            <Text style={[s.label, { color: theme.text.primary }]}>Moneda base</Text>
-            <Text style={[s.hint, { color: theme.text.muted }]}>
-              {formatCurrency(1234)} se muestra como {money.format(1234)}
-            </Text>
-          </View>
-          <View style={s.segment}>
-            {SUPPORTED_CURRENCIES.map((c) => {
-              const active = c === currency
-              return (
-                <TouchableOpacity
-                  key={c}
-                  testID={`moneda-${c}`}
-                  onPress={() => changeCurrency(c)}
-                  disabled={updateCurrency.isPending}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active, disabled: updateCurrency.isPending }}
-                  accessibilityLabel={`Ver los importes en ${currencyLabels[c]}`}
-                  style={[
-                    s.segmentItem,
-                    { backgroundColor: active ? theme.brand.solid : 'transparent', opacity: updateCurrency.isPending ? 0.6 : 1 },
-                  ]}
-                >
-                  <Text style={{ color: active ? theme.text.onBrand : theme.text.secondary, fontWeight: '600', fontSize: 13 }}>{c}</Text>
-                </TouchableOpacity>
-              )
-            })}
-          </View>
+      {user?.role === 'admin' && (
+        <View style={cardStyle}>
+          <Text style={[s.section, { color: theme.text.primary }]}>Administración</Text>
+          {(
+            [
+              ['AdminUsers', 'Usuarios'],
+              ['AdminContent', 'Gestión de contenidos'],
+              ['AdminKb', 'Base de conocimiento'],
+            ] as const
+          ).map(([route, label]) => (
+            <TouchableOpacity key={route} onPress={() => nav.navigate(route)} accessibilityRole="button" style={[s.navRow, { minHeight: 44 }]}>
+              <Text style={[s.label, { color: theme.text.primary }]}>{label}</Text>
+              <Text style={{ color: theme.text.muted }}>›</Text>
+            </TouchableOpacity>
+          ))}
         </View>
-        <Text style={[s.hint, { color: theme.text.muted, marginTop: 10 }]}>
-          Tus operaciones se guardan siempre en USD. Esto sólo cambia cómo se muestran, usando la
-          cotización del día.
-        </Text>
-        {money.isFallback && (
-          <Text style={{ color: theme.warning.solid, fontSize: 12, marginTop: 8 }}>
-            No pudimos obtener la cotización de {money.preferred}; por ahora se muestra en USD.
-          </Text>
-        )}
-      </View>
+      )}
 
-      {/* Cuenta */}
-      <View style={cardStyle}>
-        <Text style={[s.section, { color: theme.text.primary }]}>Cuenta</Text>
-        <View style={s.accountRow}>
-          <Text style={[s.hint, { color: theme.text.muted }]}>Nombre</Text>
-          <Text style={[s.value, { color: theme.text.primary }]}>{user?.fullName ?? '—'}</Text>
-        </View>
-        <View style={s.accountRow}>
-          <Text style={[s.hint, { color: theme.text.muted }]}>Email</Text>
-          <Text style={[s.value, { color: theme.text.primary }]}>{user?.email ?? '—'}</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => logout()}
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar sesión"
-          testID="settings-logout"
-          style={[s.logout, { borderColor: theme.danger.solid }]}
-        >
-          <Text style={{ color: theme.danger.solid, fontWeight: '600' }}>Cerrar sesión</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        onPress={() => logout()}
+        accessibilityRole="button"
+        accessibilityLabel="Cerrar sesión"
+        testID="settings-logout"
+        style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}
+      >
+        <Text style={{ color: theme.trend.neg, fontWeight: '600', fontSize: 15 }}>Cerrar sesión</Text>
+      </TouchableOpacity>
     </ScrollView>
   )
 }

@@ -1,4 +1,4 @@
-# Configuración: perfil, tema y cierre de sesión.
+# Configuración: perfil, tema y cierre de sesión (rediseño v2).
 #
 # La pantalla es más alta que el viewport: Apariencia, Cuenta y el botón de
 # cerrar sesión quedan debajo del fold. Por eso se llega con `scrollUntilVisible`
@@ -18,10 +18,6 @@ tags: [smoke]
 - assertVisible:
     id: 'settings-nombre'
 
-- scrollUntilVisible:
-    element: 'Apariencia'
-    direction: DOWN
-    timeout: 20000
 # Scrollear hasta el título de la sección deja el control debajo del fold: la
 # jerarquía igual lo reporta, así que el tap "funciona" pero cae fuera de
 # pantalla. `centerElement` lo trae al medio.
@@ -42,11 +38,6 @@ tags: [smoke]
 - waitForAnimationToEnd:
     timeout: 4000
 
-- scrollUntilVisible:
-    element: 'Cuenta'
-    direction: DOWN
-    centerElement: true
-    timeout: 20000
 # Cerrar sesión devuelve al login (el RootNavigator conmuta de stack).
 - scrollUntilVisible:
     element:

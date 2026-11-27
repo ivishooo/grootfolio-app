@@ -23,7 +23,8 @@ export type RootStackParamList = {
   Login: undefined
   Main: undefined
   ProfileResult: undefined
-  ProfileTest: undefined
+  /** `rehacer`: arranca el test aunque ya haya perfil. */
+  ProfileTest: { rehacer?: boolean } | undefined
   Settings: undefined
   /** Prefill desde Activos: «+ Comprar más» / «Vender». */
   AddAsset: { symbol?: string; kind?: 'buy' | 'sell' } | undefined
@@ -74,11 +75,11 @@ export function RootNavigator() {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="Main" component={MainWithAssistant} />
-          <Stack.Screen name="ProfileResult" component={ProfileResultScreen} />
           <Stack.Screen name="AddAsset" component={AddAssetScreen} />
           {/* Pantallas secundarias: header de la app con «‹ {pantalla anterior}». */}
           <Stack.Group screenOptions={{ headerShown: true, header: () => <AppHeader back /> }}>
             <Stack.Screen name="ProfileTest" component={ProfileTestScreen} />
+            <Stack.Screen name="ProfileResult" component={ProfileResultScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />

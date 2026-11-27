@@ -1,84 +1,40 @@
 /**
- * ProfileTestPage — cuestionario de perfil de inversor (rediseño). Barra de
- * progreso, opciones tipo radio con acento y navegación. Si ya hay perfil,
- * muestra un resumen con opción de rehacer. Conserva los hooks reales.
+ * Perfil de inversor · test (rediseño v2, Fase 5). SPEC-pantallas › Perfil.
+ * Progreso «Pregunta N de M» con %, opciones de 52 px con radio y
+ * «← Anterior» / «Siguiente →» / «Ver mi perfil». Si ya hay perfil, la página
+ * muestra el resultado; `?rehacer=1` arranca el test de nuevo.
  */
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useGroot } from '@/components/groot/GrootProvider'
-import type { RiskProfileType } from '@grootfolio/shared'
 import { useQuiz, useQuizResult, useSubmitQuiz } from '@/lib/queries'
 import { ErrorState, LoadingState } from '@/components/ui/States'
 
-const labels: Record<RiskProfileType, string> = {
-  conservative: 'Conservador',
-  moderate: 'Moderado',
-  aggressive: 'Agresivo',
-}
-
-const PROFILE_COLOR: Record<RiskProfileType, { accent: string; soft: string }> = {
-  conservative: { accent: '#3B82F6', soft: 'rgba(59,130,246,0.14)' },
-  moderate: { accent: '#F97316', soft: 'rgba(249,115,22,0.14)' },
-  aggressive: { accent: '#8B5CF6', soft: 'rgba(139,92,246,0.14)' },
-}
-
 export function ProfileTestPage() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
   const groot = useGroot()
   const result = useQuizResult()
   const { data: questions, isLoading, isError, error, refetch } = useQuiz()
   const submitQuiz = useSubmitQuiz()
-  const [retake, setRetake] = useState(false)
   const [step, setStep] = useState(0)
   const [selected, setSelected] = useState<Record<string, string>>({})
+  const retake = params.get('rehacer') === '1'
 
-  if (isLoading || result.isLoading) return <LoadingState label="Cargando el cuestionario…" />
+  if (isLoading || result.isLoading) return <LoadingState label="Cargando el test…" />
   if (isError) {
-    return (
-      <ErrorState
-        message={error instanceof Error ? error.message : 'No se pudo cargar el cuestionario.'}
-        onRetry={() => void refetch()}
-      />
-    )
+    return <ErrorState message={error instanceof Error ? error.message : 'No se pudo cargar el test.'} onRetry={() => void refetch()} />
   }
-
-  if (result.data && !retake) {
-    const pc = PROFILE_COLOR[result.data.profile]
-    return (
-      <div className="mx-auto max-w-2xl space-y-5">
-        <h2 className="text-2xl font-bold">Test de Perfil</h2>
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center dark:border-neutral-800 dark:bg-neutral-900">
-          <p className="text-sm text-neutral-500">Tu perfil de inversor es</p>
-          <div className="mx-auto mt-3 inline-block rounded-full px-6 py-2 text-lg font-bold" style={{ background: pc.soft, color: pc.accent }}>
-            {labels[result.data.profile]}
-          </div>
-          <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">{result.data.description}</p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => navigate('/profile-test/result')}
-            className="flex-1 rounded-xl border border-neutral-300 py-3 font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-          >
-            Ver detalle
-          </button>
-          <button
-            onClick={() => { setRetake(true); setStep(0); setSelected({}) }}
-            className="flex-1 rounded-xl bg-brand-500 py-3 font-semibold text-white hover:bg-brand-600"
-          >
-            Volver a hacer el test
-          </button>
-        </div>
-      </div>
-    )
-  }
-
+  if (result.data && !retake) return <Navigate to="/profile-test/result" replace />
   if (!questions || questions.length === 0) return null
 
   const question = questions[step]!
-  const progress = ((step + 1) / questions.length) * 100
+  const progress = Math.round(((step + 1) / questions.length) * 100)
   const isLast = step + 1 >= questions.length
+  const answered = Boolean(selected[question.id])
 
   const handleNext = () => {
+    if (!answered) return
     if (!isLast) {
       setStep(step + 1)
       return
@@ -93,73 +49,75 @@ export function ProfileTestPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <div>
-        <h2 className="text-2xl font-bold">Test de Perfil</h2>
-        <p className="mt-1 text-sm text-neutral-500">Descubrí tu perfil de inversor y una asignación sugerida.</p>
-      </div>
+    <div className="mx-auto max-w-[680px] space-y-5">
+      <h1 className="text-2xl font-bold tracking-[-0.02em] md:text-[28px]">Perfil de inversor</h1>
 
       <div>
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="text-neutral-500">Pregunta {step + 1} de {questions.length}</span>
-          <span className="font-semibold text-brand-500">{Math.round(progress)}% completado</span>
+        <div className="mb-2 flex items-center justify-between text-[13px]">
+          <span className="text-ink-2">
+            Pregunta {step + 1} de {questions.length}
+          </span>
+          <span className="font-semibold text-brand-ink">{progress} %</span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
-          <div className="h-full rounded-full bg-brand-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+          <div className="h-full rounded-full bg-brand-500 transition-[width]" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-        <h3 className="text-lg font-semibold leading-snug">{question.text}</h3>
+      <fieldset className="rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,.05)] dark:shadow-none">
+        <legend className="sr-only">{question.text}</legend>
+        <p className="text-[17px] font-semibold" aria-hidden="true">{question.text}</p>
         <div className="mt-4 space-y-2.5" role="radiogroup" aria-label={question.text}>
           {question.options.map((o) => {
-            const isSelected = selected[question.id] === o.id
+            const on = selected[question.id] === o.id
             return (
               <button
                 key={o.id}
-                data-testid="quiz-option"
+                type="button"
                 role="radio"
-                aria-checked={isSelected}
-                onClick={() => setSelected({ ...selected, [question.id]: o.id })}
-                className="flex w-full items-center gap-3 rounded-xl border-[1.5px] border-neutral-200 p-[15px] text-left text-sm transition-colors dark:border-neutral-800"
-                style={isSelected
-                  ? { borderColor: '#F97316', background: 'rgba(249,115,22,0.08)' }
-                  : undefined}
+                aria-checked={on}
+                data-testid="quiz-option"
+                onClick={() => setSelected((p) => ({ ...p, [question.id]: o.id }))}
+                className={`flex min-h-[52px] w-full items-center gap-3 rounded-xl border-[1.5px] px-4 py-3 text-left text-sm transition-colors ${
+                  on ? 'border-brand-500 bg-brand-tint' : 'border-line hover:border-ctl'
+                }`}
               >
                 <span
-                  className={`grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[12px] font-bold ${
-                    isSelected ? 'bg-brand-500 text-white' : 'border-[1.5px] border-neutral-300 dark:border-neutral-600'
-                  }`}
+                  className={`grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full border-[1.5px] text-xs text-white ${on ? 'border-brand-500 bg-brand-500' : 'border-ctl'}`}
+                  aria-hidden="true"
                 >
-                  {isSelected ? '✓' : ''}
+                  {on ? '✓' : ''}
                 </span>
-                <span>{o.label}</span>
+                {o.label}
               </button>
             )
           })}
         </div>
-      </div>
+      </fieldset>
 
       {submitQuiz.isError && (
-        <p className="text-sm font-medium text-danger-500">
-          {submitQuiz.error instanceof Error ? submitQuiz.error.message : 'No se pudo calcular tu perfil.'}
+        <p className="text-sm font-medium text-neg" role="alert">
+          {submitQuiz.error instanceof Error ? submitQuiz.error.message : 'No se pudo guardar el test.'}
         </p>
       )}
 
       <div className="flex gap-3">
         <button
-          disabled={step === 0 || submitQuiz.isPending}
+          type="button"
           onClick={() => setStep(step - 1)}
-          className="rounded-xl border border-neutral-300 px-6 py-3 font-medium disabled:opacity-50 dark:border-neutral-700"
+          disabled={step === 0 || submitQuiz.isPending}
+          className="h-12 rounded-[11px] border border-ctl bg-surface px-5 font-semibold disabled:opacity-45"
         >
           ← Anterior
         </button>
         <button
-          disabled={!selected[question.id] || submitQuiz.isPending}
+          type="button"
           onClick={handleNext}
-          className="flex-1 rounded-xl bg-brand-500 py-3 font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-disabled={!answered}
+          disabled={submitQuiz.isPending}
+          className={`h-12 flex-1 rounded-[11px] bg-brand-500 font-semibold text-white hover:bg-brand-600 ${answered ? '' : 'opacity-45'}`}
         >
-          {isLast ? (submitQuiz.isPending ? 'Calculando…' : 'Finalizar') : 'Siguiente →'}
+          {isLast ? (submitQuiz.isPending ? 'Calculando…' : 'Ver mi perfil') : 'Siguiente →'}
         </button>
       </div>
     </div>

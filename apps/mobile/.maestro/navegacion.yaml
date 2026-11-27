@@ -44,8 +44,10 @@ tags: [smoke]
     id: 'header-cuenta'
 - tapOn:
     id: 'menu-perfil'
+# Con perfil ya calculado muestra el resultado; sin perfil, el test. Las dos
+# pantallas se titulan igual.
 - extendedWaitUntil:
-    visible: 'Test de Perfil'
+    visible: 'Perfil de inversor'
     timeout: 20000
 - tapOn:
     id: 'header-volver'

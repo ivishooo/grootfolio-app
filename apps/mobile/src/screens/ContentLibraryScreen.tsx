@@ -1,7 +1,8 @@
 /**
- * Biblioteca de contenidos mobile (F7) — espejo de web. Buscador, chips de
- * sección (scroll horizontal), destacados y todo el material con badge NUEVO.
- * Al abrir un item se registra la vista y se abre por Linking.
+ * Aprender en mobile (rediseño v2, Fase 5; antes «Contenidos»). Espejo de la
+ * web: buscador de 44, chips de sección en tinta invertida y tarjetas en una
+ * columna. Destacados con fondo brand.tint; «NUEVO» en brand.subtle +
+ * brand.ink. Abrir un material registra la vista y lo abre en el navegador.
  */
 import { useState } from 'react'
 import { View, Text, TextInput, ScrollView, TouchableOpacity, FlatList, Linking, RefreshControl } from 'react-native'
@@ -11,15 +12,23 @@ import { useContentItems, useContentSections, useMarkContentViewed } from '@/lib
 import { useTheme } from '@/theme/ThemeProvider'
 import { Screen } from '@/components/ui/Screen'
 import { EmptyState } from '@/components/ui/States'
-import { ASSISTANT_SAFE_BOTTOM } from '@/components/assistant/tokens'
 
-const TYPE_META: Record<ContentType, { color: string; icon: string; cta: string }> = {
-  doc: { color: '#DC2626', icon: '▤', cta: 'Leer' },
-  video: { color: '#8B5CF6', icon: '▷', cta: 'Ver' },
-  image: { color: '#14B8A6', icon: '▣', cta: 'Ver' },
-  link: { color: '#3B82F6', icon: '⇗', cta: 'Abrir' },
+/** Padding inferior del SPEC: es el lugar de Groot sobre las tabs. */
+const GROOT_SPACE = 150
+
+const TYPE_META: Record<ContentType, { color: string; soft: string; icon: string; cta: string }> = {
+  doc: { color: '#DC2626', soft: 'rgba(220,38,38,0.12)', icon: '▤', cta: 'Leer' },
+  video: { color: '#8B5CF6', soft: 'rgba(139,92,246,0.12)', icon: '▷', cta: 'Ver' },
+  image: { color: '#14B8A6', soft: 'rgba(20,184,166,0.12)', icon: '▣', cta: 'Ver' },
+  link: { color: '#3B82F6', soft: 'rgba(59,130,246,0.12)', icon: '⇗', cta: 'Abrir' },
 }
-const ORANGE = '#F97316'
+
+function meta(item: ContentItem): string {
+  const parts = [contentTypeLabels[item.type]]
+  if (item.durationSeconds) parts.push(`${Math.max(1, Math.round(item.durationSeconds / 60))} min`)
+  else if (item.sizeBytes) parts.push(formatFileSize(item.sizeBytes))
+  return parts.join(' · ')
+}
 
 export function ContentLibraryScreen() {
   const { theme } = useTheme()
@@ -34,130 +43,127 @@ export function ContentLibraryScreen() {
     if (item.url) Linking.openURL(item.url).catch(() => {})
   }
 
-  const featured = items.filter((i) => i.pinned)
-  const rest = items.filter((i) => !i.pinned)
+  const sorted = [...items].sort((a, b) => Number(b.pinned) - Number(a.pinned))
+  const nuevos = items.filter((i) => i.isNew).length
+  const hasFilters = search.trim() !== '' || sectionId !== undefined
 
-  const meta = (it: ContentItem) => [contentTypeLabels[it.type], it.sizeBytes ? formatFileSize(it.sizeBytes) : null].filter(Boolean).join(' · ')
+  const chip = (key: string, label: string, active: boolean, onPress: () => void) => (
+    <TouchableOpacity
+      key={key}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      style={{
+        height: 40,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        borderWidth: 1,
+        justifyContent: 'center',
+        borderColor: active ? theme.text.primary : theme.border.default,
+        backgroundColor: active ? theme.text.primary : theme.background.surface,
+      }}
+    >
+      <Text style={{ color: active ? theme.background.surface : theme.text.primary, fontSize: 13, fontWeight: '600' }}>{label}</Text>
+    </TouchableOpacity>
+  )
 
   return (
     <Screen>
       <FlatList
-        data={rest}
+        data={sorted}
         keyExtractor={(i) => i.id}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: ASSISTANT_SAFE_BOTTOM }}
+        contentContainerStyle={{ paddingTop: 18, paddingHorizontal: 16, gap: 12, paddingBottom: GROOT_SPACE }}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.brand.solid} />}
         ListHeaderComponent={
-          <View style={{ gap: 12, marginBottom: 4 }}>
+          <View style={{ gap: 12, marginBottom: 2 }}>
             <View>
-              <Text style={{ color: theme.text.primary, fontSize: 24, fontWeight: '800' }}>Contenidos</Text>
-              <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>Material educativo del equipo de GrootFolio.</Text>
+              <Text accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 24, fontWeight: '700', letterSpacing: -0.5 }}>Aprender</Text>
+              <Text style={{ color: theme.text.secondary, fontSize: 13.5, marginTop: 2 }}>
+                Material del equipo de GrootFolio.
+                {nuevos > 0 ? ` ${nuevos} ${nuevos === 1 ? 'nuevo' : 'nuevos'} desde tu última visita.` : ''}
+              </Text>
             </View>
             <TextInput
               testID="content-search"
-              placeholder="Buscar contenido…"
+              accessibilityLabel="Buscar material"
+              placeholder="Buscar material…"
               placeholderTextColor={theme.text.placeholder}
               value={search}
               onChangeText={setSearch}
-              style={{ height: 44, borderRadius: 10, backgroundColor: theme.background.surface, borderWidth: 1, borderColor: theme.border.strong, color: theme.text.primary, paddingHorizontal: 12 }}
+              style={{
+                height: 44,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: theme.border.strong,
+                backgroundColor: theme.background.surface,
+                color: theme.text.primary,
+                paddingHorizontal: 14,
+                fontSize: 15,
+              }}
             />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-              <Chip label="Todos" active={!sectionId} onPress={() => setSectionId(undefined)} />
-              {sections.map((s) => <Chip key={s.id} label={s.name} active={sectionId === s.id} onPress={() => setSectionId(s.id)} />)}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+              {chip('todo', 'Todo', !sectionId, () => setSectionId(undefined))}
+              {sections.map((s) => chip(s.id, s.name, sectionId === s.id, () => setSectionId(s.id)))}
             </ScrollView>
-
-            {featured.length > 0 && (
-              <View style={{ gap: 8 }}>
-                <Text style={{ color: theme.text.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>DESTACADOS</Text>
-                {featured.map((it) => (
-                  // Mismo criterio que las tarjetas de la lista: un solo
-                  // elemento, y la estrella se dice "Destacado" en vez de
-                  // leerse como glifo.
-                  <TouchableOpacity
-                    key={it.id}
-                    onPress={() => open(it)}
-                    accessibilityRole="link"
-                    accessibilityLabel={['Destacado.', it.title, it.description ?? ''].filter(Boolean).join(' ')}
-                    accessibilityHint={`${TYPE_META[it.type].cta} en el navegador`}
-                    style={{ flexDirection: 'row', gap: 12, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(249,115,22,0.26)', backgroundColor: 'rgba(249,115,22,0.06)', padding: 14 }}>
-                    <TypeBadge type={it.type} size={44} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: theme.text.primary, fontWeight: '700' }} numberOfLines={2}>★ {it.title}</Text>
-                      {it.description ? <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{it.description}</Text> : null}
-                      <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 4 }}>{meta(it)}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-            {rest.length > 0 && <Text style={{ color: theme.text.muted, fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginTop: 4 }}>TODO EL MATERIAL</Text>}
+            {isLoading && <Text style={{ color: theme.text.muted }}>Cargando…</Text>}
           </View>
         }
-        renderItem={({ item }) => (
-          /*
-            Sin agrupar, cada tarjeta se leia como una ristra de fragmentos:
-            "⇗", el titulo, "NUEVO", la descripcion y el CTA por separado. El
-            glifo de la flecha no aporta nada hablado.
-          */
-          <TouchableOpacity
-            onPress={() => open(item)}
-            accessibilityRole="link"
-            accessibilityLabel={[
-              item.isNew ? 'Nuevo.' : '',
-              item.title,
-              item.description ?? '',
-            ].filter(Boolean).join(' ')}
-            accessibilityHint={`${TYPE_META[item.type].cta} en el navegador`}
-            style={{ flexDirection: 'row', gap: 12, borderRadius: 16, borderWidth: 1, borderColor: theme.border.default, backgroundColor: theme.background.surface, padding: 14 }}>
-            <TypeBadge type={item.type} size={44} />
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                {/* Dos lineas: los titulos de fuentes oficiales son largos y a
-                    una sola quedaban en "Alicuotas del Impuesto sobre l...", que
-                    no alcanza para saber de que se trata. */}
-                <Text style={{ color: theme.text.primary, fontWeight: '700', flex: 1 }} numberOfLines={2}>{item.title}</Text>
-                {item.isNew && <Text style={{ color: '#fff', backgroundColor: ORANGE, fontSize: 10, fontWeight: '800', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, overflow: 'hidden' }}>NUEVO</Text>}
-              </View>
-              {item.description ? <Text style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }} numberOfLines={2}>{item.description}</Text> : null}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-                <Text style={{ color: theme.text.muted, fontSize: 11 }}>{meta(item)}</Text>
-                <Text style={{ color: ORANGE, fontWeight: '700', fontSize: 13 }}>{TYPE_META[item.type].cta} →</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
         ListEmptyComponent={
-          !isLoading ? <EmptyState title="Sin material todavía" description="Cuando el equipo publique contenido, va a aparecer acá." /> : null
+          isLoading ? null : hasFilters ? (
+            <View style={{ gap: 12 }}>
+              <EmptyState
+                title="No encontramos nada con ese filtro"
+                description={search.trim() ? `Ningún material coincide con “${search.trim()}”.` : 'Esta sección todavía no tiene material.'}
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  setSearch('')
+                  setSectionId(undefined)
+                }}
+                style={{ alignSelf: 'center', minHeight: 44, justifyContent: 'center' }}
+              >
+                <Text style={{ color: theme.brand.ink, fontWeight: '600' }}>Limpiar filtros</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <EmptyState title="Sin material todavía" description="Cuando el equipo publique contenido, va a aparecer acá." />
+          )
         }
+        renderItem={({ item }) => {
+          const m = TYPE_META[item.type]
+          return (
+            <TouchableOpacity
+              onPress={() => open(item)}
+              accessibilityRole="button"
+              accessibilityHint={`${m.cta} en el navegador`}
+              style={{
+                padding: 16,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: item.pinned ? 'rgba(249,115,22,0.35)' : theme.border.default,
+                backgroundColor: item.pinned ? theme.brand.tint : theme.background.surface,
+              }}
+            >
+              <View style={{ width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: m.soft }}>
+                <Text style={{ color: m.color, fontSize: 16, fontWeight: '700' }}>{m.icon}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
+                <Text style={{ color: theme.text.muted, fontSize: 12 }}>{meta(item)}</Text>
+                {item.isNew && (
+                  <Text style={{ color: theme.brand.ink, backgroundColor: theme.brand.subtle, fontSize: 10.5, fontWeight: '700', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' }}>
+                    NUEVO
+                  </Text>
+                )}
+              </View>
+              <Text style={{ color: theme.text.primary, fontSize: 15, fontWeight: '600', marginTop: 4 }}>{item.title}</Text>
+              {item.description ? (
+                <Text numberOfLines={2} style={{ color: theme.text.secondary, fontSize: 13, marginTop: 2 }}>{item.description}</Text>
+              ) : null}
+              <Text style={{ color: theme.brand.ink, fontSize: 13, fontWeight: '600', marginTop: 12 }}>{m.cta} →</Text>
+            </TouchableOpacity>
+          )
+        }}
       />
     </Screen>
-  )
-}
-
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  const { theme } = useTheme()
-  /*
-    El chip activo solo se distinguia por color. Con `accessibilityState.selected`
-    el lector anuncia cual esta aplicado, que es la unica pista de por que la
-    lista esta filtrada. `minHeight` de 44 por el minimo tactil de las HIG:
-    estaban en 36.
-  */
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      accessibilityLabel={`Filtrar por ${label}`}
-      style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: active ? ORANGE : theme.border.default, backgroundColor: active ? 'rgba(249,115,22,0.1)' : 'transparent' }}>
-      <Text style={{ color: active ? ORANGE : theme.text.secondary, fontWeight: '600', fontSize: 13 }}>{label}</Text>
-    </TouchableOpacity>
-  )
-}
-
-function TypeBadge({ type, size }: { type: ContentType; size: number }) {
-  const m = TYPE_META[type]
-  return (
-    <View style={{ width: size, height: size, borderRadius: 12, backgroundColor: `${m.color}22`, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: m.color, fontSize: size * 0.4, fontWeight: '800' }}>{m.icon}</Text>
-    </View>
   )
 }

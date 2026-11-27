@@ -3,21 +3,18 @@ import { login } from './helpers'
 
 test('completar el quiz de perfil muestra el resultado', async ({ page }) => {
   await login(page)
-  await page.goto('/profile-test')
+  // `?rehacer=1` arranca el test aunque el usuario ya tenga perfil (rediseño v2:
+  // si ya hay perfil, /profile-test muestra el resultado).
+  await page.goto('/profile-test?rehacer=1')
 
-  const retake = page.getByRole('button', { name: 'Volver a hacer el test' })
   const firstOption = page.getByTestId('quiz-option').first()
-
-  // Esperar a que la pantalla termine de cargar: o el resumen (ya tiene perfil)
-  // o el formulario.
-  await expect(retake.or(firstOption)).toBeVisible({ timeout: 15_000 })
-  if (await retake.isVisible()) await retake.click()
+  await expect(firstOption).toBeVisible({ timeout: 15_000 })
 
   // Responder las 4 preguntas eligiendo la primera opcion y avanzando.
   for (let i = 0; i < 4; i++) {
     await firstOption.waitFor({ state: 'visible', timeout: 10_000 })
     await firstOption.click()
-    const finalizar = page.getByRole('button', { name: 'Finalizar' })
+    const finalizar = page.getByRole('button', { name: 'Ver mi perfil' })
     if (await finalizar.isVisible().catch(() => false)) {
       await finalizar.click()
     } else {
@@ -26,5 +23,5 @@ test('completar el quiz de perfil muestra el resultado', async ({ page }) => {
   }
 
   await expect(page).toHaveURL(/\/profile-test\/result/)
-  await expect(page.getByText('Tu perfil de inversor es')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Tu perfil es')).toBeVisible({ timeout: 15_000 })
 })
