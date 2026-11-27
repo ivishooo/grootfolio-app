@@ -1,5 +1,6 @@
 /**
- * Admin · Usuarios mobile (F7). Métricas 2×2, buscador + filtros (bottom sheet),
+ * Admin · Usuarios mobile (F7; rediseño v2, Fase 6). KPI 2×2, búsqueda de 40 +
+ * chips Todos/Activos/Suspendidos (rol y orden en «Más»), filas sin Valor ni «desde»,
  * lista de cards con acciones (action sheet), selección múltiple con barra
  * flotante, historial, y los sheets Suspender / Moderar. Sin tablas.
  */
@@ -8,7 +9,6 @@ import { View, Text, TextInput, FlatList, TouchableOpacity, Alert, ActivityIndic
 import { useNavigation } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import DateTimePicker from '@react-native-community/datetimepicker'
-import { formatCurrency } from '@grootfolio/shared'
 import type { AdminUserRow, SuspendUserInput, UpdateUserInput, UserRole } from '@grootfolio/shared'
 import {
   useAdminUsers,
@@ -31,7 +31,6 @@ import { UserAvatar } from '@/components/ui/UserAvatar'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 
 const VIOLET = '#8B5CF6'
-const GREEN = '#16A34A'
 const RED = '#DC2626'
 
 function formatDate(iso: string | null): string {
@@ -67,7 +66,6 @@ export function AdminUsersScreen() {
   const bulkUnsuspend = useBulkUnsuspend()
   const rows = data?.data ?? []
   const stats = data?.stats
-  const filtersActive = !!status || !!role || sort !== 'recent'
 
   const toggleSel = (id: string) =>
     setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -89,66 +87,106 @@ export function AdminUsersScreen() {
       <FlatList
         data={rows}
         keyExtractor={(u) => u.id}
-        contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: selected.size > 0 ? 90 : 24 }}
+        contentContainerStyle={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: selected.size > 0 ? 90 : 24 }}
+        ListHeaderComponentStyle={{ marginBottom: 14 }}
         ListHeaderComponent={
           <View style={{ gap: 12, marginBottom: 2 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={{ color: theme.text.primary, fontSize: 24, fontWeight: '800' }}>Usuarios</Text>
-              <Text style={{ color: VIOLET, backgroundColor: 'rgba(139,92,246,0.14)', fontSize: 10, fontWeight: '800', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' }}>SOLO ADMIN</Text>
-              <TouchableOpacity onPress={() => setCreateOpen(true)} style={{ marginLeft: 'auto', backgroundColor: theme.brand.solid, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 }}>
-                <Text style={{ color: theme.text.onBrand, fontWeight: '700', fontSize: 13 }}>+ Crear</Text>
+              <Text accessibilityRole="header" style={{ color: theme.text.primary, fontSize: 24, fontWeight: '700', letterSpacing: -0.5 }}>Usuarios</Text>
+              <Text style={{ color: VIOLET, backgroundColor: 'rgba(139,92,246,0.14)', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' }}>ADMIN</Text>
+              <TouchableOpacity onPress={() => setCreateOpen(true)} accessibilityRole="button" style={{ marginLeft: 'auto', height: 38, justifyContent: 'center', backgroundColor: theme.brand.solid, borderRadius: 10, paddingHorizontal: 14 }}>
+                <Text style={{ color: theme.text.onBrand, fontWeight: '600', fontSize: 13.5 }}>+ Crear usuario</Text>
               </TouchableOpacity>
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              <Metric label="Total" value={stats?.total} color="#64748B" />
-              <Metric label="Activos" value={stats?.active} color={GREEN} />
-              <Metric label="Suspendidos" value={stats?.suspended} color={RED} />
-              <Metric label="Nuevos (30 d)" value={stats?.newLast30d} color="#F97316" />
+              <Metric label="Usuarios" value={stats?.total} color={theme.text.primary} />
+              <Metric label="Activos" value={stats?.active} color={theme.trend.pos} />
+              <Metric label="Suspendidos" value={stats?.suspended} color={theme.trend.neg} />
+              <Metric label="Nuevos · 30 días" value={stats?.newLast30d} color={theme.text.primary} />
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <TextInput
-                placeholder="Buscar…" placeholderTextColor={theme.text.placeholder} value={searchInput} onChangeText={setSearchInput}
-                style={{ flex: 1, height: 44, borderRadius: 10, backgroundColor: theme.background.muted, color: theme.text.primary, paddingHorizontal: 12 }}
+                accessibilityLabel="Buscar por nombre o email"
+                placeholder="Buscar por nombre o email" placeholderTextColor={theme.text.placeholder} value={searchInput} onChangeText={setSearchInput}
+                style={{ flex: 1, height: 40, borderRadius: 10, borderWidth: 1, borderColor: theme.border.strong, backgroundColor: theme.background.surface, color: theme.text.primary, paddingHorizontal: 12, fontSize: 14 }}
               />
-              <TouchableOpacity onPress={() => setShowFilters(true)} style={{ height: 44, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: theme.border.default, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
-                <Text style={{ color: theme.text.primary, fontWeight: '600' }}>Filtros</Text>
-                {filtersActive && <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#F97316' }} />}
+              <TouchableOpacity onPress={() => setShowFilters(true)} accessibilityRole="button" accessibilityLabel="Rol y orden" style={{ height: 40, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: theme.border.default, backgroundColor: theme.background.surface, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}>
+                <Text style={{ color: theme.text.primary, fontWeight: '600', fontSize: 13 }}>Más</Text>
+                {(!!role || sort !== 'recent') && <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: theme.brand.solid }} />}
               </TouchableOpacity>
             </View>
-            {selectMode && <Text style={{ color: theme.text.secondary, fontSize: 12 }}>{selected.size} seleccionados · mantené presionada una fila. <Text onPress={() => { setSelectMode(false); setSelected(new Set()) }} style={{ color: theme.brand.solid, fontWeight: '700' }}>Cancelar</Text></Text>}
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {([
+                [undefined, 'Todos', stats?.total],
+                ['active', 'Activos', stats?.active],
+                ['suspended', 'Suspendidos', stats?.suspended],
+              ] as const).map(([value, label, count]) => {
+                const on = status === value
+                return (
+                  <TouchableOpacity
+                    key={label}
+                    onPress={() => setStatus(value)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    style={{ height: 40, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, justifyContent: 'center', borderColor: on ? theme.text.primary : theme.border.default, backgroundColor: on ? theme.text.primary : theme.background.surface }}
+                  >
+                    <Text style={{ color: on ? theme.background.surface : theme.text.primary, fontSize: 13, fontWeight: '600' }}>
+                      {label}
+                      {count !== undefined ? <Text style={{ opacity: 0.6 }}> {count}</Text> : null}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+            {selectMode && <Text style={{ color: theme.text.secondary, fontSize: 12 }}>{selected.size} seleccionados · mantené presionada una fila. <Text onPress={() => { setSelectMode(false); setSelected(new Set()) }} style={{ color: theme.brand.ink, fontWeight: '700' }}>Cancelar</Text></Text>}
           </View>
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => selectMode ? toggleSel(item.id) : nav.navigate('AdminUserDetail', { id: item.id })}
-            onLongPress={() => { setSelectMode(true); toggleSel(item.id) }}
-            style={{ flexDirection: 'row', gap: 12, borderRadius: 14, borderWidth: 1, borderColor: selected.has(item.id) ? '#F97316' : theme.border.default, backgroundColor: theme.background.surface, padding: 14 }}
-          >
-            {selectMode && (
-              <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: selected.has(item.id) ? '#F97316' : theme.border.strong, backgroundColor: selected.has(item.id) ? '#F97316' : 'transparent', alignItems: 'center', justifyContent: 'center', alignSelf: 'center' }}>
-                {selected.has(item.id) && <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>✓</Text>}
+        renderItem={({ item, index }) => {
+          const sel = selected.has(item.id)
+          const susp = item.status === 'suspended'
+          const first = index === 0
+          const last = index === rows.length - 1
+          return (
+            <TouchableOpacity
+              onPress={() => selectMode ? toggleSel(item.id) : nav.navigate('AdminUserDetail', { id: item.id })}
+              onLongPress={() => { setSelectMode(true); toggleSel(item.id) }}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14,
+                backgroundColor: sel ? theme.brand.tint : theme.background.surface,
+                borderColor: theme.border.default, borderLeftWidth: 1, borderRightWidth: 1,
+                borderTopWidth: first ? 1 : 0, borderBottomWidth: 1,
+                borderTopLeftRadius: first ? 16 : 0, borderTopRightRadius: first ? 16 : 0,
+                borderBottomLeftRadius: last ? 16 : 0, borderBottomRightRadius: last ? 16 : 0,
+              }}
+            >
+              {selectMode && (
+                <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: sel ? theme.brand.solid : theme.border.strong, backgroundColor: sel ? theme.brand.solid : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                  {sel && <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>✓</Text>}
+                </View>
+              )}
+              <UserAvatar user={item} size={36} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: theme.text.primary, fontWeight: '600', fontSize: 13.5, flexShrink: 1 }} numberOfLines={1}>{item.fullName || 'Sin nombre'}</Text>
+                  {item.role === 'admin' && <Text style={{ color: VIOLET, backgroundColor: 'rgba(139,92,246,0.14)', fontSize: 10, fontWeight: '700', paddingHorizontal: 5, borderRadius: 5, overflow: 'hidden' }}>ADMIN</Text>}
+                </View>
+                <Text style={{ color: theme.text.muted, fontSize: 12 }} numberOfLines={1}>{item.email}</Text>
               </View>
-            )}
-            <UserAvatar user={item} size={44} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: theme.text.primary, fontWeight: '700' }} numberOfLines={1}>{item.fullName || 'Sin nombre'}</Text>
-              <Text style={{ color: theme.text.muted, fontSize: 12 }} numberOfLines={1}>{item.email}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: item.status === 'suspended' ? RED : GREEN }} />
-                <Text style={{ color: item.status === 'suspended' ? RED : GREEN, fontSize: 12, fontWeight: '600' }}>
-                  {item.status === 'suspended' ? `Suspendido · ${item.suspendedUntil ? 'hasta ' + formatDate(item.suspendedUntil) : 'Indefinida'}` : 'Activo'}
-                </Text>
-                {item.role === 'admin' && <Text style={{ color: VIOLET, backgroundColor: 'rgba(139,92,246,0.14)', fontSize: 10, fontWeight: '700', paddingHorizontal: 5, borderRadius: 5, overflow: 'hidden' }}>Admin</Text>}
+              <View style={{ alignItems: 'flex-end' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: susp ? theme.trend.neg : theme.trend.pos }} />
+                  <Text style={{ color: susp ? theme.trend.neg : theme.trend.pos, fontSize: 12, fontWeight: '600' }}>{susp ? 'Suspendido' : 'Activo'}</Text>
+                </View>
+                {susp && <Text style={{ color: theme.text.muted, fontSize: 11 }}>{item.suspendedUntil ? `hasta ${formatDate(item.suspendedUntil)}` : 'Indefinida'}</Text>}
               </View>
-              <Text style={{ color: theme.text.muted, fontSize: 11, marginTop: 2 }}>{formatCurrency(item.portfolioValue)} · Alta {formatDate(item.createdAt)}</Text>
-            </View>
-            {!selectMode && (
-              <TouchableOpacity onPress={() => openActions(item)} hitSlop={10} style={{ paddingHorizontal: 6, alignSelf: 'center' }}>
-                <Text style={{ color: theme.text.muted, fontSize: 20 }}>⋯</Text>
-              </TouchableOpacity>
-            )}
-          </TouchableOpacity>
-        )}
+              {!selectMode && (
+                <TouchableOpacity onPress={() => openActions(item)} accessibilityRole="button" accessibilityLabel={`Acciones para ${item.email}`} style={{ width: 36, height: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ color: theme.text.secondary, fontSize: 20 }}>⋯</Text>
+                </TouchableOpacity>
+              )}
+            </TouchableOpacity>
+          )
+        }}
         ListFooterComponent={<AuditFooter />}
       />
 
@@ -309,12 +347,9 @@ function EditSheet({ user, onClose }: { user: AdminUserRow; onClose: () => void 
 function Metric({ label, value, color }: { label: string; value?: number; color: string }) {
   const { theme } = useTheme()
   return (
-    <View style={{ width: '47%', flexGrow: 1, borderRadius: 14, borderWidth: 1, borderColor: theme.border.default, backgroundColor: theme.background.surface, padding: 14 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: color }} />
-        <Text style={{ color: theme.text.secondary, fontSize: 12.5 }}>{label}</Text>
-      </View>
-      <Text style={{ color: theme.text.primary, fontSize: 22, fontWeight: '800', marginTop: 6 }}>{value ?? '—'}</Text>
+    <View style={{ width: '47%', flexGrow: 1, borderRadius: 14, borderWidth: 1, borderColor: theme.border.default, backgroundColor: theme.background.surface, paddingVertical: 14, paddingHorizontal: 16 }}>
+      <Text style={{ color: theme.text.secondary, fontSize: 12.5 }}>{label}</Text>
+      <Text style={{ color, fontSize: 22, fontWeight: '700', marginTop: 4, fontVariant: ['tabular-nums'] }}>{value ?? '—'}</Text>
     </View>
   )
 }

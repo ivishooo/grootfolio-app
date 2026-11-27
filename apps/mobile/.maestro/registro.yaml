@@ -1,0 +1,19 @@
+# Login → «Creá una gratis» abre el Registro y «Ingresá» vuelve (rediseño v2, Fase 6).
+appId: host.exp.Exponent
+tags: [smoke]
+---
+- runFlow: _cerrar-sesion.yaml
+- assertVisible: 'Hola de nuevo'
+- tapOn:
+    id: 'login-registrarse'
+- extendedWaitUntil:
+    visible: 'Creá tu cuenta'
+    timeout: 10000
+- assertVisible:
+    id: 'register-submit'
+- tapOn:
+    id: 'register-ingresar'
+- extendedWaitUntil:
+    visible:
+      id: 'login-submit'
+    timeout: 10000

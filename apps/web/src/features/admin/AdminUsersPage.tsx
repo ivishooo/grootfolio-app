@@ -1,9 +1,10 @@
 /**
- * Panel de admin · Usuarios (F5). Métricas, buscador/filtros, tabla con acciones,
+ * Panel de admin · Usuarios (F5; rediseño v2, Fase 6). KPI, búsqueda + chips de
+ * estado, filas con «⋯» (Valor y «desde» solo en web), acciones masivas,
  * selección múltiple, historial de acciones y los modales Suspender / Moderar /
  * Detalle. Solo accesible para admins (RequireAdmin).
  */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { formatCurrency } from '@grootfolio/shared'
 import type { AdminUserRow, SuspendUserInput, UpdateUserInput, UserRole } from '@grootfolio/shared'
 import {
@@ -23,6 +24,7 @@ import {
 import { useToast } from '@/components/ui/ToastProvider'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/States'
+import { useOnClickOutside } from '@/lib/useOnClickOutside'
 
 // Violeta de identidad del rol admin (SPEC: #7C3AED sobre rgba(139,92,246,.14)).
 const VIOLET = '#7C3AED'
@@ -50,6 +52,13 @@ function UserAvatar({ user, size = 36 }: { user: { fullName: string | null; emai
   )
 }
 
+/** «02/2026» */
+function sinceLabel(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '—' : `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -61,18 +70,18 @@ function StatusChip({ user }: { user: AdminUserRow }) {
   const color = suspended ? RED : GREEN
   const until = user.suspendedUntil ? `Hasta ${formatDate(user.suspendedUntil)}` : 'Indefinida'
   return (
-    <div className="text-xs">
+    <div className="w-[92px] shrink-0 text-xs">
       <span className="inline-flex items-center gap-1.5 font-semibold" style={{ color }}>
         <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
         {suspended ? 'Suspendido' : 'Activo'}
       </span>
-      {suspended && <div className="mt-0.5 text-[11px] text-neutral-400">{until}</div>}
+      {suspended && <div className="mt-0.5 text-[11px] text-ink-3">{until}</div>}
     </div>
   )
 }
 
 const inputCls =
-  'h-[38px] rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-neutral-700 dark:bg-neutral-800'
+  'h-10 rounded-[10px] border border-ctl bg-surface px-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand-500'
 
 export function AdminUsersPage() {
   const { toast } = useToast()
@@ -130,47 +139,70 @@ export function AdminUsersPage() {
       onSuccess: (r) => { toast(`${r.affected} cuenta(s) reactivada(s)`, 'success'); setSelected(new Set()) },
     })
 
+  const STATUS_CHIPS: Array<{ value: AdminUsersFilters['status']; label: string; count?: number }> = [
+    { value: undefined, label: 'Todos', count: stats?.total },
+    { value: 'active', label: 'Activos', count: stats?.active },
+    { value: 'suspended', label: 'Suspendidos', count: stats?.suspended },
+  ]
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-2xl font-bold">Usuarios</h2>
-        <span className="rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide" style={{ color: VIOLET, background: 'rgba(139,92,246,0.14)' }}>
-          Solo admin
-        </span>
-        <Button className="ml-auto" onClick={() => setCreating(true)}>+ Crear usuario</Button>
-      </div>
-      <p className="-mt-3 text-sm text-neutral-500">Gestioná cuentas, suspensiones y moderación de perfiles.</p>
-
-      {/* Métricas */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Total" value={stats?.total} color="#64748B" icon="◎" />
-        <Metric label="Activos" value={stats?.active} color={GREEN} icon="✓" />
-        <Metric label="Suspendidos" value={stats?.suspended} color={RED} icon="⊘" />
-        <Metric label="Nuevos (30 d)" value={stats?.newLast30d} color="var(--tk-brand-ink)" icon="✦" />
-      </div>
-
-      {/* Filtros */}
+    <div className="mx-auto max-w-[1040px] space-y-5">
       <div className="flex flex-wrap items-center gap-2.5">
-        <div className="relative flex-1 min-w-[200px]">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">⌕</span>
+        <h1 className="m-0 text-2xl font-bold tracking-[-0.02em] md:text-[28px]">Usuarios</h1>
+        <span className="rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-[.05em]" style={{ color: VIOLET, background: 'rgba(139,92,246,0.14)' }}>
+          Admin
+        </span>
+        <span className="flex-1" />
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          className="h-[38px] rounded-[10px] bg-brand-500 px-3.5 text-[13.5px] font-semibold text-white hover:bg-brand-600"
+        >
+          + Crear usuario
+        </button>
+      </div>
+
+      {/* KPI: 4 en web, 2 en mobile. «Nuevos» usa la ventana que da la API (30 días). */}
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+        <Metric label="Usuarios" value={stats?.total} />
+        <Metric label="Activos" value={stats?.active} className="text-pos" />
+        <Metric label="Suspendidos" value={stats?.suspended} className="text-neg" />
+        <Metric label="Nuevos · 30 días" value={stats?.newLast30d} />
+      </div>
+
+      {/* Búsqueda + filtros */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[200px] flex-1">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden="true">⌕</span>
           <input
-            className={`${inputCls} w-full pl-8`}
-            placeholder="Buscar por nombre o email…"
+            className={`${inputCls} w-full pl-9`}
+            placeholder="Buscar por nombre o email"
+            aria-label="Buscar por nombre o email"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
-        <select className={inputCls} value={status ?? ''} onChange={(e) => { setStatus((e.target.value || undefined) as AdminUsersFilters['status']); setPage(1) }}>
-          <option value="">Estado: todos</option>
-          <option value="active">Activos</option>
-          <option value="suspended">Suspendidos</option>
-        </select>
-        <select className={inputCls} value={role ?? ''} onChange={(e) => { setRole((e.target.value || undefined) as AdminUsersFilters['role']); setPage(1) }}>
+        {STATUS_CHIPS.map((c) => {
+          const on = status === c.value
+          return (
+            <button
+              key={c.label}
+              type="button"
+              aria-pressed={on}
+              onClick={() => { setStatus(c.value); setPage(1) }}
+              className={`h-10 rounded-[10px] border px-3 text-[13px] font-semibold ${on ? 'border-ink bg-ink text-surface' : 'border-line bg-surface text-ink hover:bg-muted'}`}
+            >
+              {c.label}
+              {c.count !== undefined && <span className="ml-1.5 opacity-60">{c.count}</span>}
+            </button>
+          )
+        })}
+        <select aria-label="Rol" className={inputCls} value={role ?? ''} onChange={(e) => { setRole((e.target.value || undefined) as AdminUsersFilters['role']); setPage(1) }}>
           <option value="">Rol: todos</option>
           <option value="user">Usuarios</option>
           <option value="admin">Admins</option>
         </select>
-        <select className={inputCls} value={sort} onChange={(e) => setSort(e.target.value as NonNullable<AdminUsersFilters['sort']>)}>
+        <select aria-label="Orden" className={inputCls} value={sort} onChange={(e) => setSort(e.target.value as NonNullable<AdminUsersFilters['sort']>)}>
           <option value="recent">Más recientes</option>
           <option value="oldest">Más antiguos</option>
           <option value="name">Por nombre</option>
@@ -179,7 +211,7 @@ export function AdminUsersPage() {
 
       {/* Barra de acciones masivas */}
       {selected.size > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl px-4 py-3" style={{ background: 'rgba(249,115,22,0.08)' }}>
+        <div className="flex flex-wrap items-center gap-3 rounded-xl bg-brand-tint px-4 py-3">
           <span className="text-sm font-semibold">{selected.size} seleccionados</span>
           <div className="ml-auto flex gap-2">
             <Button variant="destructive" size="sm" onClick={() => setSuspendTarget('bulk')}>Suspender seleccionados</Button>
@@ -189,71 +221,56 @@ export function AdminUsersPage() {
         </div>
       )}
 
-      {/* Tabla */}
-      <div className="overflow-x-auto rounded-2xl border border-neutral-200 dark:border-neutral-800">
-        <table className="w-full table-auto text-sm">
-          <thead className="bg-neutral-50 text-neutral-500 dark:bg-neutral-800/50">
-            <tr>
-              <th className="px-3 py-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Seleccionar todos" /></th>
-              <th className="px-3 py-3 text-left font-medium">Usuario</th>
-              <th className="px-3 py-3 text-left font-medium">Estado</th>
-              <th className="px-3 py-3 text-left font-medium">Rol</th>
-              <th className="px-3 py-3 text-left font-medium">Alta</th>
-              <th className="px-3 py-3 text-right font-medium">Portafolio</th>
-              <th className="px-3 py-3 text-right font-medium">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={7} className="px-3 py-8 text-center text-neutral-400">Cargando…</td></tr>
-            ) : rows.length === 0 ? (
-              <tr><td colSpan={7} className="px-3 py-8"><EmptyState title="Sin coincidencias" description="Ajustá el buscador o los filtros." /></td></tr>
-            ) : (
-              rows.map((u) => (
-                <tr key={u.id} className="border-t border-neutral-200 dark:border-neutral-800" style={selected.has(u.id) ? { background: 'rgba(249,115,22,0.05)' } : undefined}>
-                  <td className="px-3 py-3"><input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} aria-label={`Seleccionar ${u.email}`} /></td>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <UserAvatar user={u} />
-                      <div className="min-w-0">
-                        <div className="font-semibold">{u.fullName || 'Sin nombre'}</div>
-                        <div className="truncate text-xs text-neutral-500">{u.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3"><StatusChip user={u} /></td>
-                  <td className="px-3 py-3">
-                    {u.role === 'admin' ? (
-                      <span className="rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ color: VIOLET, background: 'rgba(139,92,246,0.14)' }}>Admin</span>
-                    ) : (
-                      <span className="text-xs text-neutral-400">Usuario</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 whitespace-nowrap text-neutral-500">{formatDate(u.createdAt)}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">{formatCurrency(u.portfolioValue)}</td>
-                  <td className="px-3 py-3">
-                    <div className="flex justify-end gap-1.5">
-                      <button className="rounded-md px-2 py-1 text-xs font-medium text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800" onClick={() => setDetailId(u.id)}>Detalle</button>
-                      <button className="rounded-md px-2 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800" style={{ color: VIOLET }} onClick={() => setEditTarget(u)}>Editar</button>
-                      <button className="rounded-md px-2 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800" style={{ color: AMBER }} onClick={() => setModerateTarget(u)}>Moderar</button>
-                      {u.status === 'suspended' ? (
-                        <button className="rounded-md px-2 py-1 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800" style={{ color: GREEN }} onClick={() => handleReactivate(u)}>Reactivar</button>
-                      ) : (
-                        <button className="rounded-md px-2 py-1 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800" style={{ color: RED }} onClick={() => setSuspendTarget(u)}>Suspender</button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Filas */}
+      <section className="rounded-2xl border border-line bg-surface px-4 py-1 shadow-[0_1px_2px_rgba(15,23,42,.05)] dark:shadow-none md:px-5">
+        {rows.length > 0 && (
+          <label className="flex items-center gap-2 border-b border-line py-2.5 text-xs text-ink-3">
+            <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Seleccionar todos" />
+            Seleccionar todos
+          </label>
+        )}
+        {isLoading ? (
+          <p className="py-8 text-center text-sm text-ink-3">Cargando…</p>
+        ) : rows.length === 0 ? (
+          <div className="py-6"><EmptyState title="Sin coincidencias" description="Ajustá el buscador o los filtros." /></div>
+        ) : (
+          rows.map((u) => (
+            <div
+              key={u.id}
+              data-testid="admin-user-row"
+              className={`flex items-center gap-3 border-b border-line py-3 text-[13.5px] last:border-b-0 ${selected.has(u.id) ? 'bg-brand-tint' : ''}`}
+            >
+              <input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} aria-label={`Seleccionar ${u.email}`} />
+              <UserAvatar user={u} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="truncate font-semibold">{u.fullName || 'Sin nombre'}</span>
+                  {u.role === 'admin' && (
+                    <span className="rounded-md px-1.5 py-px text-[10.5px] font-bold uppercase" style={{ color: VIOLET, background: 'rgba(139,92,246,0.14)' }}>Admin</span>
+                  )}
+                </div>
+                <div className="truncate text-xs text-ink-3">{u.email}</div>
+              </div>
+              <span className="hidden w-[110px] text-[12.5px] tabular-nums text-ink-2 md:block">{formatCurrency(u.portfolioValue)}</span>
+              <span className="hidden w-24 text-[12.5px] text-ink-3 md:block">desde {sinceLabel(u.createdAt)}</span>
+              <StatusChip user={u} />
+              <RowMenu
+                user={u}
+                onDetail={() => setDetailId(u.id)}
+                onEdit={() => setEditTarget(u)}
+                onModerate={() => setModerateTarget(u)}
+                onSuspend={() => setSuspendTarget(u)}
+                onReactivate={() => handleReactivate(u)}
+              />
+            </div>
+          ))
+        )}
+      </section>
 
       {meta && meta.lastPage > 1 && (
         <div className="flex items-center justify-center gap-3 text-sm">
           <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Anterior</Button>
-          <span className="text-neutral-500">Página {meta.currentPage} de {meta.lastPage}</span>
+          <span className="text-ink-3">Página {meta.currentPage} de {meta.lastPage}</span>
           <Button variant="secondary" size="sm" disabled={page >= meta.lastPage} onClick={() => setPage((p) => p + 1)}>Siguiente</Button>
         </div>
       )}
@@ -405,14 +422,62 @@ function EditUserModal({ user, onClose }: { user: AdminUserRow; onClose: () => v
   )
 }
 
-function Metric({ label, value, color, icon }: { label: string; value?: number; color: string; icon: string }) {
+function Metric({ label, value, className = '' }: { label: string; value?: number; className?: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="flex items-center gap-2 text-sm text-neutral-500">
-        <span className="grid h-6 w-6 place-items-center rounded-lg text-[13px] font-bold" style={{ color, background: `${color}22` }}>{icon}</span>
-        {label}
-      </div>
-      <div className="mt-2 text-2xl font-bold tabular-nums">{value ?? '—'}</div>
+    <div className="rounded-[14px] border border-line bg-surface px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,.05)] dark:shadow-none">
+      <div className="text-[12.5px] text-ink-2">{label}</div>
+      <div className={`mt-1 text-[22px] font-bold tabular-nums ${className}`}>{value ?? '—'}</div>
+    </div>
+  )
+}
+
+/** «⋯» de 36×36 con las acciones de la fila (detalle, editar, moderar, suspender o reactivar). */
+function RowMenu({
+  user,
+  onDetail,
+  onEdit,
+  onModerate,
+  onSuspend,
+  onReactivate,
+}: {
+  user: AdminUserRow
+  onDetail: () => void
+  onEdit: () => void
+  onModerate: () => void
+  onSuspend: () => void
+  onReactivate: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const close = useCallback(() => setOpen(false), [])
+  useOnClickOutside(ref, close)
+  const suspended = user.status === 'suspended'
+  const item = 'block w-full px-3.5 py-2 text-left text-[13px] font-medium hover:bg-muted'
+  const run = (fn: () => void) => () => { setOpen(false); fn() }
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        aria-label={`Acciones para ${user.email}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="grid h-9 w-9 place-items-center rounded-lg text-lg leading-none text-ink-2 hover:bg-muted"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-10 z-30 w-44 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-[0_10px_25px_rgba(15,23,42,.12)]">
+          <button role="menuitem" type="button" className={item} onClick={run(onDetail)}>Detalle</button>
+          <button role="menuitem" type="button" className={item} onClick={run(onEdit)}>Editar</button>
+          <button role="menuitem" type="button" className={item} onClick={run(onModerate)}>Moderar perfil</button>
+          {suspended ? (
+            <button role="menuitem" type="button" className={`${item} text-pos`} onClick={run(onReactivate)}>Reactivar</button>
+          ) : (
+            <button role="menuitem" type="button" className={`${item} text-neg`} onClick={run(onSuspend)}>Suspender</button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -608,19 +673,19 @@ function AuditCard() {
     'user.avatar_delete': 'eliminó la foto de', 'content.publish': 'publicó', 'content.delete': 'eliminó', 'content.section_create': 'creó la sección',
   }
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-      <h3 className="mb-3 font-semibold">Historial de acciones</h3>
+    <div className="rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,23,42,.05)] dark:shadow-none">
+      <h2 className="mb-3 text-[15px] font-semibold">Historial de acciones</h2>
       {items.length === 0 ? (
-        <p className="text-sm text-neutral-400">Sin acciones registradas.</p>
+        <p className="text-sm text-ink-3">Sin acciones registradas.</p>
       ) : (
         <ul className="space-y-2.5">
           {items.slice(0, 15).map((l) => (
             <li key={l.id} className="flex items-start justify-between gap-3 text-sm">
               <div>
                 <span className="font-semibold">{l.actorName}</span>{' '}{actionLabel[l.action] ?? l.action}{' '}<span className="font-semibold">{l.targetLabel}</span>
-                {l.reason && <div className="text-xs text-neutral-400">Motivo: {l.reason}</div>}
+                {l.reason && <div className="text-xs text-ink-3">Motivo: {l.reason}</div>}
               </div>
-              <span className="whitespace-nowrap text-xs text-neutral-400">{formatDate(l.createdAt)}</span>
+              <span className="whitespace-nowrap text-xs text-ink-3">{formatDate(l.createdAt)}</span>
             </li>
           ))}
         </ul>

@@ -1,8 +1,11 @@
 import { ActivityIndicator, View } from 'react-native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import type { NavigatorScreenParams } from '@react-navigation/native'
+import type { TabParamList } from './TabNavigator'
 import { useAuth } from '@/auth/AuthProvider'
 import { useTheme } from '@/theme/ThemeProvider'
 import { LoginScreen } from '@/screens/LoginScreen'
+import { RegisterScreen } from '@/screens/RegisterScreen'
 import { ProfileResultScreen } from '@/screens/ProfileResultScreen'
 import { AddAssetScreen } from '@/screens/AddAssetScreen'
 import { AdminUsersScreen } from '@/screens/AdminUsersScreen'
@@ -16,12 +19,12 @@ import { SettingsScreen } from '@/screens/SettingsScreen'
 import { Assistant } from '@/components/assistant/Assistant'
 import { TabNavigator } from './TabNavigator'
 import { GrootProvider } from '@/components/groot/GrootProvider'
-import { useGrootTabSync } from '@/components/groot/Groot'
 import { AppHeader } from './AppHeader'
 
 export type RootStackParamList = {
   Login: undefined
-  Main: undefined
+  Register: undefined
+  Main: NavigatorScreenParams<TabParamList> | undefined
   ProfileResult: undefined
   /** `rehacer`: arranca el test aunque ya haya perfil. */
   ProfileTest: { rehacer?: boolean } | undefined
@@ -45,7 +48,6 @@ const Stack = createNativeStackNavigator<RootStackParamList>()
  * ya no son tabs (ADR-0006): se abren desde el menú del avatar.
  */
 function MainWithAssistant() {
-  useGrootTabSync()
   return (
     <View style={{ flex: 1 }}>
       <TabNavigator />
@@ -92,6 +94,7 @@ export function RootNavigator() {
       ) : (
         <>
           <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="AccountSuspended" component={AccountSuspendedScreen} />
         </>
       )}

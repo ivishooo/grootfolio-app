@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { registerInputSchema } from '@grootfolio/shared'
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import { Input } from '@/components/ui/Input'
-import { Logo } from '@/components/ui/Logo'
+import { AuthShell, AuthField, AUTH_SUBMIT } from './AuthShell'
+
+/** Registro (rediseño v2, Fase 6): mismo layout que el Login. */
 
 export function RegisterPage() {
   const { isAuthenticated, register } = useAuth()
@@ -46,53 +45,52 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-neutral-50 dark:bg-neutral-950">
-      <Card padding="lg" className="w-full max-w-md">
-        <div className="flex justify-center mb-6">
-          <Logo variant="lockup" size={36} />
-        </div>
-        <h1 className="text-center text-2xl font-bold">Creá tu cuenta</h1>
-        <p className="text-center text-sm text-neutral-500 mt-1">Empezá a seguir tu portafolio</p>
-        <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
-          <Input
-            label="Nombre (opcional)"
-            placeholder="Tu nombre"
-            value={fullName}
-            onChange={(v) => { setFullName(v); setErrors((p) => ({ ...p, fullName: '' })) }}
-            error={errors.fullName}
-          />
-          <Input
-            label="Email"
-            type="email"
-            placeholder="tu@email.com"
-            value={email}
-            onChange={(v) => { setEmail(v); setErrors((p) => ({ ...p, email: '' })) }}
-            error={errors.email}
-          />
-          <Input
-            label="Contraseña"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(v) => { setPassword(v); setErrors((p) => ({ ...p, password: '' })) }}
-            error={errors.password}
-          />
-          {formError && (
-            <p className="rounded-lg bg-danger-50 px-3 py-2 text-center text-sm text-danger-600 dark:bg-danger-950/40">
-              {formError}
-            </p>
-          )}
-          <Button fullWidth onClick={handleSubmit} disabled={submitting || (!email && !password)}>
-            {submitting ? 'Creando cuenta…' : 'Crear cuenta'}
-          </Button>
-          <p className="text-center text-sm text-neutral-500">
-            ¿Ya tenés cuenta?{' '}
-            <Link to="/login" className="text-brand-500 hover:underline">
-              Iniciá sesión
-            </Link>
-          </p>
-        </form>
-      </Card>
-    </div>
+    <AuthShell title="Creá tu cuenta" subtitle="Empezá a seguir tu portafolio.">
+      <form
+        className="grid gap-4"
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault()
+          void handleSubmit()
+        }}
+      >
+        <AuthField
+          label="Nombre"
+          optional
+          autoComplete="name"
+          placeholder="Tu nombre"
+          value={fullName}
+          onChange={(e) => { setFullName(e.target.value); setErrors((p) => ({ ...p, fullName: '' })) }}
+          error={errors.fullName}
+        />
+        <AuthField
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="tu@email.com"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: '' })) }}
+          error={errors.email}
+        />
+        <AuthField
+          label="Contraseña"
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: '' })) }}
+          error={errors.password}
+        />
+        {formError && <p className="rounded-lg bg-neg-soft px-3 py-2 text-center text-sm text-neg">{formError}</p>}
+        <button type="submit" className={AUTH_SUBMIT} disabled={submitting || (!email && !password)}>
+          {submitting ? 'Creando cuenta…' : 'Crear cuenta'}
+        </button>
+        <p className="m-0 text-center text-sm text-ink-2">
+          ¿Ya tenés cuenta?{' '}
+          <Link to="/login" className="font-semibold text-brand-ink hover:underline">
+            Ingresá
+          </Link>
+        </p>
+      </form>
+    </AuthShell>
   )
 }

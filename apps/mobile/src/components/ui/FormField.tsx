@@ -13,16 +13,23 @@ interface FormFieldProps {
   keyboard?: KeyboardTypeOptions
   secureTextEntry?: boolean
   testID?: string
+  /** Alto fijo del input (48 en Login y Registro). */
+  height?: number
+  /** Agrega «· opcional» en ink3 al label. */
+  optional?: boolean
 }
 
-export function FormField({ label, value, onChange, error, placeholder, multiline, keyboard, secureTextEntry, testID }: FormFieldProps) {
+export function FormField({ label, value, onChange, error, placeholder, multiline, keyboard, secureTextEntry, testID, height, optional }: FormFieldProps) {
   const { theme } = useTheme()
   // En campos password mostramos un toggle Ver/Ocultar; arranca oculto.
   const [revealed, setRevealed] = useState(false)
 
   return (
-    <View style={{ gap: 4 }}>
-      <Text style={{ color: theme.text.primary, fontSize: 13, fontWeight: '600' }}>{label}</Text>
+    <View style={{ gap: height ? 6 : 4 }}>
+      <Text style={{ color: theme.text.primary, fontSize: 13, fontWeight: '600' }}>
+        {label}
+        {optional ? <Text style={{ color: theme.text.muted, fontWeight: '400' }}> · opcional</Text> : null}
+      </Text>
       <View style={{ justifyContent: 'center' }}>
         <TextInput
           testID={testID}
@@ -45,7 +52,8 @@ export function FormField({ label, value, onChange, error, placeholder, multilin
             color: theme.text.primary,
             borderColor: error ? theme.danger.solid : theme.border.strong,
             borderWidth: 1,
-            height: multiline ? 80 : undefined,
+            height: multiline ? 80 : height,
+            fontSize: height ? 15 : undefined,
             textAlignVertical: multiline ? 'top' : undefined,
           }}
         />

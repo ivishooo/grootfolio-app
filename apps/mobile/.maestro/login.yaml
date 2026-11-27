@@ -12,9 +12,13 @@ tags: [smoke]
 - tapOn:
     id: 'login-email'
 - inputText: 'dev@grootfolio.test'
+# Con el teclado abierto el formulario se corre (Groot + logo arriba).
+- hideKeyboard
 - tapOn:
     id: 'login-password'
 - inputText: 'DevPass123!'
+- hideKeyboard
+- waitForAnimationToEnd
 - tapOn:
     id: 'login-submit'
 # Tras un login exitoso iOS ofrece guardar la contraseña en el Llavero. Es un

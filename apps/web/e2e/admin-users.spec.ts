@@ -13,21 +13,23 @@ test('admin suspende y reactiva un usuario', async ({ page, request }) => {
   await login(page) // dev es admin
   await page.goto('/admin/users')
   await expect(page.getByRole('heading', { name: 'Usuarios' })).toBeVisible()
-  await expect(page.getByText('Solo admin')).toBeVisible()
+  await expect(page.getByText('Admin', { exact: true }).first()).toBeVisible()
 
   // Buscar el usuario descartable.
-  await page.getByPlaceholder('Buscar por nombre o email…').fill(email)
-  const row = page.locator('tr', { hasText: email })
+  await page.getByPlaceholder('Buscar por nombre o email').fill(email)
+  const row = page.getByTestId('admin-user-row').filter({ hasText: email })
   await expect(row).toBeVisible()
 
   // Suspender: motivo obligatorio.
-  await row.getByRole('button', { name: 'Suspender' }).click()
+  await row.getByRole('button', { name: `Acciones para ${email}` }).click()
+  await page.getByRole('menuitem', { name: 'Suspender' }).click()
   await page.getByPlaceholder('Queda registrado en el historial.').fill('Prueba E2E de suspensión')
   await page.getByRole('button', { name: 'Suspender cuenta' }).click()
   await expect(row.getByText('Suspendido')).toBeVisible()
 
   // Reactivar.
-  await row.getByRole('button', { name: 'Reactivar' }).click()
+  await row.getByRole('button', { name: `Acciones para ${email}` }).click()
+  await page.getByRole('menuitem', { name: 'Reactivar' }).click()
   await expect(row.getByText('Activo')).toBeVisible()
 })
 
