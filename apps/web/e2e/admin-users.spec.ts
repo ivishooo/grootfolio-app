@@ -26,6 +26,11 @@ test('admin suspende y reactiva un usuario', async ({ page, request }) => {
   await page.getByPlaceholder('Queda registrado en el historial.').fill('Prueba E2E de suspensión')
   await page.getByRole('button', { name: 'Suspender cuenta' }).click()
   await expect(row.getByText('Suspendido')).toBeVisible()
+  // Esperamos a que cierre el diálogo y se recargue la lista: si no, la fila
+  // todavía se mueve (vuelve la barra de scroll, crece el historial) y el
+  // click en el menú cae con el elemento «no estable» cuando la máquina va lenta.
+  await expect(page.getByRole('dialog')).toBeHidden()
+  await page.waitForLoadState('networkidle')
 
   // Reactivar.
   await row.getByRole('button', { name: `Acciones para ${email}` }).click()
