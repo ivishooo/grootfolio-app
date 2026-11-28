@@ -14,6 +14,8 @@ nativo configurado ni `expo prebuild` para iterar, y funciona bien con Expo.
 | `contenidos.yaml` | Búsqueda sin resultados en la biblioteca. |
 | `asistente.yaml` | La burbuja del asistente abre el panel. |
 | `settings.yaml` | Perfil, tema (Claro / Oscuro / Sistema) y cierre de sesión. |
+| `registro.yaml` | La pantalla de registro y la vuelta al login. |
+| `menu-cuenta.yaml` | La hoja del avatar: usuario, ítems, cerrar con el fondo, Administración y Cerrar sesión. |
 
 Los archivos que empiezan con `_` son subflows, no tests:
 
@@ -61,7 +63,7 @@ también ejecutaría los subflows `_*.yaml` como si fueran tests.
 
 ```bash
 cd apps/mobile/.maestro
-for f in login login-invalido navegacion activos contenidos asistente settings; do
+for f in login login-invalido registro navegacion menu-cuenta activos contenidos asistente settings; do
   maestro test "$f.yaml" || echo "FALLÓ $f"
 done
 ```

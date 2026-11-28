@@ -1,0 +1,50 @@
+# Menú de la cuenta (rediseño v2, Fase 7): la hoja que abre el avatar del
+# header. Comprueba que muestra el usuario y sus ítems, que el fondo la cierra,
+# que «Administración» (dev es admin) abre Usuarios y que «Cerrar sesión»
+# vuelve al login. Perfil y Configuración ya los recorre navegacion.yaml.
+appId: host.exp.Exponent
+tags: [smoke]
+---
+- runFlow: _login.yaml
+
+- tapOn:
+    id: 'header-cuenta'
+- extendedWaitUntil:
+    visible: 'dev@grootfolio.test'
+    timeout: 10000
+- assertVisible:
+    id: 'menu-perfil'
+- assertVisible:
+    id: 'menu-ajustes'
+- assertVisible:
+    id: 'menu-admin'
+- assertVisible:
+    id: 'menu-salir'
+
+# Tocar el fondo cierra la hoja sin navegar.
+- tapOn: 'Cerrar el menú'
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertNotVisible:
+    id: 'menu-salir'
+- assertVisible:
+    id: 'stat-valor-total'
+
+- tapOn:
+    id: 'header-cuenta'
+- tapOn:
+    id: 'menu-admin'
+- extendedWaitUntil:
+    visible: '\+ Crear usuario'
+    timeout: 20000
+- tapOn:
+    id: 'header-volver'
+
+- tapOn:
+    id: 'header-cuenta'
+- tapOn:
+    id: 'menu-salir'
+- extendedWaitUntil:
+    visible:
+      id: 'login-email'
+    timeout: 20000
