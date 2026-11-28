@@ -3,7 +3,7 @@
  * consulta (ADR-0004 / ADR-0006): nada de esto pasa por el LLM.
  */
 import { useMemo } from 'react'
-import { CRIPTO_SUGERIDA, type GrootDatos, type RiskProfileType } from '@grootfolio/shared'
+import { BAJA_FUERTE, CRIPTO_SUGERIDA, type GrootDatos, type Holding, type RiskProfileType } from '@grootfolio/shared'
 import { useContentItems, usePortfolio, useQuizResult, useReportSummary } from '@/lib/queries'
 import { useMoney } from '@/lib/money'
 import type { GrootLastTx } from './GrootProvider'
@@ -12,6 +12,15 @@ const PROFILE_LABEL: Record<RiskProfileType, string> = {
   conservative: 'Conservador',
   moderate: 'Moderado',
   aggressive: 'Agresivo',
+}
+
+/**
+ * Cuánto restó un holding hoy, en moneda base: su valor de hoy menos el de
+ * ayer (`value / (1 + pct/100)`). Sin variación, 0.
+ */
+function aporteDelDia(h: Holding): number {
+  if (h.dayChangePercent === null || h.value <= 0) return 0
+  return h.value - h.value / (1 + h.dayChangePercent / 100)
 }
 
 /** `ready`: el portafolio ya cargó. Antes de eso la burbuja diría «vale US$ 0». */
@@ -41,14 +50,21 @@ export function useGrootDatos(lastTx: GrootLastTx | null): { datos: GrootDatos; 
     const total = portfolio?.totalValue ?? 0
     const crypto = portfolio?.distribution.find((d) => d.type === 'crypto')?.value ?? 0
 
-    // Sin `dayChangePercent` en GET /portfolio todavía: Groot dice el valor sin la variación.
-    const dayPct: number | null = null
+    // Variación del día de GET /portfolio (GF-019). `null` = sin dato: Groot dice el valor y avisa.
+    const dayPct: number | null = portfolio?.dayChangePercent ?? null
+
+    // En un día de baja fuerte, «X explica casi toda la baja» tiene que nombrar al
+    // que más restó hoy, no al que está más abajo del costo.
+    const peorDelDia =
+      dayPct !== null && dayPct <= BAJA_FUERTE
+        ? holdings.reduce<Holding | undefined>((a, h) => (aporteDelDia(h) < (a ? aporteDelDia(a) : 0) ? h : a), undefined)
+        : undefined
 
     const datos: GrootDatos = {
       totalValue: money.format(total),
       dayPct,
       topUp: top && top.pnlPercent! > 0 ? top.asset.name : undefined,
-      topDown: bottom && bottom.pnlPercent! < 0 ? bottom.asset.name : undefined,
+      topDown: peorDelDia ? peorDelDia.asset.name : bottom && bottom.pnlPercent! < 0 ? bottom.asset.name : undefined,
       lastTx: lastTx ? { ...lastTx, positions: holdings.length } : undefined,
       realized: { year, sells: thisYear.length, amount: money.format(amountThisYear) },
       newContent: destacado

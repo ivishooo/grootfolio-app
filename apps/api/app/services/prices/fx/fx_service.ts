@@ -5,7 +5,8 @@
  *
  * Ruteo de fuente:
  *   USD            -> 1 (no hay request)
- *   ARS            -> CCL (dolarapi) u oficial (BCRA) segun `FX_ARS_SOURCE`
+ *   ARS            -> CCL (dolarapi) u oficial (BCRA) segun `FX_ARS_SOURCE`;
+ *                     con `{ ars: 'bna' }`, dolar BNA (ADR-0007, ver abajo)
  *   resto conocido -> Frankfurter (EUR, GBP, BRL, ...)
  *   desconocida    -> null (sin request)
  *
@@ -20,6 +21,7 @@ import logger from '@adonisjs/core/services/logger'
 import env from '#start/env'
 import {
   fetchArsRateToUsdAt,
+  fetchBnaRateToUsd,
   fetchCclRateToUsd,
   fetchFrankfurterRates,
   fetchFrankfurterRatesAt,
@@ -58,8 +60,25 @@ function arsSource(): 'ccl' | 'oficial' {
   return env.get('FX_ARS_SOURCE') ?? 'ccl'
 }
 
-async function fetchRate(currency: string): Promise<number | null> {
+/**
+ * Opciones de fuente. `ars: 'bna'` fuerza el dolar oficial del Banco Nacion
+ * para ARS, sin importar `FX_ARS_SOURCE`: es la tasa con la que se valuan los
+ * activos tipo `currency` (el dolar y el peso como divisa, ADR-0007), porque es
+ * a la que efectivamente se compran dolares en el banco. Los CEDEARs y las
+ * acciones .BA siguen convirtiendo con `FX_ARS_SOURCE` (CCL por default,
+ * ADR-0005): es el dolar implicito en el precio de BYMA.
+ */
+export interface FxOptions {
+  ars?: 'bna'
+}
+
+function cacheKey(currency: string, opts?: FxOptions): string {
+  return currency === 'ARS' && opts?.ars === 'bna' ? 'ARS:bna' : currency
+}
+
+async function fetchRate(currency: string, opts?: FxOptions): Promise<number | null> {
   if (currency === 'ARS') {
+    if (opts?.ars === 'bna') return fetchBnaRateToUsd()
     return arsSource() === 'oficial' ? fetchOficialRateToUsd() : fetchCclRateToUsd()
   }
   if (FRANKFURTER_KNOWN.has(currency)) {
@@ -73,22 +92,23 @@ async function fetchRate(currency: string): Promise<number | null> {
  * `rateToUsd` para `currency` (USD por 1 unidad), o `null` si la divisa no esta
  * soportada por ninguna fuente. USD es la moneda base: siempre 1.
  */
-export async function getRateToUsd(currency: string): Promise<number | null> {
+export async function getRateToUsd(currency: string, opts?: FxOptions): Promise<number | null> {
   const cur = currency.toUpperCase()
   if (cur === 'USD') return 1
 
   const now = Date.now()
-  const cached = cache.get(cur)
+  const key = cacheKey(cur, opts)
+  const cached = cache.get(key)
   if (cached && now - cached.fetchedAt < ttlMs()) return cached.rate
 
   try {
-    const rate = await fetchRate(cur)
+    const rate = await fetchRate(cur, opts)
     if (rate === null || rate <= 0) {
       // Sin tasa fresca: devolvemos la stale si existe (currency no soportada
       // da null directo, sin cache previo).
       return cached?.rate ?? null
     }
-    cache.set(cur, { rate, fetchedAt: now })
+    cache.set(key, { rate, fetchedAt: now })
     return rate
   } catch (err) {
     logger.warn({ err, currency: cur }, 'FX fetch fallo; fallback a tasa cacheada (stale)')
@@ -109,9 +129,15 @@ const historicalApprox = new Map<string, boolean>()
  * dolar que el valor de hoy, para no mezclar CCL con oficial dentro del mismo
  * calculo).
  */
-async function fetchHistoricalRate(currency: string, date: string): Promise<number | null> {
+async function fetchHistoricalRate(
+  currency: string,
+  date: string,
+  opts?: FxOptions
+): Promise<number | null> {
   if (currency === 'ARS') {
-    const casa = arsSource() === 'oficial' ? 'oficial' : 'contadoconliqui'
+    // La serie `oficial` de argentinadatos es la del BNA.
+    const casa =
+      opts?.ars === 'bna' || arsSource() === 'oficial' ? 'oficial' : 'contadoconliqui'
     return fetchArsRateToUsdAt(date, casa)
   }
   if (FRANKFURTER_KNOWN.has(currency)) {
@@ -137,18 +163,19 @@ async function fetchHistoricalRate(currency: string, date: string): Promise<numb
  */
 export async function getRateToUsdAt(
   currency: string,
-  isoDate: string
+  isoDate: string,
+  opts?: FxOptions
 ): Promise<{ rate: number; approx: boolean } | null> {
   const cur = currency.toUpperCase()
   if (cur === 'USD') return { rate: 1, approx: false }
 
   const date = isoDate.slice(0, 10)
-  const key = `${cur}@${date}`
+  const key = `${cacheKey(cur, opts)}@${date}`
   const hit = historicalCache.get(key)
   if (hit !== undefined) return { rate: hit, approx: historicalApprox.get(key) ?? true }
 
   try {
-    const rate = await fetchHistoricalRate(cur, date)
+    const rate = await fetchHistoricalRate(cur, date, opts)
     if (rate !== null && rate > 0) {
       historicalCache.set(key, rate)
       historicalApprox.set(key, false)
@@ -159,7 +186,7 @@ export async function getRateToUsdAt(
   }
 
   // Sin fuente historica, fecha fuera de la serie, o fallo: tasa actual.
-  const current = await getRateToUsd(cur)
+  const current = await getRateToUsd(cur, opts)
   if (current === null) return null
   historicalCache.set(key, current)
   historicalApprox.set(key, true)

@@ -4,8 +4,8 @@
  * total y mejor activo, «Cómo está repartido» como barra apilada, «Valor del
  * portafolio · últimos 6 meses» y «Mis activos» con 5 filas.
  *
- * El chip «▲ 1,2 % hoy» no se dibuja hasta que GET /portfolio devuelva
- * `dayChangePercent`.
+ * El chip «▲ 1,2 % hoy» va debajo del valor total, con `dayChangePercent` de
+ * GET /portfolio (GF-019); sin dato no se dibuja.
  */
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
@@ -18,6 +18,7 @@ import type { AssetType, Holding } from '@grootfolio/shared'
 import type { RootStackParamList } from '@/navigation/RootNavigator'
 import { Screen } from '@/components/ui/Screen'
 import { Button } from '@/components/ui/Button'
+import { DayChip } from '@/components/ui/DayChip'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { AssetAvatar } from '@/components/ui/AssetAvatar'
 import { assetColor } from '@/lib/asset-visual'
@@ -85,6 +86,9 @@ export function DashboardScreen() {
                 <Text style={{ color: theme.text.primary, fontSize: 32, fontWeight: '800', letterSpacing: -1, marginTop: 6, fontVariant: ['tabular-nums'] }}>
                   {money.format(p.totalValue)}
                 </Text>
+                <View style={{ marginTop: 6 }}>
+                  <DayChip pct={p.dayChangePercent} testID="chip-hoy" />
+                </View>
                 {money.currency !== 'USD' && <Text style={{ color: theme.text.muted, fontSize: 12.5, marginTop: 6 }}>Convertido a {money.currency}</Text>}
               </View>
               <View testID="stat-pnl" style={[card, { flex: 1, minWidth: 140, padding: 14 }]}>

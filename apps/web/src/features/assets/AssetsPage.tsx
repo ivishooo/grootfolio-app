@@ -34,6 +34,7 @@ import { useConfirm } from '@/components/ui/ConfirmProvider'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { AssetAvatar } from '@/components/ui/AssetAvatar'
+import { DayChip } from '@/components/ui/DayChip'
 import { assetColor } from '@/lib/asset-visual'
 import { useTheme } from '@/theme/ThemeProvider'
 import { EmptyState, ErrorState } from '@/components/ui/States'
@@ -140,7 +141,10 @@ export function AssetsPage() {
           <div className={`${CARD} grid grid-cols-2 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]`}>
             <div className="col-span-2 border-b border-line px-4 py-3.5 md:col-span-1 md:border-b-0 md:border-r md:px-5 md:py-4">
               <p className="text-[13px] text-ink-2">Valor hoy</p>
-              <p className="mt-1 text-[26px] font-extrabold tabular-nums tracking-[-0.03em]">{money.format(total)}</p>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                <span className="text-[26px] font-extrabold tabular-nums tracking-[-0.03em]">{money.format(total)}</span>
+                <DayChip pct={p.dayChangePercent} testId="chip-hoy-activos" />
+              </p>
               <p className="text-xs text-ink-3">{holdings.length} {holdings.length === 1 ? 'posición' : 'posiciones'}</p>
             </div>
             <div className="border-r border-line px-4 py-3.5 md:px-5 md:py-4">
@@ -287,6 +291,10 @@ function HoldingRow({ holding: h, total, transactions, expanded, onToggle, onDel
         </span>
         <span className="text-right tabular-nums">
           <span className="block font-semibold">{sinCot ? '—' : money.format(h.value)}</span>
+          {/* Variación del día del activo (GF-019); en mobile la fila ya muestra el resultado acá. */}
+          <span className="mt-0.5 hidden md:block">
+            <DayChip pct={sinCot ? null : h.dayChangePercent} size="sm" />
+          </span>
           <span className={`block text-[12.5px] font-semibold md:hidden ${pnlClass}`}>{sinCot ? 'Sin cotización' : formatPctArrow(h.pnlPercent)}</span>
         </span>
         <span className={`hidden text-right tabular-nums md:block ${pnlClass}`}>

@@ -13,10 +13,16 @@
  * `approx` marca las tasas que no son historicas de verdad: `getRateToUsdAt`
  * degrada a la tasa actual para ARS y para las monedas que Frankfurter no
  * cubre. Reportes lo expone como `usdApprox` en el ledger.
+ *
+ * Divisas (ADR-0007): una compra de dolares (o de pesos como divisa) pagada en
+ * pesos se convierte al dolar BNA de esa fecha, la misma fuente con la que se
+ * valua hoy. Con el CCL, comprar US$ 100 en el banco aparecia como ganancia o
+ * perdida solo por la brecha entre los dos dolares. El resto de los activos
+ * sigue con `FX_ARS_SOURCE` (ADR-0005).
  */
 import logger from '@adonisjs/core/services/logger'
 import type Transaction from '#models/transaction'
-import { getRateToUsdAt } from './fx_service.js'
+import { getRateToUsdAt, type FxOptions } from './fx_service.js'
 
 export interface TxRates {
   /** rateToUsd por id de transaccion. */
@@ -27,6 +33,19 @@ export interface TxRates {
   rateFor: (tx: Transaction) => number
 }
 
+/** Fuente de FX de la transaccion: BNA si el activo es una divisa. */
+function fxOptionsFor(tx: Transaction): FxOptions | undefined {
+  // `asset` viene precargado en todos los callers; si faltara, default.
+  return tx.asset?.type === 'currency' ? { ars: 'bna' } : undefined
+}
+
+/** Clave de cache: misma moneda, fecha y fuente comparten la consulta. */
+function keyFor(tx: Transaction): string {
+  const date = tx.purchasedAt.toISODate() ?? ''
+  const fuente = fxOptionsFor(tx)?.ars ?? 'default'
+  return `${tx.priceCurrency}@${date}#${fuente}`
+}
+
 export async function resolveTxRates(transactions: Transaction[]): Promise<TxRates> {
   // Cacheamos por (moneda, fecha): varias transacciones del mismo dia y moneda
   // comparten una sola consulta de FX.
@@ -34,9 +53,9 @@ export async function resolveTxRates(transactions: Transaction[]): Promise<TxRat
   for (const tx of transactions) {
     if (tx.priceCurrency === 'USD') continue
     const date = tx.purchasedAt.toISODate() ?? ''
-    const key = `${tx.priceCurrency}@${date}`
+    const key = keyFor(tx)
     if (byKey.has(key)) continue
-    const resolved = await getRateToUsdAt(tx.priceCurrency, date)
+    const resolved = await getRateToUsdAt(tx.priceCurrency, date, fxOptionsFor(tx))
     if (resolved === null) {
       // Sin ninguna tasa: tomar el importe como si fuera USD es inventar plata,
       // pero es lo unico que podemos hacer sin romper el portafolio entero.
@@ -58,8 +77,7 @@ export async function resolveTxRates(transactions: Transaction[]): Promise<TxRat
       approxByTx.set(tx.id, false)
       continue
     }
-    const date = tx.purchasedAt.toISODate() ?? ''
-    const resolved = byKey.get(`${tx.priceCurrency}@${date}`) ?? { rate: 1, approx: true }
+    const resolved = byKey.get(keyFor(tx)) ?? { rate: 1, approx: true }
     rateByTx.set(tx.id, resolved.rate)
     approxByTx.set(tx.id, resolved.approx)
   }

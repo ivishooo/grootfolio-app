@@ -87,6 +87,7 @@ export function aggregateHoldings(
       value: 0,
       pnl: 0,
       pnlPercent: null,
+      dayChangePercent: null,
     })
   }
 

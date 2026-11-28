@@ -6,6 +6,7 @@
 import { test, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  fetchBnaRateToUsd,
   fetchCclRateToUsd,
   fetchFrankfurterRates,
   fetchOficialRateToUsd,
@@ -59,4 +60,14 @@ test('fetchOficialRateToUsd parsea el shape del BCRA', async () => {
 test('un status no-ok levanta Error', async () => {
   stubFetch({ message: 'boom' }, false, 503)
   await assert.rejects(() => fetchCclRateToUsd(), /dolarapi HTTP 503/)
+})
+
+test('fetchBnaRateToUsd pide el dolar oficial (BNA) de dolarapi y usa el punto medio', async () => {
+  let pedido = ''
+  globalThis.fetch = (async (url: string) => {
+    pedido = String(url)
+    return { ok: true, status: 200, json: async () => ({ compra: 990, venta: 1010 }), text: async () => '' }
+  }) as unknown as typeof fetch
+  closeTo((await fetchBnaRateToUsd()) ?? undefined, 1 / 1000)
+  assert.ok(pedido.endsWith('/dolares/oficial'), pedido)
 })

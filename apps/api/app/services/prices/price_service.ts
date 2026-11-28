@@ -21,6 +21,11 @@
  * Si un provider falla (rate limit u otro), caemos al snapshot mas reciente
  * sin TTL (`source: 'db'`); si no hay snapshot, cache in-memory stale; ultimo
  * recurso `unsupported`.
+ *
+ * Variacion del dia (GF-019, ADR-0007): cada provider la devuelve junto con el
+ * precio (`dayChangePct`) y viaja por el mismo camino: cache in-memory y
+ * `price_snapshots.raw.dayChangePct`. Un snapshot de otro dia no aporta
+ * variacion (seria la de ayer); ver `dayChangeFromRaw`.
  */
 import logger from '@adonisjs/core/services/logger'
 import { DateTime } from 'luxon'
@@ -33,6 +38,7 @@ import { fxProvider } from './providers/fx_provider.js'
 import { getRateToUsd } from './fx/fx_service.js'
 import { convertToUsd } from './fx/fx_rates.js'
 import type { AssetRef, PriceProvider, ProviderName } from './providers/types.js'
+import { dayChangeFromRaw } from './day_change.js'
 
 export type { AssetRef } from './providers/types.js'
 
@@ -43,11 +49,50 @@ export interface PriceResult {
   price: number | null
   source: PriceSource
   fetchedAt: number | null
+  /** Variacion del dia en %; null si el provider no la da o no es de hoy. */
+  dayChangePct: number | null
 }
 
 interface CacheEntry {
   price: number
   fetchedAt: number
+  dayChangePct: number | null
+}
+
+const unsupported = (symbol: string): PriceResult => ({
+  symbol,
+  price: null,
+  source: 'unsupported',
+  fetchedAt: null,
+  dayChangePct: null,
+})
+
+/** Lectura de un snapshot como resultado; la variacion solo si es de hoy. */
+function fromSnapshot(symbol: string, snap: PriceSnapshot, now: number): PriceResult {
+  const fetchedAt = snap.fetchedAt.toMillis()
+  const dayChangePct = dayChangeFromRaw(snap.raw, fetchedAt, now)
+  cache.set(symbol, { price: snap.price, fetchedAt, dayChangePct })
+  return { symbol, price: snap.price, source: 'db', fetchedAt, dayChangePct }
+}
+
+function fromCache(symbol: string, c: CacheEntry, now: number): PriceResult {
+  return {
+    symbol,
+    price: c.price,
+    source: 'cache',
+    fetchedAt: c.fetchedAt,
+    // Mismo criterio que el snapshot: la variacion de otro dia no se sirve.
+    dayChangePct: dayChangeFromRaw({ dayChangePct: c.dayChangePct }, c.fetchedAt, now),
+  }
+}
+
+interface SnapshotRow {
+  assetId: string
+  price: number
+  currency: string
+  provider: string
+  fetchedAt: DateTime
+  raw: Record<string, unknown> | null
 }
 
 const BASE_CURRENCY = 'USD'
@@ -72,6 +117,23 @@ function providerSource(name: ProviderName): PriceSource {
   return name
 }
 
+function snapshotRow(
+  assetId: string,
+  price: number,
+  provider: ProviderName,
+  now: number,
+  dayChangePct: number | null
+): SnapshotRow {
+  return {
+    assetId,
+    price,
+    currency: BASE_CURRENCY,
+    provider,
+    fetchedAt: DateTime.fromMillis(now),
+    raw: dayChangePct === null ? null : { dayChangePct },
+  }
+}
+
 export async function getPrices(assets: AssetRef[]): Promise<Record<string, PriceResult>> {
   const out: Record<string, PriceResult> = {}
   const now = Date.now()
@@ -84,13 +146,13 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
 
     const provider = PROVIDER_BY_TYPE[a.type]
     if (!provider) {
-      out[symbol] = { symbol, price: null, source: 'unsupported', fetchedAt: null }
+      out[symbol] = unsupported(symbol)
       continue
     }
 
     const cached = cache.get(symbol)
     if (cached && now - cached.fetchedAt < memTtlMs()) {
-      out[symbol] = { symbol, price: cached.price, source: 'cache', fetchedAt: cached.fetchedAt }
+      out[symbol] = fromCache(symbol, cached, now)
       continue
     }
 
@@ -122,9 +184,7 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
     const symbol = c.asset.symbol.toUpperCase()
     const snap = latestByAssetId.get(c.asset.id)
     if (snap && now - snap.fetchedAt.toMillis() < dbTtlMs()) {
-      const fetchedAt = snap.fetchedAt.toMillis()
-      cache.set(symbol, { price: snap.price, fetchedAt })
-      out[symbol] = { symbol, price: snap.price, source: 'db', fetchedAt }
+      out[symbol] = fromSnapshot(symbol, snap, now)
       continue
     }
     const bucket = byProvider.get(c.provider)
@@ -135,13 +195,7 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
   if (byProvider.size === 0) return out
 
   // Paso 3: llamar a cada provider y persistir
-  const newRows: Array<{
-    assetId: string
-    price: number
-    currency: string
-    provider: string
-    fetchedAt: DateTime
-  }> = []
+  const newRows: SnapshotRow[] = []
 
   for (const [provider, items] of byProvider) {
     const refs = items.map((i) => i.asset)
@@ -151,7 +205,7 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
         const symbol = item.asset.symbol.toUpperCase()
         const q = quotes[symbol]
         if (!q) {
-          out[symbol] = { symbol, price: null, source: 'unsupported', fetchedAt: null }
+          out[symbol] = unsupported(symbol)
           continue
         }
         // Normalizamos a USD base. Si el provider ya devuelve USD, priceUsd es
@@ -161,7 +215,7 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
         if (q.currency !== BASE_CURRENCY) {
           const rate = await getRateToUsd(q.currency)
           if (rate === null) {
-            out[symbol] = { symbol, price: null, source: 'unsupported', fetchedAt: null }
+            out[symbol] = unsupported(symbol)
             logger.warn(
               { symbol, currency: q.currency, provider: provider.name },
               'Quote en moneda no base sin tasa FX disponible; marcado unsupported'
@@ -170,19 +224,15 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
           }
           priceUsd = convertToUsd(q.price, rate)
         }
-        cache.set(symbol, { price: priceUsd, fetchedAt: now })
-        newRows.push({
-          assetId: item.asset.id,
-          price: priceUsd,
-          currency: BASE_CURRENCY,
-          provider: provider.name,
-          fetchedAt: DateTime.fromMillis(now),
-        })
+        const dayChangePct = q.dayChangePct ?? null
+        cache.set(symbol, { price: priceUsd, fetchedAt: now, dayChangePct })
+        newRows.push(snapshotRow(item.asset.id, priceUsd, provider.name, now, dayChangePct))
         out[symbol] = {
           symbol,
           price: priceUsd,
           source: providerSource(provider.name),
           fetchedAt: now,
+          dayChangePct,
         }
       }
     } catch (err) {
@@ -195,15 +245,11 @@ export async function getPrices(assets: AssetRef[]): Promise<Record<string, Pric
         const symbol = item.asset.symbol.toUpperCase()
         const snap = latestByAssetId.get(item.asset.id)
         if (snap) {
-          const fetchedAt = snap.fetchedAt.toMillis()
-          cache.set(symbol, { price: snap.price, fetchedAt })
-          out[symbol] = { symbol, price: snap.price, source: 'db', fetchedAt }
+          out[symbol] = fromSnapshot(symbol, snap, now)
           continue
         }
         const cached = cache.get(symbol)
-        out[symbol] = cached
-          ? { symbol, price: cached.price, source: 'cache', fetchedAt: cached.fetchedAt }
-          : { symbol, price: null, source: 'unsupported', fetchedAt: null }
+        out[symbol] = cached ? fromCache(symbol, cached, now) : unsupported(symbol)
       }
     }
   }
@@ -261,13 +307,7 @@ export async function refreshPrices(assets: AssetRef[]): Promise<RefreshSummary>
     else byProvider.set(provider, [a])
   }
 
-  const newRows: Array<{
-    assetId: string
-    price: number
-    currency: string
-    provider: string
-    fetchedAt: DateTime
-  }> = []
+  const newRows: SnapshotRow[] = []
 
   for (const [provider, items] of byProvider) {
     try {
@@ -288,14 +328,9 @@ export async function refreshPrices(assets: AssetRef[]): Promise<RefreshSummary>
           }
           priceUsd = convertToUsd(q.price, rate)
         }
-        cache.set(symbol, { price: priceUsd, fetchedAt: now })
-        newRows.push({
-          assetId: asset.id,
-          price: priceUsd,
-          currency: BASE_CURRENCY,
-          provider: provider.name,
-          fetchedAt: DateTime.fromMillis(now),
-        })
+        const dayChangePct = q.dayChangePct ?? null
+        cache.set(symbol, { price: priceUsd, fetchedAt: now, dayChangePct })
+        newRows.push(snapshotRow(asset.id, priceUsd, provider.name, now, dayChangePct))
         summary.refreshed++
       }
     } catch (err) {
