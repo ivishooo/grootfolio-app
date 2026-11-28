@@ -21,11 +21,14 @@
  *  - bestAsset = activo con mayor pnlPercent entre los priceados. Null si no
  *    hay holdings priceados.
  *  - distribution agrupa value por type; types sin valor positivo se omiten.
+ *  - dayChangePercent (GF-019): cada holding toma la variacion del dia de su
+ *    precio; la de la cartera se pondera por valor (`portfolioDayChange`).
  *  - monthlyReturn queda [] en esta version; requiere precios historicos
  *    (story GF-246, bloqueada por GF-220).
  */
 import type { AssetType, Holding, PortfolioSummary } from '@grootfolio/shared/types'
 import type { PriceResult } from '#services/prices/price_service'
+import { portfolioDayChange } from '../prices/day_change.js'
 
 export function aggregatePortfolio(
   rawHoldings: Holding[],
@@ -39,14 +42,15 @@ export function aggregatePortfolio(
     // Solo comparamos ambos en USD, sin re-convertir por moneda del activo.
     if (currentPrice <= 0) {
       // Sin cotizacion no se puede afirmar nada sobre la rentabilidad: null, no 0.
-      return { ...h, currentPrice: 0, value: 0, pnl: 0, pnlPercent: null }
+      return { ...h, currentPrice: 0, value: 0, pnl: 0, pnlPercent: null, dayChangePercent: null }
     }
     const invested = h.avgPrice * h.quantity
     const value = currentPrice * h.quantity
     const pnl = value - invested
     // Sin base de costo la division no tiene sentido (seria infinito, no cero).
     const pnlPercent = invested > 0 ? (pnl / invested) * 100 : null
-    return { ...h, currentPrice, value, pnl, pnlPercent }
+    const dayChangePercent = priceInfo?.dayChangePct ?? null
+    return { ...h, currentPrice, value, pnl, pnlPercent, dayChangePercent }
   })
 
   const priced = holdings.filter((h) => h.currentPrice > 0)
@@ -76,6 +80,7 @@ export function aggregatePortfolio(
     totalValue,
     pnlAbsolute,
     pnlPercent,
+    dayChangePercent: portfolioDayChange(priced),
     bestAsset,
     distribution,
     monthlyReturn: [],

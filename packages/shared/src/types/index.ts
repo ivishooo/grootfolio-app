@@ -220,6 +220,13 @@ export interface Holding {
    * plano", que es una afirmacion que no podemos hacer.
    */
   pnlPercent: number | null
+  /**
+   * Variacion del dia en % (GF-019, ADR-0007): crypto contra 24 h, acciones
+   * contra el cierre anterior (en la moneda en que cotizan), divisas contra la
+   * tasa de ayer. `null` si no hay dato (bonos, sin cotizacion, o el proveedor
+   * no la devolvio): no es lo mismo que "no se movio".
+   */
+  dayChangePercent: number | null
 }
 
 export interface PortfolioSummary {
@@ -227,6 +234,11 @@ export interface PortfolioSummary {
   pnlAbsolute: number
   /** `null` si no hay base de costo contra la cual medir. */
   pnlPercent: number | null
+  /**
+   * Variacion del dia de la cartera en %, ponderada por valor entre los
+   * holdings que tienen dato. `null` si ninguno lo tiene.
+   */
+  dayChangePercent: number | null
   bestAsset: (Asset & { pnlPercent: number | null }) | null
   distribution: Array<{ type: AssetType; value: number }>
   monthlyReturn: Array<{ month: string; value: number }>

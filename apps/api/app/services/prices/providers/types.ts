@@ -8,6 +8,12 @@
 export interface ProviderQuote {
   price: number
   currency: string
+  /**
+   * Variacion del dia en % (GF-019, ADR-0007), o null si el provider no la da.
+   * Crypto: 24 h de CoinGecko; stock: contra el cierre anterior de Yahoo, en la
+   * moneda en que cotiza; currency: tasa de hoy contra la de ayer.
+   */
+  dayChangePct?: number | null
 }
 
 export interface AssetRef {

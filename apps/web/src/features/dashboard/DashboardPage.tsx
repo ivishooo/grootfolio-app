@@ -7,8 +7,10 @@
  *   portafolio · últimos 6 meses».
  * - «Mis activos» con 5 filas; tocar una abre Activos con esa fila expandida.
  *
- * Lo que el prototipo muestra y la API todavía no da no se dibuja: el chip
- * «▲ 1,2 % hoy» necesita `dayChangePercent` en GET /portfolio, y el segmentado
+ * - Chip «▲ 1,2 % hoy» junto al valor total, con `dayChangePercent` de GET
+ *   /portfolio (GF-019); sin dato no se dibuja.
+ *
+ * Lo que el prototipo muestra y la API todavía no da no se dibuja: el segmentado
  * 1D / 1S / 1M / 1A necesita que el histórico se pueda pedir por período.
  */
 import { Link, useNavigate } from 'react-router-dom'
@@ -20,6 +22,7 @@ import type { AssetType, Holding } from '@grootfolio/shared'
 import { useMoney, signedMoney } from '@/lib/money'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { AssetAvatar } from '@/components/ui/AssetAvatar'
+import { DayChip } from '@/components/ui/DayChip'
 import { assetColor } from '@/lib/asset-visual'
 import { DashboardSkeleton } from './DashboardSkeleton'
 
@@ -134,9 +137,12 @@ export function DashboardPage() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <div className={`${CARD} col-span-2 p-5 md:col-span-1`}>
               <p className="text-[13px] text-ink-2">Valor total</p>
-              <p data-testid="stat-valor-total" className="mt-1.5 text-[32px] font-extrabold tabular-nums tracking-[-0.03em] md:text-[34px]">
-                {money.format(p.totalValue)}
-              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p data-testid="stat-valor-total" className="text-[32px] font-extrabold tabular-nums tracking-[-0.03em] md:text-[34px]">
+                  {money.format(p.totalValue)}
+                </p>
+                <DayChip pct={p.dayChangePercent} testId="chip-hoy" />
+              </div>
               {money.currency !== 'USD' && <p className="mt-2 text-[12.5px] text-ink-3">Convertido a {money.currency}</p>}
             </div>
             <div className={`${CARD} p-3.5 md:p-5`}>

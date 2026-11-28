@@ -21,13 +21,15 @@ const holding = (symbol: string, quantity: number, avgPrice: number, type: Asset
   value: 0,
   pnl: 0,
   pnlPercent: null,
+  dayChangePercent: null,
 })
 
-const price = (symbol: string, p: number | null): PriceResult => ({
+const price = (symbol: string, p: number | null, dayChangePct: number | null = null): PriceResult => ({
   symbol,
   price: p,
   source: p === null ? 'unsupported' : 'yahoo',
   fetchedAt: p === null ? null : 1_700_000_000_000,
+  dayChangePct,
 })
 
 test('enriquece el holding con precio, valor y P&L', () => {
@@ -124,4 +126,43 @@ test('una cartera vacia devuelve un resumen coherente, no una excepcion', () => 
   )
   assert.deepEqual(p.distribution, [])
   assert.deepEqual(p.holdings, [])
+})
+
+// ---- Variacion del dia (GF-019) ----
+
+test('cada holding toma la variacion del dia de su precio', () => {
+  const { holdings } = aggregatePortfolio([holding('AAPL', 10, 100)], { AAPL: price('AAPL', 150, 1.5) })
+  closeTo(holdings[0]!.dayChangePercent!, 1.5)
+})
+
+test('la variacion de la cartera se pondera por valor, no es el promedio simple', () => {
+  // BTC vale 900 hoy tras subir 12,5 % (ayer 800); AAPL vale 100 tras bajar 50 % (ayer 200).
+  // Ayer: 1000, hoy: 1000 -> 0 %. El promedio simple diria -18,75 %.
+  const { dayChangePercent } = aggregatePortfolio(
+    [holding('BTC', 1, 500, 'crypto'), holding('AAPL', 1, 100)],
+    { BTC: price('BTC', 900, 12.5), AAPL: price('AAPL', 100, -50) }
+  )
+  closeTo(dayChangePercent!, 0)
+})
+
+test('los holdings sin variacion quedan afuera del agregado (no cuentan como 0 %)', () => {
+  const { dayChangePercent, holdings } = aggregatePortfolio(
+    [holding('BTC', 1, 500, 'crypto'), holding('AAPL', 10, 100)],
+    { BTC: price('BTC', 1000, -3), AAPL: price('AAPL', 150, null) }
+  )
+  closeTo(dayChangePercent!, -3)
+  assert.equal(holdings[1]!.dayChangePercent, null)
+})
+
+test('sin ningun dato del dia la variacion de la cartera es null', () => {
+  const { dayChangePercent } = aggregatePortfolio([holding('AAPL', 1, 100)], { AAPL: price('AAPL', 150) })
+  assert.equal(dayChangePercent, null)
+})
+
+test('un activo sin cotizacion no aporta variacion aunque el precio traiga una', () => {
+  const { holdings, dayChangePercent } = aggregatePortfolio([holding('AL30', 100, 60, 'bond')], {
+    AL30: price('AL30', null, 2),
+  })
+  assert.equal(holdings[0]!.dayChangePercent, null)
+  assert.equal(dayChangePercent, null)
 })

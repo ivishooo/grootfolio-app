@@ -28,6 +28,7 @@ import { Screen } from '@/components/ui/Screen'
 import { Button } from '@/components/ui/Button'
 import { FormField } from '@/components/ui/FormField'
 import { AssetAvatar } from '@/components/ui/AssetAvatar'
+import { DayChip } from '@/components/ui/DayChip'
 import { EmptyState, ErrorState } from '@/components/ui/States'
 import { useMoney, signedMoney } from '@/lib/money'
 
@@ -150,6 +151,9 @@ export function AssetsScreen() {
               <View style={{ padding: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: theme.border.default }}>
                 <Text style={{ color: theme.text.secondary, fontSize: 13 }}>Valor hoy</Text>
                 <Text style={{ color: theme.text.primary, fontSize: 26, fontWeight: '800', letterSpacing: -0.8, marginTop: 4, fontVariant: ['tabular-nums'] }}>{money.format(total)}</Text>
+                <View style={{ marginVertical: 4 }}>
+                  <DayChip pct={p.dayChangePercent} testID="chip-hoy-activos" />
+                </View>
                 <Text style={{ color: theme.text.muted, fontSize: 12 }}>{holdings.length} {holdings.length === 1 ? 'posición' : 'posiciones'}</Text>
               </View>
               <View style={{ flexDirection: 'row' }}>
@@ -269,7 +273,10 @@ function HoldingRow({ holding: h, first, total, transactions, expanded, onToggle
       >
         <AssetAvatar asset={h.asset} size={38} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ color: theme.text.primary, fontSize: 13.5, fontWeight: '600' }}>{h.asset.name}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <Text numberOfLines={1} style={{ flexShrink: 1, color: theme.text.primary, fontSize: 13.5, fontWeight: '600' }}>{h.asset.name}</Text>
+            <DayChip pct={sinCot ? null : h.dayChangePercent} size="sm" />
+          </View>
           <Text numberOfLines={1} style={{ color: theme.text.muted, fontSize: 11.5 }}>
             {formatQuantity(h.quantity)} {h.asset.symbol} · {share} % del total
           </Text>

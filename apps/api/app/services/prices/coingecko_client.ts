@@ -1,6 +1,7 @@
 /**
  * Cliente HTTP minimo para CoinGecko. Una sola operacion expuesta:
  * `fetchSimplePrice(ids)` que dispara `/simple/price` con vs_currencies=usd
+ * (y la variacion de 24 h, GF-019)
  * y devuelve el mapa crudo. El cache y el mapeo symbol→id viven en price_service.
  *
  * Si COINGECKO_API_KEY esta configurada, se manda el header `x-cg-demo-api-key`
@@ -14,7 +15,7 @@ import env from '#start/env'
 
 const BASE_URL = 'https://api.coingecko.com/api/v3'
 
-export type SimplePriceResponse = Record<string, { usd?: number } | undefined>
+export type SimplePriceResponse = Record<string, { usd?: number; usd_24h_change?: number } | undefined>
 
 export class CoinGeckoRateLimitError extends Error {
   constructor(message = 'CoinGecko rate limit (HTTP 429)') {
@@ -29,6 +30,8 @@ export async function fetchSimplePrice(coingeckoIds: string[]): Promise<SimplePr
   const url = new URL(`${BASE_URL}/simple/price`)
   url.searchParams.set('ids', coingeckoIds.join(','))
   url.searchParams.set('vs_currencies', 'usd')
+  // Variacion de 24 h para el chip "hoy" (GF-019): viene en la misma llamada.
+  url.searchParams.set('include_24hr_change', 'true')
 
   const headers: Record<string, string> = { Accept: 'application/json' }
   const apiKey = env.get('COINGECKO_API_KEY')

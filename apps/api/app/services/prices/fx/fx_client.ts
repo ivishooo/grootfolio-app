@@ -104,6 +104,21 @@ export async function fetchCclRateToUsd(): Promise<number | null> {
 }
 
 /**
+ * Dolar oficial del Banco Nacion (BNA) via dolarapi.com (`/dolares/oficial`).
+ * Es la cotizacion con la que se valua el dolar como divisa (ADR-0007): el que
+ * compra dolares en el banco los paga a este precio, no al CCL. Devuelve
+ * `rateToUsd` para ARS (USD por 1 ARS).
+ */
+export async function fetchBnaRateToUsd(): Promise<number | null> {
+  const res = await fetch(`${DOLARAPI_BASE}/dolares/oficial`, { headers: JSON_HEADERS })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`dolarapi HTTP ${res.status}: ${body.slice(0, 200)}`)
+  }
+  return dolarApiRateToUsd((await res.json()) as DolarApiPayload)
+}
+
+/**
  * Dolar historico por fecha via argentinadatos.com. `date` en yyyy-MM-dd y
  * `casa` el tipo de dolar ('contadoconliqui' u 'oficial'). Devuelve `rateToUsd`
  * para ARS en esa fecha.

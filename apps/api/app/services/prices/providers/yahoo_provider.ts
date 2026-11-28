@@ -20,12 +20,14 @@
  * roto se marca `unsupported` y los demas cotizan igual.
  */
 import YahooFinance from 'yahoo-finance2'
+import { pctChange } from '../day_change.js'
 import type { AssetRef, PriceProvider, ProviderQuote } from './types.js'
 import { toYahooSymbol } from './yahoo_symbol_map.js'
 
 interface YahooQuoteShape {
   symbol?: string
   regularMarketPrice?: number
+  regularMarketPreviousClose?: number
   currency?: string
 }
 
@@ -179,10 +181,12 @@ async function withCedears(hits: StockSearchHit[]): Promise<StockSearchHit[]> {
 /** Unica lectura del shape de Yahoo: lo que no cumpla el contrato es null. */
 function toQuote(raw: YahooQuoteShape | undefined): ProviderQuote | null {
   if (!raw) return null
-  const { regularMarketPrice: price, currency } = raw
+  const { regularMarketPrice: price, regularMarketPreviousClose: previousClose, currency } = raw
   if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) return null
   if (!currency) return null
-  return { price, currency: currency.toUpperCase() }
+  // Variacion contra el cierre anterior, en la moneda en que cotiza (GF-019).
+  const dayChangePct = typeof previousClose === 'number' ? pctChange(price, previousClose) : null
+  return { price, currency: currency.toUpperCase(), dayChangePct }
 }
 
 export const yahooProvider: PriceProvider = {

@@ -7,6 +7,7 @@
  */
 import { CoinGeckoRateLimitError, fetchSimplePrice } from '../coingecko_client.js'
 import { CG_SYMBOL_TO_ID } from '../coingecko_symbol_map.js'
+import { asPct } from '../day_change.js'
 import type { AssetRef, PriceProvider, ProviderQuote } from './types.js'
 
 export const coingeckoProvider: PriceProvider = {
@@ -34,7 +35,10 @@ export const coingeckoProvider: PriceProvider = {
     for (const id of ids) {
       const symbol = idToSymbol.get(id)!
       const price = remote[id]?.usd
-      out[symbol] = typeof price === 'number' ? { price, currency: 'USD' } : null
+      out[symbol] =
+        typeof price === 'number'
+          ? { price, currency: 'USD', dayChangePct: asPct(remote[id]?.usd_24h_change) }
+          : null
     }
     return out
   },
